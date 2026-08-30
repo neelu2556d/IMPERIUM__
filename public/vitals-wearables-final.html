@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Vitals · wearables</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#000; --mint:#6EE7B7; --mint-deep:#1f4d3d; --mint-glow:rgba(110,231,183,.4);
+    --ink:#e9efec; --muted:#8a948f; --faint:#5b635f; --line:rgba(255,255,255,.08);
+    --serif:'Instrument Serif',Georgia,serif; --sans:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-weight:300;min-height:100vh;-webkit-font-smoothing:antialiased;overflow:hidden}
+  body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:99;opacity:.035;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+  /* ── the arm lives in a zone that STARTS below the cards, so it can never
+        touch a tile. Anything above the zone top is clipped (in empty space). ── */
+  .armclip{position:fixed;left:0;right:0;top:450px;bottom:0;overflow:hidden;z-index:1;pointer-events:none}
+  .arm{position:absolute;right:-50px;bottom:-300px;width:min(820px,55vw);
+    transform:scaleX(-1) rotate(-7deg);opacity:0;
+    filter:drop-shadow(0 30px 70px rgba(0,0,0,.6)) contrast(1.04) brightness(1.04);
+    animation:armIn 1.5s cubic-bezier(.18,.86,.32,1) .2s forwards}
+  .arm img{display:block;width:100%;height:auto}
+  /* a soft mint glow blooms behind the wrist/band, then fades — adds the "pop" */
+  .armglow{position:absolute;z-index:0;right:12vw;bottom:0;width:340px;height:340px;pointer-events:none;
+    background:radial-gradient(circle,var(--mint-glow),transparent 66%);filter:blur(58px);opacity:0;
+    animation:glowIn 2s ease 1s forwards}
+  /* pops out of the corner with a little overshoot, then holds dead still */
+  @keyframes armIn{
+    0%{opacity:0;transform:scaleX(-1) rotate(-7deg) translate(110px,90px) scale(.93)}
+    62%{opacity:1;transform:scaleX(-1) rotate(-7deg) translate(-6px,-6px) scale(1.01)}
+    100%{opacity:1;transform:scaleX(-1) rotate(-7deg) translate(0,0) scale(1)}
+  }
+  @keyframes glowIn{from{opacity:0}to{opacity:.28}}
+  @media (prefers-reduced-motion:reduce){.arm{animation:none;opacity:1;transform:scaleX(-1) rotate(-7deg)}.armglow{animation:none;opacity:.28}}
+
+  /* content above the arm — compact, so the arm gets room to show */
+  .page{position:relative;z-index:2;max-width:1340px;margin:0 auto;padding:34px 56px 0}
+  .eyebrow{display:flex;align-items:center;gap:16px}
+  .back{font-family:var(--mono);font-size:12px;letter-spacing:.22em;color:var(--mint);text-transform:uppercase;text-decoration:none}
+  .sep{width:1px;height:11px;background:var(--line)}
+  .vtag{font-family:var(--mono);font-size:12px;letter-spacing:.3em;color:var(--faint);text-transform:uppercase}
+  h1{font-family:var(--serif);font-style:italic;font-weight:400;font-size:60px;line-height:1;letter-spacing:-.01em;margin-top:14px}
+  .sub{font-family:var(--mono);font-size:13px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-top:14px;line-height:1.85;max-width:560px}
+  .seclabel{display:flex;align-items:center;gap:12px;margin-top:22px}
+  .seclabel .n{font-family:var(--serif);font-style:italic;font-size:18px;color:var(--mint)}
+  .seclabel .t{font-family:var(--mono);font-size:12px;letter-spacing:.28em;color:var(--faint);text-transform:uppercase}
+  .devices{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:16px;max-width:1180px}
+  /* tiles are frosted glass — they sit OVER the arm, keeping text crisp while
+     letting the arm read softly behind the right-hand ones */
+  .dev{border:1px solid var(--line);border-radius:14px;padding:18px;min-height:188px;position:relative;
+    background:rgba(8,10,9,.72);backdrop-filter:blur(22px) saturate(1.05);-webkit-backdrop-filter:blur(22px) saturate(1.05)}
+  .dev.on{border-color:var(--mint-deep);background:linear-gradient(180deg,rgba(110,231,183,.08),rgba(8,10,9,.74))}
+  .dev .ic{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);display:grid;place-items:center;color:var(--muted)}
+  .dev.on .ic{color:var(--mint);border-color:var(--mint-deep)}
+  .dev .pill{position:absolute;top:16px;right:16px;font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);border:1px solid var(--line);border-radius:100px;padding:5px 10px}
+  .dev.on .pill{color:var(--mint);border-color:var(--mint-deep)}
+  .dev h3{font-family:var(--serif);font-style:italic;font-size:24px;font-weight:400;margin-top:24px}
+  .dev .meta{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--faint);text-transform:lowercase;margin-top:7px}
+  .dev .go{font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--mint);position:absolute;left:18px;bottom:16px}
+</style>
+</head>
+<body>
+  <div class="armclip">
+    <div class="armglow"></div>
+    <div class="arm"><img src="vitals-wrist.png" alt="" /></div>
+  </div>
+
+  <div class="page">
+    <div class="eyebrow"><a class="back" href="#">← Vitality</a><span class="sep"></span><span class="vtag">Vitals</span></div>
+    <h1>your wearables</h1>
+    <div class="sub">Connect a device and I turn its data into advice built around your goals.</div>
+    <div class="seclabel"><span class="n">·01</span><span class="t">Devices</span></div>
+    <div class="devices">
+      <div class="dev on"><div class="ic" data-i="PULSE"></div><span class="pill">connected</span><h3>WHOOP</h3><div class="meta">recovery · sleep · strain</div><span class="go">view your readings →</span></div>
+      <div class="dev"><div class="ic" data-i="RING"></div><span class="pill">soon</span><h3>Oura</h3><div class="meta">sleep · readiness</div></div>
+      <div class="dev"><div class="ic" data-i="WATCH"></div><span class="pill">soon</span><h3>Apple Watch</h3><div class="meta">heart · activity</div></div>
+      <div class="dev"><div class="ic" data-i="DOTS"></div><span class="pill">soon</span><h3>Fitbit</h3><div class="meta">steps · sleep</div></div>
+    </div>
+  </div>
+
+<script>
+  const icons={
+    PULSE:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2 6 4-14 2 8h6"/></svg>',
+    RING:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.2"/></svg>',
+    WATCH:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="7" y="6" width="10" height="12" rx="3"/><path d="M9 6l.5-3h5l.5 3M9 18l.5 3h5l.5-3"/></svg>',
+    DOTS:'<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="8" r="1.6"/><circle cx="16" cy="8" r="1.6"/><circle cx="8" cy="16" r="1.6"/><circle cx="16" cy="16" r="1.6"/><circle cx="12" cy="12" r="1.6"/></svg>'
+  };
+  document.querySelectorAll('.ic').forEach(el=>el.innerHTML=icons[el.dataset.i]);
+</script>
+</body>
+</html>

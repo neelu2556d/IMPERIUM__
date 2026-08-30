@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Vitality · Vee's read on your life</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#04060a; --fg:#f3f1fb;
+    --iris:#a78bfa; --iris-hi:#c4b5fd; --iris-glow:rgba(167,139,250,0.42); --iris-ink:#1c1240;
+    --mint:#6EE7B7; --mint-hi:#A7F3D0; --mint-deep:#1f4d3d; --mint-ink:#04221a; --mint-glow:rgba(110,231,183,0.4);
+    --amber:#F59E0B; --amber-hi:#fbbf3f; --amber-bd:rgba(245,158,11,0.36); --amber-ink:#2a1c02; --amber-glow:rgba(245,158,11,0.4);
+    --muted:rgba(233,239,233,0.52); --muted-strong:rgba(233,239,233,0.72);
+    --border:rgba(255,255,255,0.08); --border-strong:rgba(255,255,255,0.16);
+    --card:rgba(255,255,255,0.02);
+    /* OG Fortnite rarity spectrum, tuned to live beside Vitality's palette */
+    --r-common:#aeb6c2; --r-uncommon:#56e08a; --r-rare:#43a6ff; --r-epic:#b98cff; --r-legendary:#ffae3a; --r-mythic:#fdf3d6;
+    --serif:'Instrument Serif', Georgia, serif; --mono:'JetBrains Mono', ui-monospace, monospace; --body:'Inter', -apple-system, system-ui, sans-serif;
+    --ease:cubic-bezier(0.22,1,0.36,1); --spring:cubic-bezier(0.34,1.56,0.64,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:var(--body);background:var(--bg);color:var(--fg);line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh;position:relative;overflow-x:hidden}
+  body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+    background:
+      radial-gradient(60% 40vh at 50% 0%, rgba(167,139,250,0.17), transparent 72%),
+      radial-gradient(40% 30vh at 50% 46%, rgba(167,139,250,0.06), transparent 70%),
+      radial-gradient(52% 40vh at 50% 104%, rgba(31,77,61,0.13), transparent 72%)}
+  body::after{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0.03;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+  .wrap{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:0 24px 120px}
+
+  /* ============ app-like top bar ============ */
+  .bar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:12px;padding:14px 0 13px;margin-bottom:2px;
+    background:linear-gradient(180deg, rgba(4,6,10,0.94), rgba(4,6,10,0.72) 70%, transparent);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+  .brand{display:inline-flex;align-items:center;gap:9px}
+  .brand .mark{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;border:1px solid rgba(167,139,250,0.48);background:rgba(167,139,250,0.14);color:var(--iris-hi)}
+  .brand .nm{font-family:var(--serif);font-style:italic;font-size:1.18rem;color:var(--fg);line-height:1}
+  .brand .nm span{color:var(--iris-hi)}
+  .bar .who{font-family:var(--mono);font-size:0.54rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);border:1px solid var(--border);border-radius:999px;padding:5px 10px}
+  .bar .spacer{flex:1}
+  .seg{display:inline-flex;border:1px solid var(--border-strong);border-radius:999px;padding:2px;background:rgba(255,255,255,0.02)}
+  .segb{font-family:var(--mono);font-size:0.52rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);background:transparent;border:0;border-radius:999px;padding:6px 11px;cursor:pointer;transition:.22s var(--ease)}
+  .segb.on{color:var(--iris-ink);background:var(--iris-hi);box-shadow:0 0 16px -5px var(--iris-glow)}
+  @media(max-width:520px){.bar .who{display:none}}
+
+  /* ============ hero ============ */
+  .hero{position:relative;padding:52px 0 26px}
+  .field{position:absolute;inset:-6% -8% 8%;z-index:0;pointer-events:none;overflow:hidden}
+  .field svg{position:absolute;opacity:0;color:var(--muted)}
+  .scan{position:absolute;left:50%;top:0;width:140%;height:2px;transform:translateX(-50%);
+    background:linear-gradient(90deg,transparent,rgba(167,139,250,0.55),transparent);
+    box-shadow:0 0 26px 3px rgba(167,139,250,0.32);opacity:0;animation:scanDrop 7s var(--ease) 0.6s infinite}
+  @keyframes scanDrop{0%{top:2%;opacity:0}8%{opacity:.9}50%{top:96%;opacity:.7}58%{opacity:0}100%{top:96%;opacity:0}}
+  .hero-in{position:relative;z-index:2}
+  .eyebrow{display:inline-flex;align-items:center;gap:11px;font-family:var(--mono);font-size:0.66rem;letter-spacing:0.24em;text-transform:uppercase;color:var(--iris-hi);opacity:0;animation:rise .8s var(--ease) .1s both}
+  .eyebrow .dot{width:5px;height:5px;border-radius:50%;background:var(--iris);box-shadow:0 0 9px var(--iris);animation:pulse 2.6s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:.55;transform:scale(.85)}50%{opacity:1;transform:scale(1.15)}}
+  .promise{font-family:var(--serif);font-style:italic;font-weight:400;letter-spacing:-0.012em;font-size:clamp(1.9rem,5.1vw,3.05rem);line-height:1.17;margin:20px 0 0;max-width:19ch}
+  .promise .ln{display:block;opacity:0;transform:translateY(20px);filter:blur(6px);animation:lift 1.05s var(--ease) both}
+  .promise .ln:nth-child(1){animation-delay:.26s}
+  .promise .ln:nth-child(2){animation-delay:.46s}
+  .promise .glow{color:var(--iris-hi);text-shadow:0 0 38px var(--iris-glow)}
+  .promise .mintword{color:var(--mint-hi);text-shadow:0 0 30px var(--mint-glow)}
+  @keyframes lift{to{opacity:1;transform:none;filter:blur(0)}}
+  .sub{margin-top:22px;max-width:52ch;color:var(--muted-strong);font-size:1.02rem;line-height:1.62;opacity:0;animation:rise 1s var(--ease) .9s both}
+  .sub b{color:var(--fg);font-weight:600}
+
+  /* the run-stats strip: proof Vee has been on it */
+  .stats{display:flex;flex-wrap:wrap;gap:9px;margin-top:24px;opacity:0;animation:rise 1s var(--ease) 1.15s both}
+  .stat{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:0.6rem;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted-strong);border:1px solid var(--border);background:rgba(255,255,255,0.02);border-radius:10px;padding:8px 11px}
+  .stat b{color:var(--iris-hi);font-weight:600}
+  .stat svg{width:12px;height:12px;color:var(--iris-hi);opacity:.9;flex:none}
+
+  /* ============ section chrome ============ */
+  .section{margin-top:56px}
+  .sec-head{display:flex;align-items:center;gap:13px;margin-bottom:11px}
+  .sec-head .num{font-family:var(--serif);font-style:italic;font-size:1.2rem;color:var(--iris-hi);line-height:1}
+  .sec-head .lbl{font-family:var(--mono);font-size:0.68rem;letter-spacing:0.21em;text-transform:uppercase;color:var(--muted-strong)}
+  .sec-head .rule{flex:1;height:1px;background:linear-gradient(90deg,var(--border-strong),transparent)}
+  .sec-blurb{color:var(--muted);max-width:62ch;margin:0 0 20px;font-size:0.95rem;line-height:1.6}
+  .sec-blurb i{font-family:var(--serif);font-style:italic;font-size:1.1em;color:var(--iris-hi)}
+  .sec-blurb b{color:var(--mint-hi);font-weight:600}
+
+  /* ============ rarity collection ============ */
+  .rarity-wrap{border:1px solid var(--border);border-radius:16px;background:var(--card);padding:18px 20px}
+  .rarity-wrap .lh{font-family:var(--mono);font-size:0.56rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);margin-bottom:15px;display:flex;align-items:center;gap:9px}
+  .rarity-wrap .lh .spacer{flex:1}
+  .rarity-wrap .lh .tot{color:var(--iris-hi)}
+  .rarities{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+  @media(max-width:600px){.rarities{grid-template-columns:repeat(3,1fr)}}
+  .rchip{position:relative;border:1px solid color-mix(in srgb, var(--rc) 38%, transparent);border-radius:11px;padding:13px 8px 9px;text-align:center;cursor:default;
+    background:linear-gradient(180deg, color-mix(in srgb, var(--rc) 11%, transparent), transparent);transition:transform .3s var(--spring),box-shadow .3s var(--ease)}
+  .rchip:hover{transform:translateY(-3px);box-shadow:0 0 22px -8px var(--rc)}
+  .rchip .rgem{width:9px;height:9px;margin:0 auto 8px;transform:rotate(45deg);background:var(--rc);border-radius:2px;box-shadow:0 0 10px color-mix(in srgb, var(--rc) 70%, transparent)}
+  .rchip .rname{display:block;font-family:var(--mono);font-size:0.56rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--rc)}
+  .rchip .rcount{display:block;margin-top:5px;font-family:var(--serif);font-style:italic;font-size:1.35rem;line-height:1;color:var(--fg)}
+  .rchip .rmean{display:block;margin-top:6px;font-size:0.62rem;color:var(--muted);line-height:1.3}
+  .rchip.cur{box-shadow:0 0 26px -8px var(--rc), inset 0 0 0 1px color-mix(in srgb, var(--rc) 60%, transparent);background:linear-gradient(180deg, color-mix(in srgb, var(--rc) 20%, transparent), transparent)}
+  .rchip.cur::after{content:'just found';position:absolute;left:50%;bottom:-9px;transform:translateX(-50%);font-family:var(--mono);font-size:0.42rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--rc);background:var(--bg);padding:0 6px;white-space:nowrap}
+  .rchip.r-mythic .rgem{animation:mythpulse 1.6s ease-in-out infinite}
+  @keyframes mythpulse{0%,100%{box-shadow:0 0 8px rgba(253,243,214,0.5)}50%{box-shadow:0 0 20px rgba(253,243,214,0.98)}}
+  .r-common{--rc:var(--r-common)} .r-uncommon{--rc:var(--r-uncommon)} .r-rare{--rc:var(--r-rare)} .r-epic{--rc:var(--r-epic)} .r-legendary{--rc:var(--r-legendary)} .r-mythic{--rc:var(--r-mythic)}
+  .rarity-note{margin-top:16px;font-size:0.82rem;color:var(--muted);line-height:1.6}
+  .rarity-note b{color:var(--mint-hi);font-weight:600}
+
+  /* ============ the insight feed ============ */
+  .feed{display:flex;flex-direction:column;gap:20px}
+  .found-eyebrow{text-align:center;margin:6px 0 2px;font-family:var(--mono);font-size:0.6rem;letter-spacing:0.22em;text-transform:uppercase;color:var(--iris-hi);display:flex;align-items:center;justify-content:center;gap:12px}
+  .found-eyebrow .ln{flex:1;max-width:90px;height:1px;background:linear-gradient(90deg,transparent,var(--iris-hi))}
+  .found-eyebrow .ln.r{background:linear-gradient(90deg,var(--iris-hi),transparent)}
+
+  .arrive{opacity:0}
+  .arrive.in{animation:arrive .95s var(--spring) both}
+  @keyframes arrive{0%{opacity:0;transform:translateY(24px) scale(.97);filter:blur(7px)}60%{opacity:1;filter:blur(0)}100%{opacity:1;transform:none;filter:blur(0)}}
+
+  .vc{position:relative;border:1px solid rgba(167,139,250,0.34);border-radius:20px;overflow:hidden;
+    background:radial-gradient(135% 100% at 0% 0%, rgba(167,139,250,0.10), transparent 55%), linear-gradient(180deg, rgba(167,139,250,0.05), rgba(255,255,255,0.004));
+    box-shadow:0 0 70px -30px var(--iris-glow), 0 30px 80px -50px rgba(0,0,0,0.8);display:flex;flex-direction:column;
+    transition:border-color .35s var(--ease), box-shadow .35s var(--ease)}
+  .vc:hover{border-color:rgba(167,139,250,0.5);box-shadow:0 0 80px -24px var(--iris-glow), 0 30px 80px -50px rgba(0,0,0,0.8)}
+  .vc::before{content:'';position:absolute;inset:0;border-radius:20px;pointer-events:none;box-shadow:inset 0 0 1px rgba(196,181,253,0.5);opacity:.6}
+  .vc .rarity-edge{height:3px;width:100%;background:linear-gradient(90deg, transparent, var(--rc), transparent);box-shadow:0 0 18px -2px var(--rc)}
+  /* legendary + mythic wear their rarity harder */
+  .vc.rar-legendary{box-shadow:0 0 74px -28px color-mix(in srgb, var(--r-legendary) 55%, transparent), 0 30px 80px -50px rgba(0,0,0,0.85)}
+  .vc.rar-mythic{border-color:color-mix(in srgb, var(--r-mythic) 42%, transparent);box-shadow:0 0 90px -26px rgba(253,243,214,0.5), 0 30px 80px -50px rgba(0,0,0,0.9)}
+  .vc.rar-mythic::before{box-shadow:inset 0 0 2px rgba(253,243,214,0.6);opacity:.8}
+
+  .vt-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:18px 23px 0}
+  .vt-echo{flex:none;width:26px;height:26px;border-radius:8px;display:grid;place-items:center;border:1px solid rgba(167,139,250,0.48);background:rgba(167,139,250,0.14);color:var(--iris-hi)}
+  .vt-tag{font-family:var(--mono);font-size:0.58rem;font-weight:500;letter-spacing:0.21em;text-transform:uppercase;color:var(--iris-hi)}
+  .rbadge{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:0.52rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;
+    color:var(--rc);border:1px solid color-mix(in srgb, var(--rc) 45%, transparent);background:color-mix(in srgb, var(--rc) 10%, transparent);
+    border-radius:999px;padding:4px 9px;transition:transform .2s var(--spring),box-shadow .3s var(--ease)}
+  .rbadge .gem{width:7px;height:7px;transform:rotate(45deg);background:var(--rc);border-radius:1px;box-shadow:0 0 8px var(--rc)}
+  .rbadge:hover{transform:translateY(-1px);box-shadow:0 0 18px -4px var(--rc)}
+  .vt-spacer{flex:1}
+  .vt-watched{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:0.52rem;letter-spacing:0.07em;text-transform:uppercase;color:var(--muted);border:1px solid var(--border);border-radius:999px;padding:5px 10px}
+  .vt-watched svg{width:11px;height:11px;flex:none}
+  @media(max-width:520px){.vt-watched{font-size:0.46rem;padding:4px 8px}}
+
+  .vt-body{padding:16px 23px 22px;display:flex;flex-direction:column}
+  .vt-lead{font-family:var(--body);font-weight:450;font-size:1.2rem;line-height:1.55;color:var(--fg);letter-spacing:-0.004em}
+  @media(max-width:560px){.vt-lead{font-size:1.08rem}}
+  .vt-lead .km{color:var(--mint-hi);font-weight:600}
+  .vt-lead .ka{color:var(--amber-hi);font-weight:600}
+  .vt-lead .key{color:var(--mint-hi);font-weight:700;border-bottom:2px solid rgba(110,231,183,0.55);padding-bottom:1px;text-shadow:0 0 22px var(--mint-glow)}
+  .lead-simple{display:none}
+  body.mode-simple .lead-detailed{display:none}
+  body.mode-simple .lead-simple{display:block}
+  body.mode-simple .chips{display:none}
+
+  .impact{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:18px;padding-top:16px;border-top:1px solid var(--border)}
+  .impact .il{font-family:var(--mono);font-size:0.52rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted)}
+  .gimp{display:inline-flex;align-items:center;gap:6px;font-size:0.8rem;font-weight:600;border:1px solid;border-radius:999px;padding:5px 11px;color:var(--mint-hi);border-color:rgba(110,231,183,0.4);background:rgba(110,231,183,0.06)}
+  .gimp svg{width:11px;height:11px}
+  .chips{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-top:16px}
+  .chip{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:0.57rem;letter-spacing:0.05em;text-transform:uppercase;color:var(--muted-strong);border:1px solid var(--border);background:rgba(255,255,255,0.02);border-radius:10px;padding:7px 10px}
+  .chip.m{color:var(--mint-hi);border-color:rgba(110,231,183,0.28)}
+  .chip.a{color:var(--amber-hi);border-color:var(--amber-bd)}
+  .chip svg{width:11px;height:11px;flex:none}
+  .acts{display:flex;gap:9px;flex-wrap:wrap;margin-top:22px}
+  .act{display:inline-flex;align-items:center;gap:8px;font:500 0.87rem var(--body);background:transparent;border:1px solid;border-radius:12px;padding:12px 17px;cursor:pointer;white-space:nowrap;transition:color .26s var(--ease),background .26s var(--ease),border-color .26s var(--ease),transform .22s var(--ease),box-shadow .3s var(--ease)}
+  .act svg{width:15px;height:15px;flex:none;transition:transform .42s var(--spring)}
+  .act:active{transform:scale(.97)}
+  .a-mint{color:var(--mint-ink);background:var(--mint);border-color:var(--mint)}
+  .a-mint:hover{transform:translateY(-2px);box-shadow:0 14px 30px -14px var(--mint-glow)}
+  .a-mint:hover svg{transform:scale(1.16)}
+  .cl-b{display:inline-flex;align-items:center;gap:9px;font:500 0.87rem var(--body);color:var(--iris-hi);background:transparent;border:1px solid rgba(167,139,250,0.44);border-radius:12px;padding:12px 17px;cursor:pointer;transition:.26s var(--ease)}
+  .cl-b svg{width:15px;height:15px;transition:.4s var(--spring)}
+  .cl-b:hover{color:var(--iris-ink);background:var(--iris);border-color:var(--iris);transform:translateY(-2px);box-shadow:0 14px 30px -14px var(--iris-glow)}
+  .cl-b:hover svg{transform:rotate(90deg) scale(1.1)}
+
+  /* ============ the climb graph (a live signal) ============ */
+  .climb{width:100%;margin:0;border:1px solid var(--border);border-radius:18px;overflow:hidden;
+    background:radial-gradient(120% 100% at 0% 0%, rgba(110,231,183,0.05), transparent 58%), linear-gradient(180deg, rgba(255,255,255,0.018), rgba(255,255,255,0.004));
+    box-shadow:0 0 50px -34px var(--mint-glow)}
+  .climb-top{display:flex;align-items:center;gap:10px;padding:16px 20px 0}
+  .climb-top .ct{font-family:var(--mono);font-size:0.6rem;letter-spacing:0.16em;text-transform:uppercase;color:var(--mint-hi)}
+  .climb-top .cspacer{flex:1}
+  .climb-top .cmeta{font-family:var(--mono);font-size:0.55rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted)}
+  .climb-chart{padding:6px 12px 14px}
+  .climb-chart svg{width:100%;height:auto;display:block;overflow:visible}
+  .gridline{stroke:rgba(255,255,255,0.05);stroke-width:1}
+  .baseline{stroke:rgba(255,255,255,0.16);stroke-width:1.2}
+  .targetline{stroke:var(--mint);stroke-width:1.4;stroke-dasharray:5 5;opacity:.32}
+  .targetlbl{font-family:var(--mono);font-size:9px;letter-spacing:0.12em;fill:rgba(110,231,183,0.6);text-transform:uppercase}
+  .climbline{fill:none;stroke:url(#climbgrad);stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:var(--len);stroke-dashoffset:var(--len);filter:drop-shadow(0 0 7px rgba(110,231,183,0.4))}
+  .play .climbline{animation:draw 1.7s var(--ease) .25s forwards}
+  @keyframes draw{to{stroke-dashoffset:0}}
+  .cdot{fill:#04060a;stroke:var(--mint-hi);stroke-width:2;opacity:0;transform-box:fill-box;transform-origin:center}
+  .play .cdot{animation:pop .42s var(--spring) both}
+  @keyframes pop{0%{opacity:0;transform:scale(0)}70%{opacity:1;transform:scale(1.35)}100%{opacity:1;transform:scale(1)}}
+  .clbl{font-family:var(--mono);font-size:9.5px;font-weight:500;fill:var(--mint-hi);text-anchor:middle;opacity:0}
+  .play .clbl{animation:fadein .4s var(--ease) both}
+  .cdate{font-family:var(--mono);font-size:8px;letter-spacing:0.04em;fill:var(--muted);text-anchor:middle;text-transform:uppercase}
+  @keyframes fadein{to{opacity:1}}
+
+  /* ============ engine ladder ============ */
+  .ladder{border:1px solid var(--border);border-radius:16px;background:var(--card);padding:18px 20px}
+  .ladder .lh{font-family:var(--mono);font-size:0.56rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);margin-bottom:15px}
+  .steps{display:flex;flex-direction:column;gap:12px}
+  .step{display:flex;gap:12px;align-items:flex-start}
+  .step .pip{flex:none;width:22px;height:22px;border-radius:7px;display:grid;place-items:center;font-family:var(--mono);font-size:0.62rem;font-weight:600;border:1px solid var(--border-strong);color:var(--muted)}
+  .step .st{font-size:0.94rem;color:var(--muted-strong)}
+  .step .st b{color:var(--fg);font-weight:600}
+  .step.done .pip{border-color:var(--mint);color:var(--mint-ink);background:var(--mint);box-shadow:0 0 20px -6px var(--mint-glow)}
+  .step.done .st b{color:var(--mint-hi)}
+  .step.on .pip{border-color:var(--iris);color:var(--iris-ink);background:var(--iris-hi);box-shadow:0 0 20px -6px var(--iris-glow)}
+  .step.on .st b{color:var(--iris-hi)}
+  .step .now{font-family:var(--mono);font-size:0.5rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--iris-hi);border:1px solid rgba(167,139,250,0.4);border-radius:999px;padding:2px 7px;margin-left:6px;white-space:nowrap}
+
+  /* ============ closer ============ */
+  .closer{text-align:center;margin:56px auto 0;max-width:36ch}
+  .closer .big{font-family:var(--serif);font-style:italic;font-size:clamp(1.5rem,4vw,2.15rem);line-height:1.25;color:var(--fg)}
+  .closer .big .glow{color:var(--iris-hi);text-shadow:0 0 30px var(--iris-glow)}
+  .closer .small{margin-top:14px;font-size:0.92rem;color:var(--muted);line-height:1.6}
+
+  .flag{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:30;display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:0.55rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);background:rgba(8,10,16,0.78);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid var(--border);border-radius:999px;padding:7px 14px}
+  .flag .d{width:5px;height:5px;border-radius:50%;background:var(--iris);box-shadow:0 0 7px var(--iris)}
+
+  @keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none !important;transition:none !important}
+    .promise .ln,.sub,.eyebrow,.stats{opacity:1 !important;transform:none !important;filter:none !important}
+    .arrive{opacity:1 !important}
+    .climbline{stroke-dashoffset:0 !important}
+    .cdot,.clbl{opacity:1 !important}
+    .scan{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ============ app-like top bar ============ -->
+  <div class="bar">
+    <span class="brand">
+      <span class="mark"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7l7 11 7-11"/></svg></span>
+      <span class="nm">Vitality <span>&middot; Vee</span></span>
+    </span>
+    <span class="who">signed in &middot; you</span>
+    <span class="spacer"></span>
+    <div class="seg" id="seg">
+      <button class="segb on" data-mode="detailed">detailed</button>
+      <button class="segb" data-mode="simple">simple</button>
+    </div>
+  </div>
+
+  <!-- ============ hero ============ -->
+  <section class="hero">
+    <div class="field" id="field"><div class="scan"></div></div>
+    <div class="hero-in">
+      <span class="eyebrow"><span class="dot"></span>your insight feed &middot; live</span>
+      <h1 class="promise">
+        <span class="ln">Vee has watched you for <span class="mintword">eight months</span>.</span>
+        <span class="ln">Here is what she <span class="glow">figured out</span>.</span>
+      </h1>
+      <p class="sub">Every lift, weigh-in, meal, quiet night and unplanned spend goes in. On its own, noise. Held all at once, patterns start to glow. These are the links Vee found in <b>your</b> life, graded by how rare and how deep they are.</p>
+
+      <div class="stats">
+        <span class="stat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg><b>247</b> days logged</span>
+        <span class="stat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 19h16M9 15l3-4 3 2 4-6"/></svg><b>6</b> modules feeding in</span>
+        <span class="stat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5z"/></svg><b>49</b> insights found</span>
+        <span class="stat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7 7 .5-5.5 4.5 2 7-6.5-4-6.5 4 2-7L2 9.5 9 9z"/></svg><b>1</b> mythic unlocked</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 01 · the collection ============ -->
+  <section class="section">
+    <div class="sec-head"><span class="num">&middot;01</span><span class="lbl">The collection</span><span class="rule"></span></div>
+    <p class="sec-blurb">Like the old loot, every insight is graded by how rare it is. The rarer it is, the deeper it goes, and the more of your life it took to find. You keep logging, you keep unlocking. <b>The mythic one only surfaces once.</b></p>
+    <div class="rarity-wrap">
+      <div class="lh">your insight collection<span class="spacer"></span><span class="tot">49 found</span></div>
+      <div class="rarities">
+        <div class="rchip r-common"><span class="rgem"></span><span class="rname">common</span><span class="rcount">23</span><span class="rmean">a small true nudge</span></div>
+        <div class="rchip r-uncommon"><span class="rgem"></span><span class="rname">uncommon</span><span class="rcount">11</span><span class="rmean">a solid single link</span></div>
+        <div class="rchip r-rare"><span class="rgem"></span><span class="rname">rare</span><span class="rcount">8</span><span class="rmean">a link you would miss</span></div>
+        <div class="rchip r-epic"><span class="rgem"></span><span class="rname">epic</span><span class="rcount">4</span><span class="rmean">two or three, one story</span></div>
+        <div class="rchip r-legendary"><span class="rgem"></span><span class="rname">legendary</span><span class="rcount">2</span><span class="rmean">the lever for a big goal</span></div>
+        <div class="rchip r-mythic cur"><span class="rgem"></span><span class="rname">mythic</span><span class="rcount">1</span><span class="rmean">the one you would kill to know</span></div>
+      </div>
+      <p class="rarity-note">This is the hunt. The <b>mythic</b> insight, the once-in-a-lifetime one, only surfaced after Vee had held your whole record for months. Scroll down and it is the last card, the deepest thing she knows about you.</p>
+    </div>
+  </section>
+
+  <!-- ============ 02 · the feed ============ -->
+  <section class="section">
+    <div class="sec-head"><span class="num">&middot;02</span><span class="lbl">What Vee found</span><span class="rule"></span></div>
+    <p class="sec-blurb">Five real finds, climbing from a small true nudge to the one that changes everything. Flip <i>detailed / simple</i> up top: detailed keeps the real numbers, simple dumbs it down to scan in a second.</p>
+    <div class="feed" id="feed"><!-- cards injected here --></div>
+  </section>
+
+  <!-- ============ 03 · the signal behind the legendary ============ -->
+  <section class="section">
+    <div class="sec-head"><span class="num">&middot;03</span><span class="lbl">Under the hood</span><span class="rule"></span></div>
+    <p class="sec-blurb">Every card sits on real signals. Here is one of them: the climb Vee has been tracking toward your bench goal. The insights are only as good as what you feed it, so it keeps getting sharper.</p>
+    <div class="climb" id="climb">
+      <div class="climb-top">
+        <span class="ct">Signal &middot; the climb to your goal</span>
+        <span class="cspacer"></span>
+        <span class="cmeta">bench &middot; lb</span>
+      </div>
+      <div class="climb-chart">
+        <svg id="climbsvg" viewBox="0 0 680 240" preserveAspectRatio="xMidYMid meet" aria-label="weekly bench climb in pounds"></svg>
+      </div>
+    </div>
+
+    <div class="ladder" style="margin-top:20px">
+      <div class="lh">how deep Vee goes &middot; you are near the top</div>
+      <div class="steps">
+        <div class="step done"><span class="pip">1</span><span class="st"><b>Building blocks.</b> One true link between two things. Real and useful.</span></div>
+        <div class="step done"><span class="pip">2</span><span class="st"><b>The spiral.</b> Several parts of your life turn out to be one story. The money + training + mood find.</span></div>
+        <div class="step on"><span class="pip">3</span><span class="st"><b>The one you would kill to know.</b> The single lever that changes everything, tied to your biggest goal, over years.<span class="now">you are here</span></span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ closer ============ -->
+  <div class="closer">
+    <p class="big">Your life, held all at once. <span class="glow">Now it talks back.</span></p>
+    <p class="small">This is what Vitality is for. The engine is real; the numbers shown are a realistic example, not live data. The hunt never ends, and that is the point.</p>
+  </div>
+
+</div>
+
+<div class="flag"><span class="d"></span>demo &middot; example data &middot; not live</div>
+
+<script>
+(function(){
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------- icons ---------- */
+  var IC = {
+    echo:'<path d="M5 7l7 11 7-11"/>',
+    clock:'<circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/>',
+    minus:'<path d="M5 12h14"/>',
+    check:'<path d="M20 6L9 17l-5-5"/>',
+    up:'<path d="M3 17l6-6 4 4 8-8"/>',
+    pulse:'<path d="M3 12h4l3 8 4-16 3 8h4"/>',
+    arrow:'<path d="M5 12h14M12 5l7 7-7 7"/>',
+    shield:'<path d="M12 3l7 3v6c0 4-3 6.5-7 9-4-2.5-7-5-7-9V6z"/>',
+    spark:'<path d="M11.6 2.4l1.7 5.4 5.4 1.7-5.4 1.7-1.7 5.4-1.7-5.4-5.4-1.7 5.4-1.7z"/>',
+    drop:'<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/>',
+    moon:'<path d="M21 12.5A8.5 8.5 0 1 1 11.5 3 7 7 0 0 0 21 12.5z"/>',
+    star:'<path d="M12 2l3 7 7 .5-5.5 4.5 2 7-6.5-4-6.5 4 2-7L2 9.5 9 9z"/>'
+  };
+  function svg(path, sw){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="'+(sw||2)+'" stroke-linecap="round" stroke-linejoin="round">'+path+'</svg>'; }
+
+  /* ---------- the five finds ---------- */
+  var CARDS = [
+    {
+      rarity:'uncommon', watched:'caffeine + recovery', tf:'30d',
+      detailed:'your recovery runs <span class="key">lower the mornings after your heavier caffeine days</span>. after your higher-caffeine days (about <span class="ka">340 mg</span>) your next-morning recovery averaged <span class="ka">58%</span>, after your lighter ones (about 150 mg) it was <span class="km">71%</span>. ease off the late, heavy hits and your mornings bounce back.',
+      simple:'big caffeine days, slower mornings. lighter days, you bounce back. <span class="key">ease off the late, heavy hits.</span>',
+      goals:['train harder','feel recovered'],
+      chips:[['a','minus','340 mg days &middot; 58% recovery'],['m','check','150 mg days &middot; 71% recovery'],['','clock','14 paired mornings']],
+      primary:'keep it before 2pm'
+    },
+    {
+      rarity:'rare', watched:'sleep + training volume', tf:'8wk',
+      detailed:'on the nights you slept under <span class="ka">6 hours</span>, your next session quietly lost <span class="ka">~18% volume</span>, you cut a set without noticing. your <span class="km">7h+</span> nights held full volume across 22 sessions. <span class="key">sleep is buying you the extra set.</span>',
+      simple:'short sleep, lighter workout the next day. <span class="key">a full night buys you a whole extra set.</span>',
+      goals:['build muscle','stay consistent'],
+      chips:[['a','moon','under 6h &middot; &minus;18% volume'],['m','check','7h+ &middot; full volume'],['','pulse','22 sessions paired']],
+      primary:'protect a 7h window'
+    },
+    {
+      rarity:'epic', watched:'water + energy + snacking', tf:'6wk',
+      detailed:'three threads, one habit. the afternoons you passed <span class="km">2L of water by 3pm</span>, your 4pm energy dip <span class="km">vanished</span> and evening snacking fell <span class="km">30%</span>. under <span class="ka">1.2L</span>, the crash and the late fridge trips both showed up. <span class="key">front-load your water and two problems disappear at once.</span>',
+      simple:'hit your water early and the afternoon crash and the night snacking both go away. <span class="key">it is one habit fixing three things.</span>',
+      goals:['get lean','feel on top'],
+      chips:[['m','drop','2L by 3pm &middot; no crash'],['m','check','&minus;30% night snacking'],['a','minus','under 1.2L &middot; both return']],
+      primary:'set a 3pm water target'
+    },
+    {
+      rarity:'legendary', watched:'money + training + mood', tf:'6wk',
+      detailed:'your <span class="ka">spending climbs</span> the weeks your <span class="ka">training drops</span>, and both spike when work stress does. it is one spiral, not three problems. the weeks you trained three times, spending fell <span class="km">40%</span> and your mood held. training is the lever, so <span class="key">protect three sessions</span>.',
+      simple:'train 3x in a week and your spending and your mood both hold. skip it and all three slide together. <span class="key">the gym is the lever.</span>',
+      goals:['get lean','launch the business','feel on top'],
+      chips:[['a','up','spend +$210 low-train weeks'],['m','check','&minus;40% when 3+ sessions'],['m','pulse','mood held']],
+      primary:'protect 3 sessions'
+    },
+    {
+      rarity:'mythic', watched:'your whole record', tf:'8mo',
+      detailed:'across eight months, every stretch you strung <span class="km">three trained weeks back to back</span>, everything else followed: you shipped more, spent less, slept deeper, and your <span class="km">mood floor rose</span>. it was never motivation or willpower. <span class="key">consistency in the gym is the single lever your whole life hangs on.</span> guard the streak above everything else and the rest takes care of itself.',
+      simple:'your gym streak is the one thing that pulls everything else up. money, sleep, work, mood, all of it follows. <span class="key">protect the streak first and the rest sorts itself out.</span>',
+      goals:['every goal you have'],
+      chips:[['m','star','3-week streaks &middot; everything rises'],['m','check','shipped more &middot; spent less'],['m','pulse','mood floor &middot; up all 8 months']],
+      primary:'guard the streak'
+    }
+  ];
+
+  function chipHtml(c){
+    var cls = c[0] ? ' '+c[0] : '';
+    return '<span class="chip'+cls+'">'+svg(IC[c[1]], 2)+c[2]+'</span>';
+  }
+  function cardHtml(d){
+    var goals = d.goals.map(function(g){ return '<span class="gimp">'+svg('<path d="M12 5l8 13H4z"/>',0).replace('fill="none"','fill="currentColor"')+g+'</span>'; }).join('');
+    // simpler: build gimp with a solid triangle
+    goals = d.goals.map(function(g){ return '<span class="gimp"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 5l8 13H4z"/></svg>'+g+'</span>'; }).join('');
+    var chips = d.chips.map(chipHtml).join('');
+    return ''+
+    '<div class="arrive"><article class="vc rar-'+d.rarity+' r-'+d.rarity+'">'+
+      '<div class="rarity-edge"></div>'+
+      '<div class="vt-top">'+
+        '<div class="vt-echo">'+svg(IC.echo,2.2)+'</div>'+
+        '<div class="vt-tag">Vitality noticed</div>'+
+        '<button class="rbadge"><span class="gem"></span>'+d.rarity+'</button>'+
+        '<div class="vt-spacer"></div>'+
+        '<div class="vt-watched">'+svg(IC.clock,2)+'watched &middot; '+d.watched+' &middot; '+d.tf+'</div>'+
+      '</div>'+
+      '<div class="vt-body">'+
+        '<p class="vt-lead lead-detailed">'+d.detailed+'</p>'+
+        '<p class="vt-lead lead-simple">'+d.simple+'</p>'+
+        '<div class="impact"><span class="il">moves your goals</span>'+goals+'</div>'+
+        '<div class="chips">'+chips+'</div>'+
+        '<div class="acts">'+
+          '<button class="act a-mint">'+svg(IC.arrow,2)+d.primary+'</button>'+
+          '<button class="cl-b"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.6 2.4l1.7 5.4 5.4 1.7-5.4 1.7-1.7 5.4-1.7-5.4-5.4-1.7 5.4-1.7z"/><path d="M18.7 13.6l.8 2.5 2.5.8-2.5.8-.8 2.5-.8-2.5-2.5-.8 2.5-.8z"/></svg>talk deeper in Claude</button>'+
+        '</div>'+
+      '</div>'+
+    '</article></div>';
+  }
+  var feed = document.getElementById('feed');
+  if(feed){ feed.innerHTML = CARDS.map(cardHtml).join(''); }
+
+  /* ---------- detailed / simple toggle ---------- */
+  var seg = document.getElementById('seg');
+  if(seg){
+    seg.addEventListener('click', function(e){
+      var b = e.target.closest('.segb'); if(!b) return;
+      seg.querySelectorAll('.segb').forEach(function(x){ x.classList.toggle('on', x === b); });
+      document.body.classList.toggle('mode-simple', b.dataset.mode === 'simple');
+    });
+  }
+
+  /* ---------- floating raw signals behind the hero ---------- */
+  var FIELD_ICONS = [
+    '<path d="M6 18V9M12 18V5M18 18v-6"/>',
+    '<path d="M3 13l4-4 4 3 6-7"/>',
+    '<path d="M21 12.5A8.5 8.5 0 1 1 11.5 3 7 7 0 0 0 21 12.5z"/>',
+    '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>',
+    '<path d="M12 21s-7-4.5-7-10a4 4 0 0 1 7-2 4 4 0 0 1 7 2c0 5.5-7 10-7 10z"/>',
+    '<path d="M3 12h4l3 8 4-16 3 8h4"/>',
+    '<path d="M4 19V5M4 19h16M9 15l3-4 3 2 4-6"/>'
+  ];
+  var field = document.getElementById('field');
+  if(field && !reduce){
+    var spots = [[6,16],[18,34],[10,62],[80,14],[88,44],[72,68],[40,8],[58,80],[33,50],[66,30]];
+    spots.forEach(function(p, i){
+      var s = document.createElementNS('http://www.w3.org/2000/svg','svg');
+      s.setAttribute('viewBox','0 0 24 24'); s.setAttribute('fill','none');
+      s.setAttribute('stroke','currentColor'); s.setAttribute('stroke-width','1.6');
+      s.setAttribute('stroke-linecap','round'); s.setAttribute('stroke-linejoin','round');
+      s.innerHTML = FIELD_ICONS[i % FIELD_ICONS.length];
+      var sz = 16 + (i%4)*4;
+      s.style.width = sz+'px'; s.style.height = sz+'px';
+      s.style.left = p[0]+'%'; s.style.top = p[1]+'%';
+      var dur = (5 + (i%5)*1.4).toFixed(1);
+      s.style.animation = 'floatSig '+dur+'s ease-in-out '+(i*0.32).toFixed(2)+'s infinite';
+      field.appendChild(s);
+    });
+  }
+
+  /* ---------- the climb graph ---------- */
+  var SESSIONS = [
+    {d:'wk 1', w:180}, {d:'wk 2', w:180}, {d:'wk 3', w:185}, {d:'wk 4', w:185},
+    {d:'wk 5', w:190}, {d:'wk 6', w:195}, {d:'wk 7', w:200}, {d:'wk 8', w:205}, {d:'now', w:212}
+  ];
+  var GOAL = 225;
+  var svgEl = document.getElementById('climbsvg');
+  if(svgEl){
+    var W=680,H=240,padL=46,padR=30,padT=24,padB=36, minW=165, maxW=230;
+    var x=function(i){ return padL + (W-padL-padR)*(i/(SESSIONS.length-1)); };
+    var y=function(w){ return padT + (H-padT-padB)*(1-(w-minW)/(maxW-minW)); };
+    var ns='http://www.w3.org/2000/svg';
+    function el(tag,attrs){ var e=document.createElementNS(ns,tag); for(var k in attrs){ e.setAttribute(k,attrs[k]); } return e; }
+    var frag=document.createDocumentFragment();
+    var defs=el('defs',{});
+    var lg=el('linearGradient',{id:'climbgrad',x1:'0',y1:'1',x2:'1',y2:'0'});
+    lg.appendChild(el('stop',{offset:'0%','stop-color':'#1f4d3d'}));
+    lg.appendChild(el('stop',{offset:'55%','stop-color':'#6EE7B7'}));
+    lg.appendChild(el('stop',{offset:'100%','stop-color':'#A7F3D0'}));
+    defs.appendChild(lg); frag.appendChild(defs);
+    [170,185,200,215].forEach(function(gw){ frag.appendChild(el('line',{class:'gridline',x1:padL,y1:y(gw),x2:W-padR,y2:y(gw)})); });
+    frag.appendChild(el('line',{class:'baseline',x1:padL,y1:y(minW),x2:W-padR,y2:y(minW)}));
+    frag.appendChild(el('line',{class:'targetline',x1:padL,y1:y(GOAL),x2:W-padR,y2:y(GOAL)}));
+    var tl=el('text',{class:'targetlbl',x:W-padR,y:y(GOAL)-6}); tl.setAttribute('text-anchor','end'); tl.textContent='GOAL 225 LB'; frag.appendChild(tl);
+    var dStr=SESSIONS.map(function(s,i){ return (i?'L':'M')+x(i).toFixed(1)+' '+y(s.w).toFixed(1); }).join(' ');
+    var path=el('path',{class:'climbline',d:dStr}); frag.appendChild(path);
+    SESSIONS.forEach(function(s,i){
+      var cx=x(i),cy=y(s.w);
+      var delay=(0.25+1.7*(i/(SESSIONS.length-1))*0.86).toFixed(3);
+      var dot=el('circle',{class:'cdot',cx:cx,cy:cy,r:'4.5'}); dot.style.animationDelay=delay+'s'; frag.appendChild(dot);
+      var lbl=el('text',{class:'clbl',x:cx,y:cy-13}); lbl.style.animationDelay=(parseFloat(delay)+0.05).toFixed(3)+'s'; lbl.textContent=s.w; frag.appendChild(lbl);
+      var dt=el('text',{class:'cdate',x:cx,y:H-12}); dt.textContent=s.d; frag.appendChild(dt);
+    });
+    svgEl.appendChild(frag);
+    try{ path.style.setProperty('--len', path.getTotalLength()); }catch(e){ path.style.setProperty('--len',900); }
+  }
+
+  /* ---------- reveal on scroll ---------- */
+  var climbBox=document.getElementById('climb');
+  if('IntersectionObserver' in window && !reduce){
+    var io=new IntersectionObserver(function(ents){
+      ents.forEach(function(en){
+        if(en.isIntersecting){
+          if(en.target===climbBox){ climbBox.classList.add('play'); }
+          else { en.target.classList.add('in'); }
+          io.unobserve(en.target);
+        }
+      });
+    },{threshold:0.24});
+    document.querySelectorAll('.arrive').forEach(function(a){ io.observe(a); });
+    if(climbBox) io.observe(climbBox);
+  } else {
+    document.querySelectorAll('.arrive').forEach(function(a){ a.classList.add('in'); });
+    if(climbBox) climbBox.classList.add('play');
+  }
+})();
+</script>
+<style>
+  @keyframes floatSig{0%,100%{opacity:0.10;transform:translateY(0)}50%{opacity:0.26;transform:translateY(-8px)}}
+</style>
+</body>
+</html>

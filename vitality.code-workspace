@@ -1,0 +1,95 @@
+{
+  "folders": [
+    {
+      "name": "Vitality",
+      "path": "."
+    }
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/.DS_Store": true,
+      "**/.git": true,
+      "**/node_modules": true,
+      "**/.next": true,
+      "**/.swc": true,
+      "**/.playwright-mcp": true,
+      "**/.superpowers": true,
+      "**/.worktrees": true,
+      "**/tsconfig.tsbuildinfo": true,
+      "**/*.tsbuildinfo": true,
+      "**/pnpm-lock.yaml": true,
+      "**/package-lock.json": true
+    },
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/.next": true,
+      "**/.swc": true,
+      "**/.worktrees": true,
+      "**/design-iterations": true,
+      "**/*.html": false,
+      "**/pnpm-lock.yaml": true,
+      "**/package-lock.json": true
+    },
+    "explorer.fileNesting.enabled": true,
+    "explorer.fileNesting.expand": false,
+    "explorer.fileNesting.patterns": {
+      "*.tsx": "${capture}.module.css, ${capture}.test.tsx, ${capture}.test.ts, ${capture}.stories.tsx",
+      "*.ts": "${capture}.test.ts, ${capture}.spec.ts",
+      "package.json": "package-lock.json, pnpm-lock.yaml, .npmrc, .nvmrc, tsconfig*.json, next.config.*, next-env.d.ts, middleware.ts, jest.config.*, jest.setup.*",
+      "README.md": "CLAUDE.md, SKILL.md, STRATEGY.md, DECISIONS.md, ROADMAP.md, BRIEF.md, ONBOARDING.md, CONTRIBUTING.md",
+      ".env.example": ".env, .env.local, .env.*.local",
+      ".gitignore": ".gitattributes, .editorconfig, .prettier*, .eslint*"
+    },
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true,
+    "editor.rulers": [100],
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit"
+    },
+    "[typescript]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[typescriptreact]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[javascript]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[json]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[css]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[markdown]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode",
+      "editor.wordWrap": "on"
+    },
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "typescript.enablePromptUseWorkspaceTsdk": true,
+    "typescript.preferences.importModuleSpecifier": "non-relative",
+    "eslint.workingDirectories": [{ "mode": "auto" }],
+    "css.lint.unknownAtRules": "ignore",
+    "files.associations": {
+      "*.css": "css"
+    },
+    "terminal.integrated.cwd": "${workspaceFolder}",
+    "git.openRepositoryInParentFolders": "never"
+  },
+  "extensions": {
+    "recommendations": [
+      "esbenp.prettier-vscode",
+      "dbaeumer.vscode-eslint",
+      "bradlc.vscode-tailwindcss",
+      "supabase.vscode-supabase-extension",
+      "github.vscode-pull-request-github",
+      "eamodio.gitlens",
+      "ms-playwright.playwright",
+      "yoavbls.pretty-ts-errors",
+      "streetsidesoftware.code-spell-checker"
+    ],
+    "unwantedRecommendations": []
+  }
+}

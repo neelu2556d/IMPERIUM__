@@ -1,0 +1,1258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Peak Stack — stimulants, meds & timing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=Hanken+Grotesk:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --bg:#000; --bg-elevated:#0a0a0a; --fg:#fff;
+  --mint:#6EE7B7; --mint-hover:#5dd6a6; --mint-deep:#1f4d3d; --mint-glow:rgba(110,231,183,.4); --mint-ink:#042a1c;
+  --amber:#F59E0B; --amber-warm:#d97706; --red:#EF4444; --violet:#a9a2ff; --blue:#8fb8c9;
+  --muted:rgba(255,255,255,.5); --muted-strong:rgba(255,255,255,.7);
+  --border:rgba(255,255,255,.08); --border-strong:rgba(255,255,255,.16);
+  --card:rgba(255,255,255,.02); --card-elevated:rgba(255,255,255,.04);
+  --font-inter:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --font-serif:'Instrument Serif',Georgia,serif;
+  --font-mono:'JetBrains Mono',ui-monospace,monospace;
+  --font-hanken:'Hanken Grotesk',var(--font-inter);
+  --space-2:.5rem; --space-3:.75rem; --space-4:1rem; --space-5:1.25rem; --space-6:1.5rem; --space-8:2rem;
+  --radius-sm:6px; --radius-md:8px; --radius-lg:12px; --radius-xl:18px; --radius-pill:999px;
+  --text-xs:.75rem; --text-sm:.875rem; --text-base:1rem; --text-lg:1.125rem;
+  --ease:cubic-bezier(.2,.8,.2,1); --ease-premium:cubic-bezier(.16,1,.3,1);
+  --ease-out-soft:cubic-bezier(.32,.72,0,1); --duration-fast:120ms; --spring:cubic-bezier(.34,1.56,.64,1);
+  --duration:180ms; --duration-lift:480ms;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{background:#04060a;}
+body{
+  background:var(--bg); color:var(--fg);
+  font-family:var(--font-inter); font-size:var(--text-base); line-height:1.5;
+  -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+  min-height:100vh; padding-bottom:80px;
+}
+::selection{background:rgba(110,231,183,.25);}
+input,select,button,textarea{font-family:inherit;}
+input:focus,select:focus,textarea:focus{outline:none;}
+
+.grain{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.04;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
+.aura{position:fixed;top:-160px;left:50%;transform:translateX(-50%);width:780px;height:420px;z-index:0;pointer-events:none;
+  background:radial-gradient(closest-side,rgba(110,231,183,.10),transparent);}
+
+.shell{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:32px 22px 0;display:flex;flex-direction:column;gap:34px;}
+
+/* header */
+.head{display:flex;flex-direction:column;gap:14px;}
+.brandRow{display:flex;align-items:center;gap:12px;}
+.mark{width:30px;height:30px;flex:0 0 auto;}
+.kicker{font-family:var(--font-mono);font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);}
+.h1{font-family:var(--font-serif);font-size:clamp(2.4rem,7vw,3.4rem);line-height:.96;letter-spacing:-.01em;}
+.h1 em{font-style:italic;color:var(--mint);}
+.sub{font-size:14.5px;color:var(--muted-strong);max-width:54ch;line-height:1.55;}
+.ticker{display:flex;gap:0;border:1px solid var(--border);border-radius:var(--radius-pill);overflow:hidden;background:var(--card);}
+.tk{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:11px 8px;border-right:1px solid var(--border);font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;color:var(--muted);white-space:nowrap;min-width:0;}
+.tk:last-child{border-right:none;}
+.tk b{color:var(--fg);font-weight:500;}
+.tk .dot{width:7px;height:7px;border-radius:50%;flex:0 0 auto;}
+.dotLive{background:var(--mint);box-shadow:0 0 8px var(--mint-glow);animation:blink 2.4s var(--ease) infinite;}
+.dotWarn{background:var(--amber);} .dotOk{background:var(--mint);}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.35;}}
+.profChip{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.03);border:1px solid var(--border-strong);border-radius:var(--radius-pill);padding:7px 14px;color:var(--muted-strong);font-size:12.5px;cursor:pointer;transition:all var(--duration) var(--ease);}
+.profChip:hover{border-color:var(--mint);color:var(--fg);}
+.profChip b{color:var(--mint);font-weight:600;} .profChip svg{color:var(--mint);}
+
+/* section + eyebrow */
+.section{display:flex;flex-direction:column;gap:var(--space-4);}
+.eyebrow{display:flex;align-items:center;gap:var(--space-3);}
+.eyebrowNum{font-family:var(--font-serif);font-style:italic;font-size:var(--text-lg);color:var(--mint);line-height:1;}
+.eyebrowLbl{font-family:var(--font-mono);font-size:var(--text-xs);letter-spacing:.22em;text-transform:uppercase;color:var(--muted-strong);}
+.eyebrowRule{flex:1;height:1px;background:linear-gradient(90deg,var(--border-strong),transparent);}
+.eyebrowAct{font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);cursor:pointer;}
+.eyebrowAct:hover{color:var(--mint);}
+
+.card{border:1px solid var(--border);border-radius:var(--radius-xl);background:var(--card);padding:var(--space-8);display:flex;flex-direction:column;gap:var(--space-5);position:relative;overflow:visible;transition:border-color var(--duration) var(--ease),box-shadow var(--duration) var(--ease);}
+.card:hover{border-color:rgba(110,231,183,.22);box-shadow:0 0 32px -16px var(--mint-glow);}
+.tileTop{display:flex;align-items:center;gap:var(--space-3);}
+.tileIc{color:var(--mint);display:flex;}
+.tileLbl{font-family:var(--font-mono);font-size:var(--text-xs);letter-spacing:.2em;text-transform:uppercase;color:var(--muted-strong);}
+.stackCount{margin-left:auto;font-family:var(--font-mono);font-size:var(--text-xs);letter-spacing:.1em;color:var(--muted);}
+.empty{color:var(--muted);font-family:var(--font-serif);font-style:italic;font-size:var(--text-base);padding:var(--space-4) 0;}
+
+/* ── setup / onboarding card ── */
+.setup{border:1px solid rgba(110,231,183,.22);border-radius:var(--radius-xl);background:linear-gradient(180deg,rgba(110,231,183,.06),rgba(255,255,255,.004));padding:26px var(--space-8);display:flex;align-items:center;gap:20px;flex-wrap:wrap;}
+.setupIc{width:52px;height:52px;border-radius:15px;flex:0 0 auto;display:grid;place-items:center;background:rgba(110,231,183,.1);color:var(--mint);}
+.setupBody{flex:1;min-width:220px;}
+.setupTitle{font-family:var(--font-serif);font-size:1.7rem;line-height:1.05;}
+.setupTitle em{font-style:italic;color:var(--mint);}
+.setupText{font-size:13.5px;color:var(--muted-strong);line-height:1.5;margin-top:5px;}
+
+/* ── hot bar ── */
+.hbScroll{display:flex;gap:12px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none;}
+.hbScroll::-webkit-scrollbar{display:none;}
+.hbCard{flex:0 0 auto;width:172px;border:1px solid var(--border);border-radius:var(--radius-lg);background:rgba(255,255,255,.015);padding:14px;display:flex;flex-direction:column;gap:10px;position:relative;transition:border-color var(--duration) var(--ease),transform .18s var(--ease-premium);}
+.hbCard:hover{border-color:var(--border-strong);}
+.hbCard.flash{animation:flashK .9s var(--ease);}
+@keyframes flashK{0%{border-color:var(--mint);box-shadow:0 0 0 0 var(--mint-glow);}100%{border-color:var(--border);box-shadow:0 0 0 8px rgba(110,231,183,0);}}
+.hbTop{display:flex;align-items:flex-start;gap:9px;}
+.hbIc{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-size:17px;flex:0 0 auto;background:rgba(110,231,183,.07);}
+.hbIc.kStim{background:rgba(245,158,11,.10);} .hbIc.kAdhd{background:rgba(169,162,255,.12);} .hbIc.kAnti{background:rgba(143,184,201,.12);} .hbIc.kNic{background:rgba(239,68,68,.10);}
+.hbName{font-size:13.5px;line-height:1.2;color:var(--fg);}
+.hbDose{font-family:var(--font-mono);font-size:10px;color:var(--muted);margin-top:2px;letter-spacing:.02em;}
+.hbEye{margin-left:auto;background:none;border:none;cursor:pointer;color:var(--muted);padding:2px;flex:0 0 auto;border-radius:6px;transition:color var(--duration) var(--ease);}
+.hbEye.on{color:var(--mint);} .hbEye:hover{color:var(--mint);}
+/* tolerance bar */
+.tol{display:flex;flex-direction:column;gap:5px;}
+.tolHead{display:flex;justify-content:space-between;align-items:baseline;font-family:var(--font-mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
+.tolHead b{font-size:11px;letter-spacing:0;}
+.tolBar{height:5px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden;}
+.tolFill{height:100%;border-radius:999px;transition:width .5s var(--ease-premium);}
+.hbBtns{display:flex;gap:7px;}
+.hbLog{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--mint);color:var(--mint-ink);border:none;border-radius:999px;padding:8px;font-size:12.5px;font-weight:600;cursor:pointer;transition:background var(--duration) var(--ease);}
+.hbLog:hover{background:var(--mint-hover);}
+.hbCount{font-family:var(--font-mono);font-size:10px;color:var(--mint);align-self:center;white-space:nowrap;}
+.hbMore{background:none;border:1px solid var(--border-strong);color:var(--muted);border-radius:999px;width:32px;flex:0 0 auto;cursor:pointer;font-size:1rem;transition:all var(--duration) var(--ease);}
+.hbMore:hover{border-color:var(--mint);color:var(--mint);}
+.hbAdd{flex:0 0 auto;width:172px;border:1px dashed var(--border-strong);border-radius:var(--radius-lg);background:none;color:var(--muted);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;font-size:13px;transition:all var(--duration) var(--ease);min-height:150px;}
+.hbAdd:hover{border-color:var(--mint);color:var(--mint);}
+/* minimal quick-log chip face */
+.hbFace{display:flex;align-items:center;gap:11px;background:none;border:none;cursor:pointer;text-align:left;width:100%;padding:0;color:inherit;}
+.hbInfo{min-width:0;}
+.hbLog.on{background:rgba(110,231,183,.12);color:var(--mint);}
+.hbTolLine{height:3px;border-radius:999px;background:rgba(255,255,255,.06);overflow:hidden;}
+.hbTolLine span{display:block;height:100%;border-radius:999px;transition:width .5s var(--ease-premium);}
+
+/* minimal header + collapsibles + peak-window card */
+.headMin{display:flex;align-items:center;gap:12px;}
+.manage,.fullPlan,.moreWrap{border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;background:var(--card);}
+.manage>summary,.fullPlan>summary,.moreWrap>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:9px;color:var(--muted-strong);transition:color var(--duration) var(--ease);}
+.manage>summary::-webkit-details-marker,.fullPlan>summary::-webkit-details-marker,.moreWrap>summary::-webkit-details-marker{display:none;}
+.manage>summary{padding:12px 15px;font-size:13px;}
+.fullPlan>summary{padding:12px 15px;font-family:var(--font-mono);font-size:11.5px;letter-spacing:.04em;}
+.moreWrap{border-radius:var(--radius-xl);}
+.moreWrap>summary{padding:16px 20px;font-family:var(--font-mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;}
+.manage>summary:hover,.fullPlan>summary:hover,.moreWrap>summary:hover{color:var(--mint);}
+.manage[open]>summary,.moreWrap[open]>summary{border-bottom:1px solid var(--border);color:var(--mint);}
+.fullPlan[open]>summary{color:var(--mint);}
+.manageBody{padding:15px;display:flex;flex-direction:column;gap:12px;}
+.moreBody{padding:20px;display:flex;flex-direction:column;gap:26px;}
+.moreWrap .card{border:1px solid var(--border);}
+.pwTop{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+.pwLbl{font-family:var(--font-mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--mint);}
+.pwBig{font-family:var(--font-serif);font-size:clamp(2.6rem,9vw,3.7rem);line-height:.95;letter-spacing:-.01em;margin-top:7px;}
+.pwSubline{font-size:12px;color:var(--muted);margin-top:7px;font-family:var(--font-mono);letter-spacing:.03em;}
+.pwFeel{display:flex;flex-direction:column;align-items:flex-end;gap:8px;}
+.pwScore{font-family:var(--font-serif);font-size:clamp(3.2rem,11vw,4.6rem);line-height:.9;letter-spacing:-.01em;font-variant-numeric:tabular-nums;margin-top:6px;display:flex;align-items:baseline;gap:11px;flex-wrap:wrap;}
+.pwScoreUnit{font-family:var(--font-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted-strong);}
+.pwDelta{display:flex;align-items:center;gap:8px;margin-top:11px;font-family:var(--font-mono);font-size:12.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);flex-wrap:wrap;}
+.pwDelta b{font-family:var(--font-serif);font-size:1.2rem;color:var(--fg);font-variant-numeric:tabular-nums;letter-spacing:0;text-transform:none;}
+.pwDelta>span{color:var(--muted);}
+.pwBest{text-align:right;flex:0 0 auto;}
+.pwBestLbl{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);}
+.pwBestVal{font-family:var(--font-serif);font-size:1.55rem;color:var(--mint);margin-top:5px;white-space:nowrap;}
+.pwReadline{font-family:var(--font-serif);font-style:italic;font-size:1.18rem;color:var(--muted-strong);line-height:1.3;}
+.pwNudge{display:flex;align-items:flex-start;gap:10px;font-size:14px;color:var(--muted-strong);line-height:1.5;}
+.nudgePill{flex:0 0 auto;font-family:var(--font-mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;border-radius:999px;padding:4px 9px;border:1px solid var(--tone-bd);color:var(--tone);margin-top:1px;}
+.pwIntegrate{display:flex;gap:10px;align-items:flex-start;font-size:12.5px;color:var(--muted);line-height:1.55;border-top:1px solid var(--border);padding-top:15px;}
+.pwIntegrate b{color:var(--mint);font-weight:600;}
+.pwIntegrate>span:first-child{color:var(--mint);font-size:15px;line-height:1.2;}
+
+/* search */
+.searchWrap{position:relative;width:100%;}
+.searchIcon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted);display:flex;pointer-events:none;}
+.searchField{width:100%;padding:13px 14px 13px 42px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:var(--radius-md);color:var(--fg);font-size:var(--text-sm);}
+.searchField::placeholder{color:var(--muted);}
+.searchField:focus{border-color:var(--mint);}
+.suggestions{position:absolute;top:calc(100% + 8px);left:0;right:0;z-index:30;background:#0d0f0c;border:1px solid var(--border-strong);border-radius:var(--radius-lg);overflow:hidden auto;max-height:340px;box-shadow:0 18px 48px -14px rgba(0,0,0,.7);}
+.suggestion{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:11px 14px;background:none;border:none;border-bottom:1px solid var(--border);cursor:pointer;transition:background var(--duration) var(--ease);}
+.suggestion:last-child{border-bottom:none;}
+.suggestion:hover{background:rgba(110,231,183,.07);}
+.sugIc{flex:0 0 auto;display:grid;place-items:center;width:30px;height:30px;border-radius:9px;background:rgba(255,255,255,.04);font-size:16px;}
+.sugBody{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;}
+.sugName{font-size:var(--text-sm);color:var(--fg);display:flex;align-items:center;gap:7px;}
+.sugHelps{font-size:var(--text-xs);color:var(--muted);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sugDose{font-family:var(--font-mono);font-size:11px;color:var(--mint);flex:0 0 auto;}
+.catRow{display:flex;flex-wrap:wrap;gap:7px;}
+.catChip{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-strong);border:1px solid var(--border);border-radius:999px;padding:6px 12px;cursor:pointer;background:none;transition:all .18s var(--ease);}
+.catChip:hover{border-color:var(--border-strong);}
+.catChipOn{color:var(--mint);border-color:rgba(110,231,183,.5);background:rgba(110,231,183,.08);}
+.tag{display:inline-flex;align-items:center;gap:4px;font-family:var(--font-mono);font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;border-radius:999px;padding:2px 8px;border:1px solid var(--tone-bd);color:var(--tone);white-space:nowrap;}
+.tStim{--tone:var(--amber);--tone-bd:rgba(245,158,11,.34);}
+.tAdhd{--tone:var(--violet);--tone-bd:rgba(169,162,255,.36);}
+.tAnti{--tone:var(--blue);--tone-bd:rgba(143,184,201,.36);}
+.tNic{--tone:var(--red);--tone-bd:rgba(239,68,68,.34);}
+.tMint{--tone:var(--mint);--tone-bd:rgba(110,231,183,.34);}
+
+/* feel meter */
+.meter{position:relative;height:14px;border-radius:var(--radius-pill);background:rgba(255,255,255,.05);border:1px solid var(--border);overflow:hidden;}
+.meter .fill{height:100%;border-radius:var(--radius-pill);background:linear-gradient(90deg,var(--mint-deep),var(--mint));box-shadow:0 0 18px var(--mint-glow);transition:width var(--duration-lift) var(--ease-premium);}
+.chartCap{font-size:13px;color:var(--muted-strong);line-height:1.5;}
+.chartCap b{color:var(--fg);font-weight:600;}
+
+/* today's stack rows */
+.logRow{display:flex;align-items:center;gap:14px;padding:14px 0;border-top:1px solid var(--border);}
+.logRow:first-of-type{border-top:none;}
+.logIc{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex:0 0 auto;font-size:19px;background:rgba(110,231,183,.07);}
+.logIc.kStim{background:rgba(245,158,11,.10);} .logIc.kAdhd{background:rgba(169,162,255,.12);} .logIc.kAnti{background:rgba(143,184,201,.12);} .logIc.kNic{background:rgba(239,68,68,.10);}
+.logMid{flex:1;min-width:0;cursor:pointer;}
+.logName{font-size:15px;color:var(--fg);display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.logSub{font-family:var(--font-mono);font-size:11px;color:var(--muted);margin-top:3px;letter-spacing:.02em;}
+.logSub b{color:var(--muted-strong);font-weight:500;}
+.phaseTag{display:inline-flex;align-items:center;gap:5px;font-family:var(--font-mono);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;border-radius:999px;padding:3px 9px;border:1px solid var(--tone-bd);color:var(--tone);}
+.phOnset{--tone:var(--blue);--tone-bd:rgba(143,184,201,.4);}
+.phPeak{--tone:var(--mint);--tone-bd:rgba(110,231,183,.45);}
+.phCome{--tone:var(--amber);--tone-bd:rgba(245,158,11,.4);}
+.phDone{--tone:var(--muted);--tone-bd:var(--border-strong);}
+.logRight{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex:0 0 auto;}
+.lvlWrap{width:72px;}
+.lvlBar{height:6px;border-radius:999px;background:rgba(255,255,255,.06);overflow:hidden;}
+.lvlFill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--mint-deep),var(--mint));transition:width .5s var(--ease-premium);}
+.lvlTxt{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.04em;color:var(--muted);text-align:right;margin-top:3px;}
+.remove{background:none;border:none;color:var(--muted);cursor:pointer;opacity:.5;font-size:1.1rem;line-height:1;padding:2px 4px;transition:all var(--duration) var(--ease);}
+.remove:hover{opacity:1;color:var(--red);}
+
+/* chart */
+.chartBox{position:relative;width:100%;}
+.chartBox svg{display:block;width:100%;height:auto;overflow:visible;}
+.legend{display:flex;flex-wrap:wrap;gap:16px;margin-top:6px;}
+.lg{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--muted-strong);}
+.lgSw{width:18px;height:0;border-top:3px solid var(--mint);border-radius:2px;}
+.lgSw.dash{border-top-style:dashed;border-color:var(--muted);}
+.lgSw.zone{height:12px;border-top:0;border-radius:3px;background:linear-gradient(rgba(239,68,68,.22),rgba(239,68,68,.04));border:1px dashed rgba(239,68,68,.5);}
+.lgSw.bw{border-color:var(--amber);}
+
+/* optimize */
+.recCard{border:1px solid var(--border);border-radius:var(--radius-xl);padding:var(--space-8);background:linear-gradient(180deg,rgba(110,231,183,.05),rgba(255,255,255,.004));display:flex;flex-direction:column;gap:18px;}
+.recCard.warn{background:linear-gradient(180deg,rgba(245,158,11,.06),rgba(255,255,255,.004));border-color:rgba(245,158,11,.2);}
+.recCard.stop{background:linear-gradient(180deg,rgba(239,68,68,.06),rgba(255,255,255,.004));border-color:rgba(239,68,68,.22);}
+.recKick{font-family:var(--font-mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--mint);display:inline-flex;align-items:center;gap:7px;}
+.recCard.warn .recKick{color:var(--amber);} .recCard.stop .recKick{color:var(--red);}
+.recTitle{font-family:var(--font-serif);font-size:clamp(1.6rem,4.4vw,2.1rem);line-height:1.08;letter-spacing:-.01em;}
+.recTitle em{font-style:italic;color:var(--mint);}
+.recCard.warn .recTitle em{color:var(--amber);} .recCard.stop .recTitle em{color:var(--red);}
+.recBody{font-size:14.5px;color:var(--muted-strong);line-height:1.55;}
+.recBody b{color:var(--fg);font-weight:600;}
+.optGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.opt{border:1px solid var(--border);border-radius:14px;padding:14px 15px;background:rgba(255,255,255,.015);display:flex;flex-direction:column;gap:6px;}
+.optHead{display:flex;align-items:center;gap:9px;font-family:var(--font-mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted-strong);}
+.optHead .em{color:var(--mint);}
+.optTxt{font-size:13px;color:var(--muted-strong);line-height:1.5;}
+.optTxt b{color:var(--fg);font-weight:600;}
+.recActs{display:flex;flex-wrap:wrap;gap:10px;}
+.btnPrimary{display:inline-flex;align-items:center;gap:8px;background:var(--mint);color:var(--mint-ink);border:none;border-radius:var(--radius-pill);padding:11px 20px;font-size:14px;font-weight:600;cursor:pointer;transition:background var(--duration) var(--ease-premium);}
+.btnPrimary:hover{background:var(--mint-hover);}
+
+/* check-in */
+.ciRow{display:flex;align-items:center;gap:14px;padding:14px 0;border-top:1px solid var(--border);}
+.ciRow:first-child{border-top:none;}
+.ciLbl{font-family:var(--font-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted-strong);width:104px;flex:0 0 auto;}
+.ciCtrl{flex:1;display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;}
+.seg{display:inline-flex;gap:6px;flex-wrap:wrap;}
+.pill{font-size:12.5px;color:var(--muted-strong);border:1px solid var(--border);border-radius:999px;padding:6px 12px;cursor:pointer;background:none;transition:all .16s var(--ease);}
+.pill:hover{border-color:var(--border-strong);}
+.pillOn{color:var(--mint-ink);background:var(--mint);border-color:var(--mint);font-weight:600;}
+.step{display:inline-flex;align-items:center;gap:12px;}
+.stepBtn{width:34px;height:34px;border-radius:50%;border:1px solid var(--border-strong);background:none;color:var(--fg);font-size:1.1rem;cursor:pointer;display:grid;place-items:center;transition:all var(--duration) var(--ease);}
+.stepBtn:hover{border-color:var(--mint);color:var(--mint);}
+.stepVal{font-family:var(--font-serif);font-size:1.7rem;min-width:64px;text-align:center;font-variant-numeric:tabular-nums;}
+.stepVal small{font-family:var(--font-mono);font-size:.7rem;color:var(--muted);}
+.ciNote{font-family:var(--font-serif);font-style:italic;font-size:14px;color:var(--muted);}
+
+/* modal */
+.scrim{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.62);backdrop-filter:blur(4px);display:flex;align-items:flex-start;justify-content:center;padding:48px 18px;overflow-y:auto;}
+.modal{width:100%;max-width:460px;background:#0a0c09;border:1px solid var(--border-strong);border-radius:22px;box-shadow:0 30px 90px -20px rgba(0,0,0,.85);overflow:hidden;}
+.mHead{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--border);}
+.mTitle{font-family:var(--font-serif);font-style:italic;font-size:23px;}
+.mClose{background:none;border:none;color:var(--muted);font-size:26px;line-height:1;cursor:pointer;}
+.mClose:hover{color:var(--fg);}
+.mBody{padding:20px 24px;display:flex;flex-direction:column;gap:18px;}
+.fGroup{display:flex;flex-direction:column;gap:8px;}
+.fLbl{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted-strong);}
+.fInput{background:rgba(255,255,255,.04);border:1px solid var(--border-strong);border-radius:10px;padding:11px 13px;color:var(--fg);font-size:15px;width:100%;}
+.fInput:focus{border-color:var(--mint);}
+.fSeg{display:inline-flex;border:1px solid var(--border-strong);border-radius:999px;overflow:hidden;}
+.fSeg button{font-size:13px;padding:9px 16px;background:none;color:var(--muted);border:none;cursor:pointer;transition:all var(--duration) var(--ease);}
+.fSegOn{background:var(--mint);color:var(--mint-ink);font-weight:600;}
+.fRow{display:flex;gap:12px;}
+.fRow .fGroup{flex:1;}
+.mSave{display:block;width:calc(100% - 48px);margin:4px 24px 22px;background:var(--mint);color:var(--mint-ink);border:none;border-radius:999px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;transition:background var(--duration) var(--ease);}
+.mSave:hover{background:var(--mint-hover);}
+.mGhostBtn{display:block;width:calc(100% - 48px);margin:-8px 24px 18px;background:none;color:var(--muted);border:1px solid var(--border-strong);border-radius:999px;padding:11px;font-size:13px;cursor:pointer;}
+.mGhostBtn:hover{color:var(--red);border-color:rgba(239,68,68,.4);}
+
+/* onset/peak/comedown mini-curve in detail */
+.pkChart{position:relative;}
+.pkChart svg{display:block;width:100%;height:120px;overflow:visible;}
+.pkPhases{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.pkPh{text-align:center;border:1px solid var(--border);border-radius:11px;padding:10px 6px;background:rgba(255,255,255,.015);}
+.pkPhNum{font-family:var(--font-serif);font-size:1.15rem;color:var(--tone,var(--mint));font-variant-numeric:tabular-nums;line-height:1;}
+.pkPhLbl{font-family:var(--font-mono);font-size:8.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:6px;}
+.detKpis{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+.kpi{border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;background:rgba(255,255,255,.015);}
+.kpiNum{font-family:var(--font-serif);font-size:1.5rem;color:var(--mint);font-variant-numeric:tabular-nums;line-height:1;}
+.kpiEdit{border-color:rgba(110,231,183,.32);background:rgba(110,231,183,.03);}
+.kpiDose{font-family:var(--font-serif);font-size:1.5rem;color:var(--mint);font-variant-numeric:tabular-nums;line-height:1;background:none;border:none;width:100%;text-align:center;padding:0;-moz-appearance:textfield;}
+.kpiDose::-webkit-outer-spin-button,.kpiDose::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+.kpiDose:focus{outline:none;}
+.kpiLbl{font-family:var(--font-mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:6px;}
+.detLine{font-size:13.5px;color:var(--muted-strong);line-height:1.55;}
+.detLine b{color:var(--fg);font-weight:600;}
+.warnBox{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--amber);background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);border-radius:12px;padding:12px 13px;line-height:1.5;}
+.warnBox.danger{color:var(--red);background:rgba(239,68,68,.07);border-color:rgba(239,68,68,.22);}
+.warnBox.good{color:var(--mint);background:rgba(110,231,183,.06);border-color:rgba(110,231,183,.2);}
+.warnBox svg{flex:0 0 auto;margin-top:1px;}
+.doseInput{width:120px;}
+
+/* ── health watch ── */
+.health{border-radius:var(--radius-xl);padding:var(--space-8);display:flex;flex-direction:column;gap:18px;border:1px solid var(--border);background:var(--card);}
+.health.ok{border-color:rgba(110,231,183,.2);background:linear-gradient(180deg,rgba(110,231,183,.04),rgba(255,255,255,.004));}
+.health.caution{border-color:rgba(245,158,11,.25);background:linear-gradient(180deg,rgba(245,158,11,.06),rgba(255,255,255,.004));}
+.health.alert{border-color:rgba(239,68,68,.3);background:linear-gradient(180deg,rgba(239,68,68,.07),rgba(255,255,255,.004));}
+.healthTop{display:flex;align-items:flex-start;gap:14px;}
+.healthIc{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;flex:0 0 auto;}
+.health.ok .healthIc{background:rgba(110,231,183,.1);color:var(--mint);}
+.health.caution .healthIc{background:rgba(245,158,11,.12);color:var(--amber);}
+.health.alert .healthIc{background:rgba(239,68,68,.12);color:var(--red);}
+.healthTitle{font-family:var(--font-serif);font-size:1.6rem;line-height:1.05;}
+.healthTitle em{font-style:italic;}
+.health.ok .healthTitle em{color:var(--mint);}
+.health.caution .healthTitle em{color:var(--amber);}
+.health.alert .healthTitle em{color:var(--red);}
+.healthSub{font-size:13px;color:var(--muted-strong);margin-top:4px;line-height:1.5;}
+.vHook{display:flex;align-items:center;gap:9px;font-family:var(--font-mono);font-size:11px;letter-spacing:.04em;color:var(--muted);border:1px solid var(--border);border-radius:11px;padding:10px 13px;background:rgba(255,255,255,.015);flex-wrap:wrap;}
+.vHook .dot{width:7px;height:7px;border-radius:50%;background:var(--mint);box-shadow:0 0 8px var(--mint-glow);animation:blink 2.4s var(--ease) infinite;flex:0 0 auto;}
+.vHook b{color:var(--muted-strong);font-weight:500;}
+.sigList{display:flex;flex-direction:column;gap:10px;}
+.sig{display:flex;gap:11px;align-items:flex-start;font-size:13.5px;line-height:1.5;color:var(--muted-strong);}
+.sig .sd{width:7px;height:7px;border-radius:50%;margin-top:6px;flex:0 0 auto;}
+.sig.l1 .sd{background:var(--amber);} .sig.l2 .sd{background:var(--red);box-shadow:0 0 8px rgba(239,68,68,.5);}
+.sig b{color:var(--fg);font-weight:600;}
+.effGrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.effCol{border:1px solid rgba(239,68,68,.18);border-radius:14px;padding:14px 15px;background:rgba(239,68,68,.035);display:flex;flex-direction:column;gap:10px;}
+.effLbl{display:flex;align-items:center;gap:7px;font-family:var(--font-mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--red);}
+.effItem{display:flex;gap:9px;align-items:flex-start;font-size:12.5px;color:rgba(255,255,255,.8);line-height:1.45;}
+.effItem .x{color:var(--red);flex:0 0 auto;font-size:13px;line-height:1.2;}
+.healthFoot{font-size:11.5px;color:var(--muted);line-height:1.5;font-family:var(--font-mono);letter-spacing:.02em;}
+.okMeter{display:flex;flex-direction:column;gap:7px;}
+.okMeterTop{display:flex;justify-content:space-between;align-items:baseline;font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
+.okMeterTop b{color:var(--mint);font-size:11px;letter-spacing:0;}
+.okMeterBar{height:8px;border-radius:999px;background:rgba(255,255,255,.06);overflow:hidden;}
+.okMeterFill{height:100%;border-radius:999px;transition:width .5s var(--ease-premium);}
+
+.disclaimer{font-size:11.5px;color:var(--muted);line-height:1.5;text-align:center;padding:0 10px;font-family:var(--font-mono);letter-spacing:.02em;}
+.disclaimer b{color:var(--muted-strong);}
+
+/* ── quiz — ported 1:1 from the Vitality quiz engine (flourishes mode) ── */
+.pqOverlay{position:fixed;inset:0;z-index:200;background:rgba(4,6,10,.55);backdrop-filter:blur(22px) saturate(140%);-webkit-backdrop-filter:blur(22px) saturate(140%);display:flex;align-items:center;justify-content:center;padding:var(--space-4);overflow-y:auto;animation:pqOin .24s var(--ease-premium);}
+@keyframes pqOin{from{opacity:0;}to{opacity:1;}}
+.pqDialog{position:relative;width:100%;max-width:760px;min-height:min(82vh,480px);background:radial-gradient(120% 60% at 50% 0%,rgba(110,231,183,.08),transparent 55%),var(--bg-elevated);border:1px solid var(--border-strong);border-radius:24px;box-shadow:0 32px 100px rgba(0,0,0,.75),0 0 0 1px rgba(110,231,183,.08),0 0 80px -20px rgba(110,231,183,.18);animation:pqDin .38s var(--ease-premium);overflow:hidden;isolation:isolate;display:flex;flex-direction:column;}
+@keyframes pqDin{from{opacity:0;transform:translateY(12px) scale(.99);}to{opacity:1;transform:none;}}
+.pqAtmos{position:absolute;inset:0;z-index:0;pointer-events:none;background-image:radial-gradient(80% 50% at 50% 0%,rgba(110,231,183,.14) 0%,rgba(110,231,183,.04) 40%,rgba(110,231,183,0) 75%),radial-gradient(60% 40% at 50% 100%,rgba(31,77,61,.5) 0%,rgba(31,77,61,0) 70%);}
+.pqAurora{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
+.pqAurora b{position:absolute;display:block;border-radius:50%;filter:blur(70px);opacity:.5;mix-blend-mode:screen;}
+.pqAuroraA{width:46%;height:60%;left:-10%;top:-12%;background:radial-gradient(circle,rgba(110,231,183,.2),transparent 70%);animation:pqAur1 22s var(--ease-premium) infinite alternate;}
+.pqAuroraB{width:42%;height:55%;right:-12%;top:25%;background:radial-gradient(circle,rgba(120,200,255,.12),transparent 70%);animation:pqAur2 28s var(--ease-premium) infinite alternate;}
+@keyframes pqAur1{0%{transform:translate(0,0) scale(1);}100%{transform:translate(14%,12%) scale(1.14);}}
+@keyframes pqAur2{0%{transform:translate(0,0) scale(1);}100%{transform:translate(-12%,-8%) scale(1.1);}}
+.pqParticles{position:absolute;inset:0;z-index:1;pointer-events:none;overflow:hidden;}
+.pqParticles span{position:absolute;background:rgba(233,239,233,.7);border-radius:50%;animation:pqDrift linear infinite;box-shadow:0 0 6px rgba(167,243,208,.5);}
+@keyframes pqDrift{0%{transform:translate3d(0,0,0);opacity:0;}10%{opacity:.65;}90%{opacity:.5;}100%{transform:translate3d(var(--dx,12px),var(--dy,-80vh),0);opacity:0;}}
+.pqClose{position:absolute;top:var(--space-4);right:var(--space-4);z-index:3;width:36px;height:36px;background:rgba(0,0,0,.3);border:1px solid var(--border);color:var(--muted-strong);font-size:22px;line-height:1;cursor:pointer;border-radius:var(--radius-pill);transition:color var(--duration) var(--ease),background var(--duration) var(--ease),border-color var(--duration) var(--ease);}
+.pqClose:hover{color:var(--fg);background:rgba(0,0,0,.5);border-color:var(--border-strong);}
+.pqShell{position:relative;z-index:2;display:flex;flex-direction:column;flex:1;gap:var(--space-6);padding:var(--space-8) var(--space-8) var(--space-6);}
+.pqStepper{display:flex;gap:10px;width:100%;padding-right:44px;}
+.pqSeg{flex:1;min-width:0;}
+.pqSegName{display:block;font-family:var(--font-mono);font-size:9.5px;font-weight:500;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color var(--duration) var(--ease);}
+.pqSegActive .pqSegName,.pqSegDone .pqSegName{color:var(--mint);}
+.pqSegTrack{display:block;height:3px;border-radius:var(--radius-pill);background:var(--border);overflow:hidden;}
+.pqSegFill{display:block;height:100%;width:0;border-radius:var(--radius-pill);background:var(--mint);box-shadow:0 0 12px var(--mint-glow);transition:width .45s var(--ease-premium);}
+.pqSegShimmer{position:relative;overflow:hidden;}
+.pqSegShimmer::after{content:'';position:absolute;inset:0;border-radius:inherit;background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);transform:translateX(-100%);animation:pqShim 2.4s var(--ease-premium) infinite .9s;}
+@keyframes pqShim{0%{transform:translateX(-100%);}55%,100%{transform:translateX(320%);}}
+.pqTitle{margin:0;font-family:var(--font-serif);font-style:italic;font-weight:400;font-size:clamp(1.6rem,3.6vw,2.25rem);letter-spacing:-.02em;color:var(--fg);line-height:1.15;max-width:28ch;}
+.pqWord{display:inline-block;white-space:pre;opacity:0;animation:pqWordK .5s var(--ease-premium) both;}
+@keyframes pqWordK{from{opacity:0;transform:translateY(12px);filter:blur(4px);}to{opacity:1;transform:translateY(0);filter:blur(0);}}
+.pqBody{flex:1;display:flex;flex-direction:column;gap:var(--space-4);min-height:200px;animation:pqSwap .38s var(--ease-premium);}
+@keyframes pqSwap{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.pqHint{margin:0;font-family:var(--font-serif);font-style:italic;font-size:var(--text-base);color:var(--muted-strong);line-height:1.5;}
+.pqHint em{color:var(--mint);}
+.pqTiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.pqTile{position:relative;cursor:pointer;border:1px solid var(--border-strong);border-radius:16px;padding:22px 16px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:9px;background:rgba(255,255,255,.02);color:var(--fg);font-family:inherit;transition:border-color .25s var(--ease-premium),transform .25s var(--ease-premium),background .25s var(--ease-premium),box-shadow .25s var(--ease-premium);}
+.pqTile:hover{transform:translateY(-3px);border-color:var(--mint);box-shadow:0 0 0 1px rgba(110,231,183,.35),0 12px 28px -18px var(--mint-glow);}
+.pqTileOn{border-color:var(--mint);background:rgba(110,231,183,.07);box-shadow:0 0 36px -14px var(--mint-glow);}
+.pqTile.pqJust{animation:pqPop .3s var(--ease-premium);}
+@keyframes pqPop{0%{transform:scale(1);}50%{transform:scale(1.03);box-shadow:0 0 18px -10px var(--mint-glow);}100%{transform:scale(1);}}
+.pqTileIcon{position:relative;width:42px;height:42px;color:var(--mint);display:grid;place-items:center;font-size:25px;line-height:1;}
+.pqTileLabel{font-family:var(--font-serif);font-style:italic;font-size:1.3rem;line-height:1.1;}
+.pqTileSub{font-size:.8rem;color:var(--muted);}
+.pqTileCheck{position:absolute;top:11px;right:11px;width:21px;height:21px;border-radius:50%;background:var(--mint);display:grid;place-items:center;color:#04110b;transform:scale(0);transition:transform .24s var(--spring);}
+.pqTileOn .pqTileCheck{transform:scale(1);}
+.pqTileCheck svg{width:11px;height:11px;}
+.pqTileSolo{grid-column:1 / -1;justify-self:center;width:calc(50% - 6px);}
+.pqPing{position:absolute;inset:-4px;border-radius:14px;border:1.5px solid var(--mint);pointer-events:none;opacity:0;animation:pqPingK .9s var(--ease-premium) forwards;}
+.pqPing2{animation-delay:.16s;}
+@keyframes pqPingK{0%{opacity:.65;transform:scale(1);}100%{opacity:0;transform:scale(2.15);}}
+.pqEnt{opacity:0;animation:pqRiseK .5s var(--ease-premium) both;animation-delay:var(--enter-delay,0s);}
+@keyframes pqRiseK{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.pqEntIco{opacity:0;animation:pqIcoDrop .55s var(--spring) both;}
+@keyframes pqIcoDrop{0%{opacity:0;transform:translateY(-22px) scale(.7);}60%{opacity:1;transform:translateY(3px) scale(1.07);}100%{opacity:1;transform:translateY(0) scale(1);}}
+.pqTileOn .pqTileIcon{opacity:1;}
+.pqScale{padding:8px 2px;touch-action:none;}
+.pqScaleRead{display:flex;align-items:baseline;justify-content:center;gap:12px;margin-bottom:4px;}
+.pqScaleN{font-family:var(--font-serif);font-style:italic;font-size:3.4rem;color:var(--mint);line-height:.9;font-variant-numeric:tabular-nums;}
+.pqScaleU{font-family:var(--font-mono);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted-strong);}
+.pqScaleDescr{text-align:center;font-family:var(--font-serif);font-style:italic;font-size:1.15rem;color:var(--mint);min-height:1.4em;margin-bottom:12px;}
+.pqScaleLine{position:relative;height:5px;border-radius:99px;background:var(--border-strong);cursor:pointer;margin:18px 13px;}
+.pqScaleFill{position:absolute;left:0;top:0;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--mint-deep),var(--mint));box-shadow:0 0 12px var(--mint-glow);}
+.pqScaleDot{position:absolute;top:50%;width:26px;height:26px;border-radius:50%;background:var(--mint);transform:translate(-50%,-50%);box-shadow:0 0 0 6px rgba(110,231,183,.12),0 0 22px var(--mint-glow);cursor:grab;}
+.pqScaleDot:active{cursor:grabbing;}
+.pqScaleTicks{display:flex;justify-content:space-between;margin:0 13px;}
+.pqScaleTick{font-family:var(--font-mono);font-size:.66rem;color:var(--muted);}
+.pqFoot{display:flex;justify-content:space-between;align-items:center;gap:var(--space-3);padding-top:var(--space-4);border-top:1px solid var(--border);margin-top:auto;}
+.pqBack{padding:var(--space-2) var(--space-4);background:transparent;border:1px solid transparent;color:var(--muted);font-family:var(--font-serif);font-style:italic;font-size:var(--text-sm);cursor:pointer;border-radius:var(--radius-pill);transition:color var(--duration) var(--ease),border-color var(--duration) var(--ease),background var(--duration) var(--ease);}
+.pqBack:hover{color:var(--fg);border-color:var(--border);background:rgba(255,255,255,.02);}
+.pqNext{display:inline-flex;align-items:center;gap:6px;padding:11px 24px;background:var(--mint);color:var(--bg);border:none;border-radius:var(--radius-pill);font-family:inherit;font-size:var(--text-sm);font-weight:600;cursor:pointer;box-shadow:0 0 24px -8px var(--mint-glow);transition:background var(--duration) var(--ease),transform var(--duration) var(--ease),box-shadow var(--duration) var(--ease);}
+.pqNext:hover:not(:disabled){background:var(--mint-hover);transform:translateY(-1px);box-shadow:0 0 32px -6px var(--mint-glow);}
+.pqNext:disabled{opacity:.35;cursor:not-allowed;box-shadow:none;}
+@media(max-width:560px){.pqOverlay{padding:var(--space-2);}.pqDialog{border-radius:18px;min-height:min(90vh,540px);}.pqShell{padding:var(--space-6) var(--space-5) var(--space-5);}}
+@media(prefers-reduced-motion:reduce){.pqWord,.pqEnt,.pqEntIco,.pqPing,.pqAuroraA,.pqAuroraB,.pqParticles span,.pqSegShimmer::after,.pqBody{animation:none;opacity:1;}}
+
+@media(max-width:560px){
+  .optGrid{grid-template-columns:1fr;}
+  .ciLbl{width:84px;}
+  .tk{font-size:10px;padding:9px 5px;}
+}
+</style>
+</head>
+<body>
+<div class="grain"></div>
+<div class="aura"></div>
+
+<div class="shell">
+  <header class="headMin">
+    <svg class="mark" viewBox="0 0 32 32" fill="none"><path d="M16 2 30 9v14L16 30 2 23V9z" stroke="#6EE7B7" stroke-width="1.4" opacity=".5"/><path d="M16 9l8 4v6l-8 4-8-4v-6z" fill="#6EE7B7" opacity=".9"/></svg>
+    <span class="kicker" style="flex:1">Peak · Stack</span>
+    <button class="profChip" id="profChip">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg>
+      <span id="profChipTxt"></span>
+    </button>
+  </header>
+
+  <div class="ticker" id="ticker"></div>
+
+  <div id="setupMount"></div>
+
+  <!-- 01 quick log (the daily ritual) -->
+  <section class="section">
+    <div class="eyebrow"><span class="eyebrowNum">·01</span><span class="eyebrowLbl">Quick log</span><span class="eyebrowRule"></span><span class="eyebrowAct" id="retakeQuiz">Setup</span></div>
+    <div class="card">
+      <div class="tileTop">
+        <span class="tileIc"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 11-12h-7z"/></svg></span>
+        <span class="tileLbl">One tap · your daily stack</span>
+      </div>
+      <div class="hbScroll" id="hotbar"></div>
+      <details class="manage">
+        <summary><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> Add or manage your stack</summary>
+        <div class="manageBody">
+          <div class="searchWrap" id="searchWrap">
+            <span class="searchIcon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3-3"/></svg></span>
+            <input class="searchField" id="search" placeholder="Search to add — caffeine, Concerta, Vyvanse, VELO, Zoloft…" autocomplete="off" />
+            <div class="suggestions" id="suggestions" style="display:none"></div>
+          </div>
+          <div class="catRow" id="catRow"></div>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <!-- 02 peak window (hand-in-hand with Peak) -->
+  <section class="section">
+    <div class="eyebrow"><span class="eyebrowNum">·02</span><span class="eyebrowLbl">Peak window</span><span class="eyebrowRule"></span></div>
+    <div id="peakMount"></div>
+  </section>
+
+  <!-- 03 health watch -->
+  <section class="section">
+    <div class="eyebrow"><span class="eyebrowNum">·03</span><span class="eyebrowLbl">Health watch</span><span class="eyebrowRule"></span></div>
+    <div id="healthMount"></div>
+  </section>
+
+  <!-- more (collapsed by default — keep the top minimal) -->
+  <details class="moreWrap">
+    <summary><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg> More — today's log &amp; check-in</summary>
+    <div class="moreBody">
+      <div>
+        <div class="eyebrow" style="margin-bottom:14px"><span class="eyebrowLbl">Today's log</span><span class="eyebrowRule"></span><span class="eyebrowAct" id="logCount" style="cursor:default"></span></div>
+        <div class="card"><div id="logList"></div></div>
+      </div>
+      <div>
+        <div class="eyebrow" style="margin-bottom:14px"><span class="eyebrowLbl">Today's check-in</span><span class="eyebrowRule"></span></div>
+        <div class="card" id="checkin"></div>
+      </div>
+    </div>
+  </details>
+
+  <p class="disclaimer"><b>Estimates only — not medical advice.</b> Pharmacokinetics vary person to person. Never start, stop or change a prescription based on this tool. Talk to your doctor.</p>
+</div>
+
+<div id="modalMount"></div>
+<div id="quizMount"></div>
+
+<script>
+/* ───────── helpers ───────── */
+const $=(s,r=document)=>r.querySelector(s);
+const el=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e;};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function dateKey(d=new Date()){const x=new Date(d);return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;}
+function hmNow(){const d=new Date();return d.getHours()+d.getMinutes()/60;}
+function nowHHMM(){const d=new Date();return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;}
+function fmtHour(h){h=((h%24)+24)%24;const hr=Math.floor(h);const m=Math.round((h-hr)*60);const ap=hr<12?'AM':'PM';let h12=hr%12;if(h12===0)h12=12;return m?`${h12}:${String(m).padStart(2,'0')} ${ap}`:`${h12} ${ap}`;}
+function fmtDur(h){if(h<1)return Math.round(h*60)+' min';const hr=Math.floor(h);const m=Math.round((h-hr)*60);return m?`${hr}h ${m}m`:`${hr}h`;}
+
+/* ───────── pharmacokinetics (Bateman one-compartment oral) ───────── */
+const LN2=Math.LN2;
+const keOf=t12=>LN2/t12;
+function kaFromTmax(tmax,ke){if(tmax<=0.01)return ke*40;let lo=ke*1.0001,hi=ke*400;const f=ka=>Math.log(ka/ke)/(ka-ke)-tmax;for(let i=0;i<70;i++){const mid=(lo+hi)/2;if(f(mid)>0)lo=mid;else hi=mid;}return(lo+hi)/2;}
+function bateman(t,ka,ke){if(t<=0)return 0;return(ka/(ka-ke))*(Math.exp(-ke*t)-Math.exp(-ka*t));}
+function batemanPeak(ka,ke){return bateman(Math.log(ka/ke)/(ka-ke),ka,ke);}
+function personalT12(sub,p){let t12=sub.t12;if(p.age>40)t12*=1+(p.age-40)*0.012;else if(p.age<20)t12*=0.92;if(p.sex==='female')t12*=1.05;if(sub.cyp1a2&&p._smokes)t12*=0.62;return t12;}
+const intensity=(sub,p)=>clamp(70/Math.max(40,p.weightKg),0.6,1.6);
+// full pk profile for the detail view
+function pkProfile(sub){
+  const p=state.profile, t12=personalT12(sub,p), ke=keOf(t12), ka=kaFromTmax(sub.tmax,ke), peakRel=batemanPeak(ka,ke);
+  const rel=t=>bateman(t,ka,ke)/peakRel;
+  const riseCross=f=>{for(let t=0;t<sub.tmax;t+=0.02)if(rel(t)>=f)return t;return sub.tmax;};
+  const fallCross=f=>{for(let t=sub.tmax;t<sub.tmax+6*t12;t+=0.04)if(rel(t)<=f)return t;return sub.tmax+5*t12;};
+  return{t12,ke,ka,peakRel,rel,onset:sub.onset!=null?sub.onset:riseCross(0.16),peak:sub.tmax,comeStart:fallCross(0.7),comeEnd:fallCross(0.25),cleared:sub.tmax+5*t12};
+}
+
+/* ───────── substance library ───────── */
+const DB=[
+ {id:'caffeine',name:'Caffeine',cat:'stim',icon:'☕',mode:'acute',t12:5,tmax:0.75,onset:0.25,dose:'100–200 mg',doseMg:120,peakFeel:52,cyp1a2:true,helps:'Coffee, tea, energy drinks. Blocks adenosine → alertness.',aliases:['coffee','espresso','tea','energy drink','red bull','monster'],pair:'Stack 100–200 mg L-theanine 2:1 for focus without jitter.'},
+ {id:'preworkout',name:'Pre-workout',cat:'stim',icon:'🥤',mode:'acute',t12:5,tmax:1,onset:0.25,dose:'150–300 mg caf',doseMg:250,peakFeel:70,cyp1a2:true,helps:'Caffeine + beta-alanine blend. Big spike, big crash.',aliases:['pre workout','c4','gfuel'],pair:'Don\'t dose after 2 PM — that much caffeine wrecks sleep.'},
+ {id:'nicotine',name:'Nicotine',cat:'nic',icon:'🚬',mode:'acute',t12:2,tmax:0.25,onset:0.05,dose:'2–6 mg',doseMg:4,peakFeel:34,helps:'Pouch, gum, vape. Fast, sharp, short — most addictive.',aliases:['vape','zyn','velo','velos','on!','lyft','pouch','gum','cigarette','nic'],pair:'Short half-life → frequent re-dosing. The crash drives the next hit.',caution:'Highly addictive. Raises heart rate & BP.'},
+ {id:'theacrine',name:'Theacrine',cat:'stim',icon:'🌿',mode:'acute',t12:20,tmax:1.5,onset:0.5,dose:'100–200 mg',doseMg:150,peakFeel:40,helps:'Caffeine-like but slower, less tolerance build. (TeaCrine.)',aliases:['teacrine'],pair:'Long half-life — mornings only or it lingers into the night.'},
+ {id:'ltheanine',name:'L-theanine',cat:'other',icon:'🍵',mode:'acute',t12:1.2,tmax:0.75,onset:0.5,dose:'100–200 mg',doseMg:150,peakFeel:0,calm:true,helps:'Not a stimulant — smooths caffeine\'s edge. Calm focus.',aliases:['theanine','suntheanine'],pair:'Take alongside caffeine 2:1 (theanine:caffeine).'},
+ {id:'adderall-ir',name:'Adderall IR',cat:'adhd',icon:'⚡',mode:'acute',t12:10,tmax:3,onset:0.5,dose:'5–30 mg',doseMg:20,peakFeel:80,rx:true,helps:'Amphetamine salts, immediate-release. Peaks ~3 h, fades ~4–6 h.',aliases:['adderall','amphetamine','addy'],pair:'A late dose costs sleep — poor sleep wrecks tomorrow\'s focus.',caution:'Raises HR & BP. Don\'t stack with other stimulants. Eat.'},
+ {id:'adderall-xr',name:'Adderall XR',cat:'adhd',icon:'⚡',mode:'acute',t12:11,tmax:7,onset:1,dose:'10–30 mg',doseMg:20,peakFeel:78,rx:true,helps:'Extended-release amphetamine. Peaks ~7 h, lasts 10–12 h.',aliases:['adderall xr'],pair:'Take at wake — dose past ~10 AM and it\'s active at bedtime.',caution:'Cardiovascular load. Single morning dose by design.'},
+ {id:'vyvanse',name:'Vyvanse',cat:'adhd',icon:'⚡',mode:'acute',t12:11,tmax:3.5,onset:1.5,dose:'30–70 mg',doseMg:40,peakFeel:76,rx:true,helps:'Lisdexamfetamine prodrug — gentle ramp. Lasts 10–14 h.',aliases:['lisdexamfetamine','elvanse'],pair:'Smoother curve, long tail. Morning only.',caution:'Long duration — afternoon doses hurt sleep.'},
+ {id:'ritalin-ir',name:'Ritalin IR',cat:'adhd',icon:'⚡',mode:'acute',t12:3,tmax:2,onset:0.5,dose:'5–20 mg',doseMg:10,peakFeel:62,rx:true,helps:'Methylphenidate IR. Sharp, short — 3–4 h.',aliases:['methylphenidate','ritalin'],pair:'Short — many split a small early-afternoon dose.',caution:'Don\'t combine with other stimulants.'},
+ {id:'concerta',name:'Concerta',cat:'adhd',icon:'⚡',mode:'acute',t12:3.5,tmax:8,onset:1,dose:'18–54 mg',doseMg:36,peakFeel:64,rx:true,helps:'Methylphenidate ER (osmotic). Slow ramp, 10–12 h.',aliases:['methylphenidate er'],pair:'Designed for a single early dose.',caution:'Late dosing pushes the tail into the night.'},
+ {id:'modafinil',name:'Modafinil',cat:'adhd',icon:'🧠',mode:'acute',t12:13,tmax:2.5,onset:0.75,dose:'100–200 mg',doseMg:150,peakFeel:66,rx:true,helps:'Wakefulness promoter. Long & flat — t½ ~13 h.',aliases:['provigil','modalert'],pair:'Very long half-life — dose before 10 AM.',caution:'Reduces effectiveness of hormonal birth control.'},
+ {id:'armodafinil',name:'Armodafinil',cat:'adhd',icon:'🧠',mode:'acute',t12:14,tmax:2.5,onset:0.75,dose:'150 mg',doseMg:150,peakFeel:68,rx:true,helps:'R-enantiomer of modafinil. Even longer tail.',aliases:['nuvigil'],pair:'Morning only — the tail runs past midnight.',caution:'Same birth-control interaction as modafinil.'},
+ {id:'atomoxetine',name:'Atomoxetine',cat:'adhd',icon:'🧩',mode:'steady',t12:5,tmax:2,dose:'40–100 mg',doseMg:60,peakFeel:0,rx:true,helps:'Strattera — non-stimulant ADHD. Builds over weeks.',aliases:['strattera'],pair:'Consistent timing. Effect is from steady levels, not a peak.',caution:'Can take 4–6 weeks for full effect.'},
+ {id:'sertraline',name:'Sertraline',cat:'anti',icon:'💊',mode:'steady',t12:26,tmax:6,dose:'50–200 mg',doseMg:100,peakFeel:0,rx:true,serotonergic:true,helps:'Zoloft — SSRI. Daily, steady-state in ~1 week.',aliases:['zoloft'],pair:'Activating for many — take in the morning.',caution:'Serotonin syndrome risk with 5-HTP, tramadol, other serotonergics.'},
+ {id:'escitalopram',name:'Escitalopram',cat:'anti',icon:'💊',mode:'steady',t12:30,tmax:5,dose:'5–20 mg',doseMg:10,peakFeel:0,rx:true,serotonergic:true,helps:'Lexapro — SSRI. Long half-life, very stable.',aliases:['lexapro','cipralex'],pair:'AM or PM — pick one and stay consistent.',caution:'Avoid stacking with other serotonergics.'},
+ {id:'fluoxetine',name:'Fluoxetine',cat:'anti',icon:'💊',mode:'steady',t12:96,tmax:6,dose:'20–60 mg',doseMg:20,peakFeel:0,rx:true,serotonergic:true,helps:'Prozac — SSRI. ~4-day half-life + active metabolite.',aliases:['prozac'],pair:'Activating — mornings. Missing a dose barely moves levels.',caution:'Very long washout. Serotonergic interactions.'},
+ {id:'venlafaxine',name:'Venlafaxine',cat:'anti',icon:'💊',mode:'steady',t12:11,tmax:6,dose:'75–225 mg',doseMg:150,peakFeel:0,rx:true,serotonergic:true,helps:'Effexor — SNRI. Can be activating.',aliases:['effexor'],pair:'Morning if it energizes you.',caution:'Rough discontinuation — never stop abruptly.'},
+ {id:'bupropion',name:'Bupropion',cat:'anti',icon:'💊',mode:'steady',t12:21,tmax:5,dose:'150–300 mg',doseMg:150,peakFeel:0,rx:true,activating:true,helps:'Wellbutrin — NDRI. Activating, not serotonergic.',aliases:['wellbutrin','zyban'],pair:'Morning. Late doses disrupt sleep.',caution:'Lowers seizure threshold; adds to stimulant activation.'},
+ {id:'mirtazapine',name:'Mirtazapine',cat:'anti',icon:'🌙',mode:'steady',t12:30,tmax:2,dose:'7.5–45 mg',doseMg:15,peakFeel:0,rx:true,sedating:true,helps:'Remeron — sedating. Lower doses are MORE sedating.',aliases:['remeron'],pair:'Take at bedtime — it helps you sleep.',caution:'Daytime grogginess; appetite/weight gain common.'},
+ {id:'trazodone',name:'Trazodone',cat:'anti',icon:'🌙',mode:'steady',t12:7,tmax:1.5,dose:'25–100 mg',doseMg:50,peakFeel:0,rx:true,sedating:true,serotonergic:true,helps:'Sedating — low doses used off-label for sleep.',aliases:['desyrel'],pair:'30–60 min before bed.',caution:'Morning grogginess if dosed too late.'},
+ {id:'propranolol',name:'Propranolol',cat:'other',icon:'🫀',mode:'acute',t12:4,tmax:1.5,onset:0.5,dose:'10–40 mg',doseMg:20,peakFeel:0,rx:true,calm:true,helps:'Beta-blocker — blunts the physical side of anxiety.',aliases:['inderal','beta blocker'],pair:'Situational — 1 h before the thing you\'re nervous about.',caution:'Don\'t casually combine with stimulants; lowers HR & BP.'},
+ {id:'melatonin',name:'Melatonin',cat:'other',icon:'🌙',mode:'acute',t12:1,tmax:0.75,onset:0.5,dose:'0.3–1 mg',doseMg:0.5,peakFeel:0,calm:true,helps:'Shifts your clock — not a sedative. Low dose works best.',aliases:['melatonin'],pair:'30–60 min before target bedtime.'},
+];
+const DB_BY_ID=Object.fromEntries(DB.map(s=>[s.id,s]));
+const CATS=[{key:'all',label:'All'},{key:'stim',label:'Stimulants'},{key:'adhd',label:'ADHD'},{key:'anti',label:'Antidepressants'},{key:'nic',label:'Nicotine'},{key:'other',label:'Other'}];
+const CAT_TAG={stim:'tStim',adhd:'tAdhd',anti:'tAnti',nic:'tNic',other:'tMint'};
+const CAT_IC={stim:'kStim',adhd:'kAdhd',anti:'kAnti',nic:'kNic',other:''};
+const CAT_NAME={stim:'Stimulant',adhd:'ADHD med',anti:'Antidepressant',nic:'Nicotine',other:'Other'};
+
+/* ───────── state ───────── */
+const LS='vitality_peakstack_v2';
+function load(){try{const v=JSON.parse(localStorage.getItem(LS));if(v)return v;}catch(e){}return null;}
+let state=load()||{
+  profile:{weightKg:78,age:24,sex:'male',heightCm:180,wake:7,bed:23},
+  checkin:{sleepH:7.5,energy:'good',stress:'high',restingHR:52},
+  onboarded:false, baseTol:0, goal:null, flags:[],
+  hotbar:[],            // [{id, doseMg, onGraph}]
+  logsByDate:{},        // { date: [{uid,id,doseMg,time}] }
+};
+function save(){localStorage.setItem(LS,JSON.stringify(state));}
+function todayLog(){const k=dateKey();return(state.logsByDate[k]||=[]);}
+function inHotbar(id){return state.hotbar.find(h=>h.id===id);}
+function isOnGraph(id){const h=inHotbar(id);return h?h.onGraph!==false:true;}
+
+/* ───────── tolerance ───────── */
+function tolFor(id){
+  const sub=DB_BY_ID[id]; let days=0,count=0,mg=0;
+  for(let i=0;i<14;i++){const d=new Date();d.setDate(d.getDate()-i);
+    const hits=(state.logsByDate[dateKey(d)]||[]).filter(l=>l.id===id);
+    if(hits.length){days++;count+=hits.length;mg+=hits.reduce((s,l)=>s+(l.doseMg||0),0);}}
+  const stimClass=['stim','adhd','nic'].includes(sub.cat);
+  const base=stimClass?(state.baseTol||0):0;
+  const freq=days/14;
+  const lvl=clamp(Math.round(Math.max(freq,base*0.85)*70 + clamp(count/14,0,2)/2*30),0,100);
+  return{lvl,avgMg:days?Math.round(mg/days):sub.doseMg,perDay:days?(count/days):0,days};
+}
+
+/* ───────── computed PK for a logged item ───────── */
+function computeItem(item){
+  const sub=DB_BY_ID[item.id];if(!sub)return null;
+  const pk=pkProfile(sub);
+  const [hh,mm]=item.time.split(':').map(Number);const dh=hh+mm/60,now=hmNow(),tEl=now-dh;
+  const rel=sub.mode==='acute'?clamp(bateman(tEl,pk.ka,pk.ke)/pk.peakRel,0,1):1;
+  let phase='phDone',phaseTxt='worn off';
+  if(sub.mode==='acute'){
+    if(tEl<pk.onset){phase='phOnset';phaseTxt='kicking in';}
+    else if(tEl<pk.comeStart){phase=tEl<pk.peak?'phPeak':'phPeak';phaseTxt=tEl<pk.peak?'rising':'peak';}
+    else if(tEl<pk.comeEnd){phase='phCome';phaseTxt='comedown';}
+    else{phase='phDone';phaseTxt='cleared';}
+  }
+  return{sub,pk,dh,now,tEl,rel,phase,phaseTxt,
+    onsetAt:dh+pk.onset,peakAt:dh+pk.peak,comeStartAt:dh+pk.comeStart,comeEndAt:dh+pk.comeEnd,clearedAt:dh+pk.cleared,
+    mgNow:item.doseMg*Math.max(0,rel)};
+}
+
+/* ───────── combined feel ───────── */
+function feelAt(h){
+  let sum=0;
+  for(const it of todayLog()){
+    const sub=DB_BY_ID[it.id];if(!sub||sub.mode!=='acute'||!sub.peakFeel)continue;
+    if(!isOnGraph(it.id))continue;
+    const p=state.profile,t12=personalT12(sub,p),ke=keOf(t12),ka=kaFromTmax(sub.tmax,ke),peakRel=batemanPeak(ka,ke);
+    const [hh,mm]=it.time.split(':').map(Number);const dh=hh+mm/60;
+    const rel=bateman(h-dh,ka,ke)/peakRel;
+    const tol=tolFor(it.id).lvl;
+    sum+=sub.peakFeel*Math.max(0,rel)*intensity(sub,p)*(1-tol/180)*clamp(it.doseMg/sub.doseMg,0.4,2);
+  }
+  return clamp(sum,0,100);
+}
+function activeStimMg(h){let mg=0;for(const it of todayLog()){const c=computeItem(it);if(!c||c.sub.cat!=='stim'||!isOnGraph(it.id))continue;mg+=c.mgNow;}return mg;}
+
+/* ───────── render: ticker ───────── */
+function renderTicker(){
+  const now=hmNow(),feel=feelAt(now),p=state.profile,ci=state.checkin;
+  const caffMg=Math.round(activeStimMg(now)),sleepDebt=Math.max(0,7.5-ci.sleepH);
+  const t=$('#ticker');t.innerHTML='';
+  [{dot:'dotLive',lbl:'LIVE',val:''},{dot:feel>85?'dotWarn':'dotOk',lbl:'FEEL',val:Math.round(feel)},
+   {dot:caffMg>0?'dotOk':'dotWarn',lbl:'ACTIVE',val:caffMg+'mg'},{dot:sleepDebt>1?'dotWarn':'dotOk',lbl:'SLEEP DEBT',val:sleepDebt.toFixed(1)+'h'},
+   {dot:ci.restingHR>60?'dotWarn':'dotOk',lbl:'HR',val:ci.restingHR}].forEach(it=>{
+    const d=el('div','tk');d.innerHTML=`<span class="dot ${it.dot}"></span>${it.lbl}${it.val!==''?` <b>${it.val}</b>`:''}`;t.appendChild(d);});
+  $('#profChipTxt').innerHTML=`<b>${p.weightKg}kg</b> · ${p.age}y · ${p.sex==='male'?'M':p.sex==='female'?'F':'—'} · wake ${fmtHour(p.wake)}`;
+}
+
+/* ───────── render: setup card ───────── */
+function renderSetup(){
+  const m=$('#setupMount');m.innerHTML='';
+  if(state.onboarded)return;
+  const c=el('div','setup');
+  c.innerHTML=`<div class="setupIc"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
+    <div class="setupBody"><div class="setupTitle">Build your stack — <em>6 quick questions.</em></div>
+      <div class="setupText">Tells me what you take, how often, and your body — so every onset, peak, comedown &amp; half-life below is tuned to you. Sets up your hot bar.</div></div>
+    <button class="btnPrimary" id="openQuiz">Open the quiz</button>`;
+  c.querySelector('#openQuiz').onclick=openQuiz;
+  m.appendChild(c);
+}
+
+/* ───────── render: quick-log hot bar (minimal — one tap to log) ───────── */
+function renderHotbar(){
+  const wrap=$('#hotbar');wrap.innerHTML='';
+  if(state.hotbar.length===0){
+    const e=el('div','empty','No quick-logs yet. Tap Setup, or “＋ Add” below — then one tap logs it every day.');
+    e.style.flex='1';wrap.appendChild(e);return;
+  }
+  const counts={};todayLog().forEach(l=>counts[l.id]=(counts[l.id]||0)+1);
+  state.hotbar.forEach(h=>{
+    const sub=DB_BY_ID[h.id];if(!sub)return;const tol=tolFor(h.id),cnt=counts[h.id]||0;
+    const tolColor=tol.lvl>66?'var(--red)':tol.lvl>40?'var(--amber)':'var(--mint)';
+    const card=el('div','hbCard');card.dataset.id=h.id;
+    card.innerHTML=`
+      <button class="hbFace">
+        <div class="hbIc ${CAT_IC[sub.cat]}">${sub.icon}</div>
+        <div class="hbInfo"><div class="hbName">${sub.name}</div><div class="hbDose">${h.doseMg} mg${sub.mode==='steady'?' · daily':''}</div></div>
+      </button>
+      <button class="hbLog ${cnt>0?'on':''}">${cnt>0?`✓ ${cnt}× today`:'＋ Log now'}</button>
+      <div class="hbTolLine"><span style="width:${tol.lvl}%;background:${tolColor}"></span></div>`;
+    card.querySelector('.hbFace').onclick=()=>openDetail({id:h.id,doseMg:h.doseMg,time:nowHHMM(),_hot:true});
+    card.querySelector('.hbLog').onclick=()=>{logNow(h.id,h.doseMg);card.classList.add('flash');};
+    wrap.appendChild(card);
+  });
+}
+function logNow(id,doseMg){
+  todayLog().push({uid:'u'+Math.random().toString(36).slice(2,9),id,doseMg,time:nowHHMM()});
+  state.profile._smokes=todayLog().some(it=>(DB_BY_ID[it.id]||{}).cat==='nic');
+  save();renderAll();
+}
+function addToHotbar(sub,flash=true){
+  if(!inHotbar(sub.id)) state.hotbar.push({id:sub.id,doseMg:sub.doseMg,onGraph:true});
+  save();renderAll();
+  if(flash){const c=$(`.hbCard[data-id="${sub.id}"]`);if(c){c.classList.add('flash');c.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'});}}
+}
+
+/* ───────── render: feel meter (lives inside the Peak-window card) ───────── */
+function renderFeel(){
+  const now=hmNow(),feel=feelAt(now);
+  const ff=$('#feelFill'),fc=$('#feelChip');
+  if(ff)ff.style.width=feel+'%';
+  if(fc)fc.innerHTML=`<b style="color:var(--mint);font-weight:600">${Math.round(feel)}</b> <span style="color:var(--muted);font-size:10px">/100 active</span>`;
+  const fr=$('#feelRead');
+  if(fr){
+    const active=todayLog().filter(it=>(DB_BY_ID[it.id]||{}).mode==='acute'&&(DB_BY_ID[it.id]||{}).peakFeel>0&&isOnGraph(it.id));
+    let read;
+    if(active.length===0)read='Nothing active right now.';
+    else if(feel>85)read='<b>Over-stimulated.</b> Jittery — don\'t add more.';
+    else if(feel>55)read='<b>In the zone.</b> Use it for hard work.';
+    else if(feel>25)read='Mild lift — climbing or easing off.';
+    else read='Low — worn off or not kicked in.';
+    fr.innerHTML=read;
+  }
+}
+
+/* ───────── Peak readiness model — mirrors the real /app/peak tracker ─────────
+   25-hour circadian baseline (the same BASELINE array as curve.ts — evening
+   peak ~8 PM), scaled by a recovery multiplier from the check-in (sleep / energy
+   / stress / resting HR — standing in for the WHOOP signals Supabase feeds the
+   live tracker), with the logged stimulants added on top as readiness points. So
+   the mint curve shows exactly how today's stims reshape your Peak score. */
+const READINESS_BASELINE=[18,12,10,14,16,22,30,42,55,68,75,70,62,50,44,48,56,64,72,84,92,88,64,38,18];
+function baselineAt(h){h=clamp(h,0,24);const i=Math.floor(h),f=h-i;const v0=READINESS_BASELINE[i],v1=READINESS_BASELINE[Math.min(24,i+1)];return v0+(v1-v0)*f;}
+function recoveryMult(){
+  const ci=state.checkin;
+  const sleepF=clamp(ci.sleepH/8,0.45,1.08);
+  const energyF={drained:0.62,low:0.82,ok:0.95,good:1.06,peak:1.16}[ci.energy]||1;
+  const stressF={calm:1.08,easy:1.04,some:1.0,high:0.9,maxed:0.8}[ci.stress]||1;
+  const hrF=clamp(1-(ci.restingHR-55)*0.006,0.84,1.1);
+  return clamp(sleepF*energyF*stressF*hrF,0.5,1.2);
+}
+function baseReadinessAt(h){return clamp(baselineAt(h)*recoveryMult(),0,100);}
+function stimBoostAt(h){
+  let pts=0;const p=state.profile;
+  for(const it of todayLog()){
+    const sub=DB_BY_ID[it.id];if(!sub||sub.mode!=='acute'||!sub.peakFeel||!isOnGraph(it.id))continue;
+    const t12=personalT12(sub,p),ke=keOf(t12),ka=kaFromTmax(sub.tmax,ke),peakRel=batemanPeak(ka,ke);
+    const [hh,mm]=it.time.split(':').map(Number);const dh=hh+mm/60;
+    const rel=bateman(h-dh,ka,ke)/peakRel;if(rel<=0)continue;
+    const tol=tolFor(it.id).lvl;
+    pts+=sub.peakFeel*rel*intensity(sub,p)*(1-tol/180)*clamp(it.doseMg/sub.doseMg,0.4,2)*0.42;
+  }
+  return pts;
+}
+function readinessAt(h){return clamp(baseReadinessAt(h)+stimBoostAt(h),0,100);}
+function readinessTier(s){return s>=80?'Peak':s>=65?'Solid':s>=50?'Tired':s>=35?'Low':'Drained';}
+const READ_TIER_HINT={Peak:'Push hard. Use this window for your hardest task.',Solid:'Train normal. Knock out the meaningful work.',Tired:'Moderate. Light cognitive load, easy admin.',Low:'Recover. Walk, hydrate, no big decisions.',Drained:'Rest. Anything you push now is borrowed against tomorrow.'};
+function readScoreColor(s){const t=clamp(s,0,100)/100;return `hsl(${Math.round(6+t*142)}, ${Math.round(70-t*6)}%, ${Math.round(56+t*8)}%)`;}
+
+/* ───────── render: Peak window (the live tracker, mirrored, + stim overlay) ───────── */
+function stripTags(s){return s.replace(/<[^>]+>/g,'');}
+function renderPeakWindow(){
+  const p=state.profile,now=hmNow();
+  const score=Math.round(readinessAt(now)),base=Math.round(baseReadinessAt(now)),delta=score-base;
+  const tier=readinessTier(score),color=readScoreColor(score);
+  let bestH=null,bestV=0;for(let h=Math.max(p.wake+0.5,now);h<=Math.min(p.bed-1,22);h+=0.25){const v=readinessAt(h);if(v>bestV){bestV=v;bestH=h;}}
+  if(bestH==null)for(let h=p.wake+0.5;h<=Math.min(p.bed-1,22);h+=0.25){const v=readinessAt(h);if(v>bestV){bestV=v;bestH=h;}}
+  if(bestH==null)bestH=p.wake+3;
+  const lo=clamp(bestH-1,p.wake,23.4),hi=clamp(bestH+1,p.wake,23.9);
+  const stimsLogged=todayLog().some(it=>(DB_BY_ID[it.id]||{}).mode==='acute'&&(DB_BY_ID[it.id]||{}).peakFeel>0&&isOnGraph(it.id));
+  const rec=buildRec();const tone=rec.tone==='warn'?'tStim':rec.tone==='stop'?'tNic':'tMint';
+  const deltaHtml=delta>0
+    ? `<div class="pwDelta">natural <b>${base}</b> <span>→</span> <b style="color:${color}">${score}</b> <span class="nudgePill tMint">stims +${delta}</span></div>`
+    : `<div class="pwSubline">${stimsLogged?"stims aren't lifting you right now":'log your stack to see the lift'}</div>`;
+  $('#peakMount').innerHTML=`<div class="card">
+    <div class="pwTop">
+      <div>
+        <div class="pwLbl">Peak readiness · now</div>
+        <div class="pwScore" style="color:${color}">${score}<span class="pwScoreUnit">/ 100 · ${tier}</span></div>
+        ${deltaHtml}
+      </div>
+      <div class="pwBest"><div class="pwBestLbl">Best window</div><div class="pwBestVal">${fmtHour(lo)}–${fmtHour(hi)}</div></div>
+    </div>
+    <div class="pwReadline">${READ_TIER_HINT[tier]}</div>
+    <div class="pwNudge"><span class="nudgePill ${tone}">${rec.kick}</span><span>${stripTags(rec.title)}</span></div>
+    <div class="chartBox"><div id="peakChart"></div></div>
+    <div class="legend">
+      <span class="lg"><span class="lgSw" style="border-color:${color}"></span> With stims</span>
+      <span class="lg"><span class="lgSw dash"></span> Natural</span>
+      <span class="lg"><span class="lgSw bw" style="border-top-style:dashed"></span> Bedtime</span>
+      <span class="lg"><span class="lgSw zone"></span> Sleep-risk</span>
+    </div>
+    <details class="fullPlan"><summary>See the full plan — sleep · stimulants · supplements · food ›</summary><div id="recMount" style="padding:14px 14px 16px"></div></details>
+    <div class="pwIntegrate"><span>↔</span><span><b>This is your Peak tracker.</b> In the app it runs on your real WHOOP sleep &amp; HR from Supabase; here it's driven by your check-in. The <b style="color:${color}">mint line</b> is how today's stims reshape it — the dashed line is you without them.</span></div>
+  </div>`;
+  drawReadinessChart();renderRec();
+}
+function drawReadinessChart(){
+  const p=state.profile,x0=Math.min(p.wake-0.5,6),x1=Math.max(p.bed+1.5,24);
+  const W=680,H=232,padL=4,padR=4,padT=20,padB=22;
+  const sx=h=>padL+((h-x0)/(x1-x0))*(W-padL-padR),sy=v=>padT+(1-v/100)*(H-padT-padB);
+  const now=hmNow(),bed=p.bed,col=readScoreColor(readinessAt(now));
+  let bp=[],wp=[];for(let h=x0;h<=x1;h+=0.1){bp.push([sx(h),sy(baseReadinessAt(h))]);wp.push([sx(h),sy(readinessAt(h))]);}
+  const basePath=bp.map((q,i)=>(i?'L':'M')+q[0].toFixed(1)+' '+q[1].toFixed(1)).join(' ');
+  const withPath=wp.map((q,i)=>(i?'L':'M')+q[0].toFixed(1)+' '+q[1].toFixed(1)).join(' ');
+  const area=`M${sx(x0)} ${sy(0)} `+wp.map(q=>'L'+q[0].toFixed(1)+' '+q[1].toFixed(1)).join(' ')+` L${sx(x1)} ${sy(0)} Z`;
+  let zone='';if(stimBoostAt(bed)>8){const z0=sx(Math.max(x0,bed-3));zone=`<rect x="${z0}" y="${padT}" width="${sx(bed)-z0}" height="${H-padT-padB}" fill="rgba(239,68,68,.08)" stroke="rgba(239,68,68,.32)" stroke-dasharray="3 3"/>`;}
+  let ticks='';for(let h=Math.ceil(x0);h<=x1;h+=3)ticks+=`<text x="${sx(h)}" y="${H-6}" fill="rgba(255,255,255,.4)" font-family="var(--font-mono)" font-size="9" text-anchor="middle">${fmtHour(h).replace(' ','')}</text>`;
+  const nowX=sx(now),bedX=sx(bed),nowY=sy(readinessAt(now));
+  $('#peakChart').innerHTML=`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="height:232px">
+    <defs><linearGradient id="rg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${col}" stop-opacity=".24"/><stop offset="1" stop-color="${col}" stop-opacity="0"/></linearGradient></defs>
+    ${[80,65,50].map(v=>`<line x1="${padL}" y1="${sy(v)}" x2="${W-padR}" y2="${sy(v)}" stroke="rgba(255,255,255,.05)"/>`).join('')}
+    ${zone}
+    <path d="${area}" fill="url(#rg)"/>
+    <path d="${basePath}" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="1.6" stroke-dasharray="4 4"/>
+    <path d="${withPath}" fill="none" stroke="${col}" stroke-width="2.7" stroke-linejoin="round"/>
+    ${now>=x0&&now<=x1?`<line x1="${nowX}" y1="${padT-4}" x2="${nowX}" y2="${H-padB}" stroke="rgba(255,255,255,.5)" stroke-dasharray="3 3"/><circle cx="${nowX}" cy="${nowY}" r="5" fill="#fff" stroke="${col}" stroke-width="2"/><text x="${nowX}" y="${padT-7}" fill="#fff" font-family="var(--font-mono)" font-size="9" text-anchor="middle">now</text>`:''}
+    <line x1="${bedX}" y1="${padT-4}" x2="${bedX}" y2="${H-padB}" stroke="rgba(245,158,11,.55)" stroke-dasharray="4 3"/><text x="${bedX}" y="${padT-7}" fill="var(--amber)" font-family="var(--font-mono)" font-size="9" text-anchor="middle">bed</text>
+    ${ticks}</svg>`;
+}
+
+/* ───────── render: today's log ───────── */
+function renderLog(){
+  const list=todayLog(),mount=$('#logList');mount.innerHTML='';
+  $('#logCount').textContent=list.length?`${list.length} logged`:'';
+  if(list.length===0){mount.appendChild(el('p','empty','Nothing logged today. Tap a chip in your hot bar above.'));return;}
+  list.slice().sort((a,b)=>a.time.localeCompare(b.time)).forEach(it=>{
+    const c=computeItem(it);if(!c)return;const sub=c.sub;
+    let sub2;
+    if(sub.mode==='acute')sub2=`onset ${fmtHour(c.onsetAt)} · peak <b>${fmtHour(c.peakAt)}</b> · comedown ${fmtHour(c.comeStartAt)}–${fmtHour(c.comeEndAt)} · clears ${fmtHour(c.clearedAt)}`;
+    else sub2=`steady med · t½ ${fmtDur(c.pk.t12)} · keep timing consistent`;
+    const right=sub.mode==='acute'&&sub.peakFeel>0
+      ?`<span class="phaseTag ${c.phase}">${c.phaseTxt}</span><div class="lvlWrap"><div class="lvlBar"><div class="lvlFill" style="width:${Math.round(c.rel*100)}%"></div></div><div class="lvlTxt">${Math.round(c.rel*100)}% in you</div></div>`
+      :`<span class="lvlTxt">${sub.mode==='steady'?'daily':'taken '+fmtHour(c.dh)}</span>`;
+    const row=el('div','logRow');
+    row.innerHTML=`<div class="logIc ${CAT_IC[sub.cat]}">${sub.icon}</div>
+      <div class="logMid"><div class="logName">${sub.name} <span class="tag ${CAT_TAG[sub.cat]}">${CAT_NAME[sub.cat]}</span>${sub.rx?'<span class="tag tMint">Rx</span>':''}</div>
+        <div class="logSub">${it.doseMg?`<b>${it.doseMg} mg</b> · `:''}taken ${fmtHour(c.dh)} · ${sub2}</div></div>
+      <div class="logRight">${right}</div>`;
+    row.querySelector('.logMid').onclick=()=>openDetail(it);
+    const rm=el('button','remove','×');rm.onclick=()=>{state.logsByDate[dateKey()]=list.filter(x=>x.uid!==it.uid);save();renderAll();};
+    row.appendChild(rm);mount.appendChild(row);
+  });
+}
+
+/* ───────── render: chart ───────── */
+function renderChart(){
+  const p=state.profile,x0=Math.min(p.wake-0.5,6),x1=Math.max(p.bed+1.5,24);
+  const W=680,H=220,padL=4,padR=4,padT=18,padB=22;
+  const sx=h=>padL+((h-x0)/(x1-x0))*(W-padL-padR),sy=v=>padT+(1-v/100)*(H-padT-padB);
+  let pts=[];for(let h=x0;h<=x1;h+=0.1)pts.push([sx(h),sy(feelAt(h))]);
+  const path=pts.map((pt,i)=>(i?'L':'M')+pt[0].toFixed(1)+' '+pt[1].toFixed(1)).join(' ');
+  const area=`M${sx(x0)} ${sy(0)} `+pts.map(pt=>'L'+pt[0].toFixed(1)+' '+pt[1].toFixed(1)).join(' ')+` L${sx(x1)} ${sy(0)} Z`;
+  const now=hmNow(),bed=p.bed;
+  let riskFrom=null;for(let h=Math.max(now,p.wake);h<=bed;h+=0.1)if(feelAt(h)>18)riskFrom=h;
+  let ticks='';for(let h=Math.ceil(x0);h<=x1;h+=3)ticks+=`<text x="${sx(h)}" y="${H-6}" fill="rgba(255,255,255,.4)" font-family="var(--font-mono)" font-size="9" text-anchor="middle">${fmtHour(h).replace(' ','')}</text>`;
+  const bedX=sx(bed),nowX=sx(now);
+  let zone='';if(riskFrom&&riskFrom<bed&&feelAt(bed)>10){const z0=sx(bed-Math.min(3,bed-riskFrom));zone=`<rect x="${z0}" y="${padT}" width="${bedX-z0}" height="${H-padT-padB}" fill="rgba(239,68,68,.10)" stroke="rgba(239,68,68,.4)" stroke-dasharray="3 3"/>`;}
+  $('#chart').innerHTML=`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="height:220px">
+    <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6EE7B7" stop-opacity=".28"/><stop offset="1" stop-color="#6EE7B7" stop-opacity="0"/></linearGradient></defs>
+    <line x1="${padL}" y1="${sy(55)}" x2="${W-padR}" y2="${sy(55)}" stroke="rgba(110,231,183,.18)" stroke-dasharray="2 4"/>
+    <text x="${W-padR}" y="${sy(55)-4}" fill="rgba(110,231,183,.5)" font-family="var(--font-mono)" font-size="8.5" text-anchor="end">in the zone</text>
+    ${zone}<path d="${area}" fill="url(#g)"/><path d="${path}" fill="none" stroke="#6EE7B7" stroke-width="2.4" stroke-linejoin="round"/>
+    ${now>=x0&&now<=x1?`<line x1="${nowX}" y1="${padT-6}" x2="${nowX}" y2="${H-padB}" stroke="rgba(255,255,255,.5)" stroke-dasharray="3 3"/><circle cx="${nowX}" cy="${sy(feelAt(now))}" r="5" fill="#fff" stroke="#6EE7B7" stroke-width="2"/><text x="${nowX}" y="${padT-9}" fill="#fff" font-family="var(--font-mono)" font-size="9" text-anchor="middle">now</text>`:''}
+    <line x1="${bedX}" y1="${padT-6}" x2="${bedX}" y2="${H-padB}" stroke="rgba(245,158,11,.55)" stroke-dasharray="4 3"/><text x="${bedX}" y="${padT-9}" fill="var(--amber)" font-family="var(--font-mono)" font-size="9" text-anchor="middle">bed</text>${ticks}</svg>`;
+  const fb=feelAt(bed),anyAcute=todayLog().some(it=>(DB_BY_ID[it.id]||{}).mode==='acute'&&(DB_BY_ID[it.id]||{}).peakFeel>0&&isOnGraph(it.id));
+  $('#chartCap').innerHTML=!anyAcute?`Fills in as you log. Maps your combined stimulation across the day so you can see your <b>peak window</b> and whether anything's still active at <b>bedtime</b>. Toggle the eye on a hot-bar chip to add/remove it here.`
+    :fb>15?`⚠️ Stimulation is still <b>${Math.round(fb)}/100</b> at your bedtime (${fmtHour(bed)}) — the red zone. Expect harder sleep onset; your last stimulant was too late.`
+    :`Your stack clears before bed — good. Peak window is shaded; aim your hardest work there.`;
+}
+
+/* ───────── render: optimize ───────── */
+function buildRec(){
+  const p=state.profile,ci=state.checkin,now=hmNow(),log=todayLog();
+  const caffLogged=log.some(it=>(DB_BY_ID[it.id]||{}).cat==='stim');
+  const stimLogged=log.some(it=>['stim','adhd','nic'].includes((DB_BY_ID[it.id]||{}).cat));
+  const sleepDebt=Math.max(0,7.5-ci.sleepH);
+  const heart=state.flags.includes('heart'),anxiety=state.flags.includes('anxiety'),onAnti=state.flags.includes('antidepressant')||log.some(it=>(DB_BY_ID[it.id]||{}).cat==='anti');
+  const taxed=ci.sleepH<6||ci.stress==='high'||ci.stress==='maxed'||ci.restingHR>=62||ci.energy==='drained'||heart;
+  const reasons=[];if(ci.sleepH<6)reasons.push(`only ${ci.sleepH}h sleep`);if(ci.stress==='high'||ci.stress==='maxed')reasons.push('stress is high');if(ci.restingHR>=62)reasons.push(`resting HR ${ci.restingHR}`);if(ci.energy==='drained')reasons.push('you flagged drained');if(heart)reasons.push('your heart flag');
+  const fb=feelAt(p.bed);
+  let bestH=null,bestV=0;for(let h=p.wake+1;h<=Math.min(p.bed-2,21);h+=0.25){const v=feelAt(h);if(v>bestV){bestV=v;bestH=h;}}if(!bestH||bestV<20)bestH=p.wake+3;
+  let tone='ok',kick='Today\'s call',title,body,opts=[],primary=null;
+  if(taxed&&!stimLogged){
+    tone='warn';kick='Go easy today';
+    title=`Hold off on the stimulants — <em>your system's already taxed.</em>`;
+    body=`You're running on ${reasons.join(', ')}. A stimulant on top spikes anxiety and borrows from tonight's sleep. If you must: <b>half your usual dose</b>, with food and L-theanine.`;
+    opts=[{ic:'😴',h:'Sleep',t:`Sleep debt is <b>${sleepDebt.toFixed(1)}h</b>. A 20-min nap beats more caffeine.`},
+      {ic:'⚡',h:'Stimulants',t:`If needed: <b>half dose</b>, before noon, + 200mg L-theanine.`},
+      {ic:'💊',h:'Supplements',t:`<b>Magnesium glycinate</b> 200–400mg tonight. Skip evening stimulants.`},
+      {ic:'🍽️',h:'Food',t:`Protein + complex carbs first. Empty + tired = jitters.`}];
+  } else if(taxed&&stimLogged){
+    tone='warn';kick='Easy on more';
+    title=`That's enough stimulant for <em>a day like today.</em>`;
+    body=`You've dosed and you're running on ${reasons.join(', ')}. More won't buy focus — it buys a worse crash and a worse night.`;
+    opts=[{ic:'💧',h:'Right now',t:`Hydrate — caffeine is a diuretic.`},
+      {ic:'😴',h:'Sleep',t:`Last stimulant should be done. Bed by <b>${fmtHour(p.bed)}</b>.`},
+      {ic:'💊',h:'Supplements',t:`<b>L-theanine</b> now to smooth it; <b>magnesium</b> tonight.`},
+      {ic:'🍽️',h:'Food',t:`A real meal steadies the comedown.`}];
+  } else if(!caffLogged&&now<13&&now>=p.wake-0.5){
+    tone='ok';kick='Recommended';
+    title=`Good day for caffeine — <em>dose it now and time it right.</em>`;
+    body=`Sleep and stress look fine and you haven't had a stimulant yet. <b>100–200 mg</b> is your sweet spot — best ~90 min after waking, about <b>${fmtHour(p.wake+1.5)}</b>.`;
+    opts=[{ic:'⚡',h:'Stimulants',t:`<b>~${Math.round(120*intensity(DB_BY_ID.caffeine,p))} mg</b> for your size.${anxiety?' Pair L-theanine — your jitter flag.':' Pair 2:1 with L-theanine.'}`},
+      {ic:'😴',h:'Timing',t:`Last caffeine by <b>${fmtHour(p.bed-8)}</b> so it clears 8h before bed.`},
+      {ic:'🎯',h:'Best window',t:`Aim your hardest task at <b>${fmtHour(bestH)}</b>.`},
+      {ic:'🍽️',h:'Food',t:`With or after breakfast — smooths the curve.`}];
+    primary={label:'Log caffeine now',act:()=>{if(!inHotbar('caffeine'))addToHotbar(DB_BY_ID.caffeine,false);logNow('caffeine',DB_BY_ID.caffeine.doseMg);}};
+  } else if(fb>15){
+    tone='stop';kick='Cut it now';
+    title=`Stop stimulants — <em>tonight's sleep is at risk.</em>`;
+    body=`Your stack is still at <b>${Math.round(fb)}/100</b> at bedtime (${fmtHour(p.bed)}). Too late to clear. No more today; shift the last dose earlier tomorrow.`;
+    opts=[{ic:'🚫',h:'Stimulants',t:`Hard stop. More lands in your sleep window.`},
+      {ic:'💊',h:'Supplements',t:`<b>Magnesium</b> + <b>L-theanine</b> to counter the residual.`},
+      {ic:'😴',h:'Sleep',t:`Dim screens early; wind-down works harder tonight.`},
+      {ic:'⏰',h:'Tomorrow',t:`Move your last stimulant before <b>${fmtHour(p.bed-9)}</b>.`}];
+  } else {
+    tone='ok';kick='Dialed in';
+    title=`You're <em>dialed in</em> — ride it.`;
+    body=`Your stack and recovery line up. Stimulation peaks around <b>${fmtHour(bestH)}</b> and clears before bed.`;
+    opts=[{ic:'🎯',h:'Best window',t:`Block <b>${fmtHour(bestH)}</b> for what matters most.`},
+      {ic:'💧',h:'Right now',t:`Keep water going — it carries the focus.`},
+      {ic:'😴',h:'Sleep',t:`No late stimulants needed. Bed by <b>${fmtHour(p.bed)}</b>.`},
+      {ic:'💊',h:'Supplements',t:`Want an edge? L-theanine with your next coffee.`}];
+  }
+  if(onAnti&&stimLogged)opts.push({ic:'⚠️',h:'Interaction',t:`You logged a stimulant alongside an <b>antidepressant</b> — watch for raised HR/BP and over-activation.`});
+  return{tone,kick,title,body,opts,primary};
+}
+function renderRec(){
+  const r=buildRec(),mount=$('#recMount');mount.innerHTML='';
+  const card=el('div','recCard '+(r.tone==='warn'?'warn':r.tone==='stop'?'stop':''));
+  card.innerHTML=`<div class="recKick"><span>✦</span> ${r.kick}</div><div class="recTitle">${r.title}</div><div class="recBody">${r.body}</div>
+    <div class="optGrid">${r.opts.map(o=>`<div class="opt"><div class="optHead"><span class="em">${o.ic}</span> ${o.h}</div><div class="optTxt">${o.t}</div></div>`).join('')}</div>`;
+  if(r.primary){const a=el('div','recActs');const b=el('button','btnPrimary',`＋ ${r.primary.label}`);b.onclick=r.primary.act;a.appendChild(b);card.appendChild(a);}
+  mount.appendChild(card);
+}
+
+/* ───────── render: check-in ───────── */
+const ENERGY=['drained','low','ok','good','peak'],STRESS=['calm','easy','some','high','maxed'];
+function renderCheckin(){
+  const ci=state.checkin,mount=$('#checkin');mount.innerHTML='';
+  const sleep=el('div','ciRow');
+  sleep.innerHTML=`<div class="ciLbl">Sleep</div><div class="ciCtrl"><div class="step"><button class="stepBtn" data-d="-1">−</button><div class="stepVal">${ci.sleepH.toFixed(1)}<small>h</small></div><button class="stepBtn" data-d="1">+</button></div></div>`;
+  sleep.querySelectorAll('.stepBtn').forEach(b=>b.onclick=()=>{ci.sleepH=clamp(+(ci.sleepH+0.5*(+b.dataset.d)).toFixed(1),0,14);save();renderAll();});
+  mount.appendChild(sleep);
+  mount.appendChild(segRow('Energy',ENERGY,ci.energy,v=>{ci.energy=v;save();renderAll();}));
+  mount.appendChild(segRow('Stress',STRESS,ci.stress,v=>{ci.stress=v;save();renderAll();}));
+  const hr=el('div','ciRow');
+  hr.innerHTML=`<div class="ciLbl">Resting HR</div><div class="ciCtrl"><div class="step"><button class="stepBtn" data-d="-1">−</button><div class="stepVal">${ci.restingHR}<small>bpm</small></div><button class="stepBtn" data-d="1">+</button></div></div>`;
+  hr.querySelectorAll('.stepBtn').forEach(b=>b.onclick=()=>{ci.restingHR=clamp(ci.restingHR+(+b.dataset.d),35,120);save();renderAll();});
+  mount.appendChild(hr);
+  mount.appendChild(el('div','ciRow','<div class="ciNote">Feeds the recommendation above — in Vitality this auto-fills from WHOOP / your check-in.</div>'));
+}
+function segRow(label,opts,val,on){
+  const r=el('div','ciRow'),seg=el('div','seg');
+  opts.forEach(o=>{const b=el('button','pill'+(o===val?' pillOn':''),o[0].toUpperCase()+o.slice(1));b.onclick=()=>on(o);seg.appendChild(b);});
+  r.innerHTML=`<div class="ciLbl">${label}</div>`;const c=el('div','ciCtrl');c.appendChild(seg);r.appendChild(c);return r;
+}
+
+/* ───────── search ───────── */
+let activeCat='all';
+function renderCats(){const r=$('#catRow');r.innerHTML='';CATS.forEach(c=>{const b=el('button','catChip'+(c.key===activeCat?' catChipOn':''),c.label);b.onclick=()=>{activeCat=c.key;renderCats();doSearch($('#search').value);};r.appendChild(b);});}
+function searchSubs(raw){
+  const q=raw.toLowerCase().trim();let pool=activeCat==='all'?DB:DB.filter(s=>s.cat===activeCat);
+  if(!q)return activeCat==='all'?[]:pool.slice(0,8);
+  const starts=[],contains=[];
+  for(const s of pool){const hay=[s.name.toLowerCase(),...(s.aliases||[]).map(a=>a.toLowerCase())];if(hay.some(h=>h.startsWith(q)))starts.push(s);else if(hay.some(h=>h.includes(q)))contains.push(s);}
+  return[...starts,...contains].slice(0,8);
+}
+function doSearch(v){
+  const box=$('#suggestions'),matches=searchSubs(v);
+  if(matches.length===0){box.style.display='none';return;}
+  box.innerHTML='';box.style.display='block';
+  matches.forEach(s=>{const inHb=!!inHotbar(s.id);const b=el('button','suggestion');
+    b.innerHTML=`<span class="sugIc">${s.icon}</span><span class="sugBody"><span class="sugName">${s.name} <span class="tag ${CAT_TAG[s.cat]}">${CAT_NAME[s.cat]}</span>${s.rx?'<span class="tag tMint">Rx</span>':''}</span><span class="sugHelps">${s.helps}</span></span><span class="sugDose">${inHb?'in hot bar ✓':'＋ add'}</span>`;
+    b.onmousedown=e=>{e.preventDefault();$('#search').value='';box.style.display='none';addToHotbar(s);};box.appendChild(b);});
+}
+
+/* ───────── detail modal: onset / peak / comedown / half-life ───────── */
+function openDetail(item){
+  const sub=DB_BY_ID[item.id];if(!sub)return;const pk=pkProfile(sub),tol=tolFor(item.id);
+  let curDose=item.doseMg||sub.doseMg;
+  const m=el('div','scrim');
+  let kpis,timeline,curve='';
+  if(sub.mode==='acute'){
+    // mini curve with onset/peak/comedown markers
+    const W=400,H=120,p0=6,pe=6,pt=10,pb=8,end=Math.min(pk.cleared*1.05,pk.peak+5*pk.t12);
+    const sx=t=>p0+(t/end)*(W-p0-pe),sy=v=>pt+(1-v)*(H-pt-pb);
+    let pts=[];for(let t=0;t<=end;t+=end/120)pts.push([sx(t),sy(pk.rel(t))]);
+    const path=pts.map((q,i)=>(i?'L':'M')+q[0].toFixed(1)+' '+q[1].toFixed(1)).join(' ');
+    const area=`M${sx(0)} ${sy(0)} `+pts.map(q=>'L'+q[0].toFixed(1)+' '+q[1].toFixed(1)).join(' ')+` L${sx(end)} ${sy(0)} Z`;
+    const mk=(t,col,lbl)=>`<line x1="${sx(t)}" y1="${sy(pk.rel(t))}" x2="${sx(t)}" y2="${H-pb}" stroke="${col}" stroke-width="1" stroke-dasharray="2 2" opacity=".6"/><circle cx="${sx(t)}" cy="${sy(pk.rel(t))}" r="3.2" fill="${col}"/>`;
+    curve=`<div class="pkChart"><svg viewBox="0 0 ${W} ${H}">
+      <defs><linearGradient id="dg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6EE7B7" stop-opacity=".3"/><stop offset="1" stop-color="#6EE7B7" stop-opacity="0"/></linearGradient></defs>
+      <path d="${area}" fill="url(#dg)"/><path d="${path}" fill="none" stroke="#6EE7B7" stroke-width="2.2"/>
+      ${mk(pk.onset,'#8fb8c9')}${mk(pk.peak,'#6EE7B7')}${mk(pk.comeStart,'#F59E0B')}${mk(pk.comeEnd,'#F59E0B')}</svg></div>
+      <div class="pkPhases">
+        <div class="pkPh" style="--tone:var(--blue)"><div class="pkPhNum">${fmtDur(pk.onset)}</div><div class="pkPhLbl">onset</div></div>
+        <div class="pkPh" style="--tone:var(--mint)"><div class="pkPhNum">${fmtDur(pk.peak)}</div><div class="pkPhLbl">peak</div></div>
+        <div class="pkPh" style="--tone:var(--amber)"><div class="pkPhNum">${fmtDur(pk.comeStart)}–${fmtDur(pk.comeEnd)}</div><div class="pkPhLbl">comedown</div></div>
+        <div class="pkPh" style="--tone:var(--muted)"><div class="pkPhNum">${fmtDur(pk.cleared)}</div><div class="pkPhLbl">cleared</div></div>
+      </div>`;
+    kpis=`<div class="detKpis"><div class="kpi"><div class="kpiNum">${fmtDur(pk.t12)}</div><div class="kpiLbl">half-life · you</div></div>
+      <div class="kpi kpiEdit"><input class="kpiDose" id="detDose" type="number" step="any" inputmode="decimal" value="${curDose}" /><div class="kpiLbl">this dose · mg</div></div>
+      <div class="kpi"><div class="kpiNum">${tol.lvl}</div><div class="kpiLbl">tolerance</div></div></div>`;
+    timeline=`<div class="detLine">All times measured from when you take it. <b>Onset</b> ${fmtDur(pk.onset)}, <b>peak</b> at ${fmtDur(pk.peak)}, the <b>comedown</b> runs ${fmtDur(pk.comeStart)}–${fmtDur(pk.comeEnd)}, and it's ~fully <b>cleared</b> after ${fmtDur(pk.cleared)} (5 half-lives).</div>`;
+  } else {
+    kpis=`<div class="detKpis"><div class="kpi"><div class="kpiNum">${fmtDur(pk.t12)}</div><div class="kpiLbl">half-life · you</div></div>
+      <div class="kpi kpiEdit"><input class="kpiDose" id="detDose" type="number" step="any" inputmode="decimal" value="${curDose}" /><div class="kpiLbl">this dose · mg</div></div>
+      <div class="kpi"><div class="kpiNum">${Math.round(5*pk.t12/24)}d</div><div class="kpiLbl">to steady state</div></div></div>`;
+    timeline=`<div class="detLine">This is a <b>steady-state med</b>, not a same-day spike. It reaches a stable level after ~${Math.round(5*pk.t12/24)} days of consistent dosing. ${sub.sedating?'<b>Sedating</b> — take at bedtime.':sub.activating?'<b>Activating</b> — take in the morning.':'Pick one time and keep it consistent.'}</div>`;
+  }
+  const dt=(pk.t12/sub.t12-1)*100;
+  const why=dt>2?`Your half-life runs <b>~${Math.round(dt)}% longer</b> than baseline (${state.profile.age>40?'age, ':''}${state.profile.sex==='female'?'sex':'metabolism'} adjustment).`
+    :dt<-2?`Your half-life runs <b>~${Math.round(-dt)}% shorter</b> than baseline${state.profile._smokes&&sub.cyp1a2?' (nicotine speeds caffeine clearance)':''}.`
+    :`Your clearance is close to the population baseline.`;
+  const hot=inHotbar(sub.id);
+  m.innerHTML=`<div class="modal"><div class="mHead"><div class="mTitle">${sub.icon} ${sub.name}</div><button class="mClose">×</button></div>
+    <div class="mBody"><div class="detLine">${sub.helps}</div>${curve}${kpis}${timeline}
+      <div class="detLine" style="color:var(--muted)">${why}</div>
+      ${sub.peakFeel>0?`<div class="detLine"><b>Tolerance ${tol.lvl}/100.</b> ${tol.lvl>50?'High — effect is blunted; consider a 2–3 day deload.':tol.lvl>25?`Building — logged ${tol.days}/14 recent days, ~${tol.avgMg}mg/day${tol.perDay>0?`, ${tol.perDay.toFixed(1)}×/day`:''}.`:'Low — full effect.'}</div>`:''}
+      ${sub.pair?`<div class="warnBox good"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span>${sub.pair}</span></div>`:''}
+      ${sub.caution?`<div class="warnBox ${sub.cat==='nic'?'danger':''}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg><span>${sub.caution}</span></div>`:''}
+      ${sub.serotonergic?`<div class="detLine" style="color:var(--muted);font-size:12px">⚠ Serotonergic — risky to combine with other serotonin-raising drugs/supplements (5-HTP, St John's Wort, tramadol).</div>`:''}
+    </div>
+    <button class="mSave">${hot?'＋ Log now':'＋ Add to hot bar'}</button>
+    ${hot?'<button class="mGhostBtn">Remove from hot bar</button>':''}</div>`;
+  let dirty=false;
+  const close=()=>{m.remove();if(dirty)renderAll();};
+  m.querySelector('.mClose').onclick=close;m.onclick=e=>{if(e.target===m)close();};
+  const dInput=m.querySelector('#detDose');
+  if(dInput)dInput.oninput=()=>{const v=parseFloat(dInput.value);if(!isFinite(v)||v<0)return;curDose=v;if(hot){hot.doseMg=v;save();dirty=true;}};
+  m.querySelector('.mSave').onclick=()=>{
+    if(hot){hot.doseMg=curDose;logNow(sub.id,curDose);}
+    else{if(!inHotbar(sub.id))state.hotbar.push({id:sub.id,doseMg:curDose,onGraph:true});save();renderAll();}
+    close();
+  };
+  const rm=m.querySelector('.mGhostBtn');if(rm)rm.onclick=()=>{state.hotbar=state.hotbar.filter(h=>h.id!==sub.id);save();close();renderAll();};
+  $('#modalMount').appendChild(m);
+}
+
+/* ───────── profile modal ───────── */
+function openProfile(){
+  const p=state.profile,m=el('div','scrim');
+  const hm2=h=>`${String(Math.floor(h)).padStart(2,'0')}:${String(Math.round((h%1)*60)).padStart(2,'0')}`;
+  m.innerHTML=`<div class="modal"><div class="mHead"><div class="mTitle">Your body</div><button class="mClose">×</button></div>
+    <div class="mBody"><div class="detLine" style="color:var(--muted)">In Vitality these pull from your profile + weigh-ins. They drive every half-life below.</div>
+      <div class="fRow"><div class="fGroup"><label class="fLbl">Weight (kg)</label><input class="fInput" id="pW" type="number" value="${p.weightKg}"/></div><div class="fGroup"><label class="fLbl">Height (cm)</label><input class="fInput" id="pH" type="number" value="${p.heightCm}"/></div></div>
+      <div class="fRow"><div class="fGroup"><label class="fLbl">Age</label><input class="fInput" id="pA" type="number" value="${p.age}"/></div><div class="fGroup"><label class="fLbl">Sex</label><div class="fSeg" id="pSex"><button data-v="male" class="${p.sex==='male'?'fSegOn':''}">Male</button><button data-v="female" class="${p.sex==='female'?'fSegOn':''}">Female</button></div></div></div>
+      <div class="fRow"><div class="fGroup"><label class="fLbl">Wake</label><input class="fInput" id="pWake" type="time" value="${hm2(p.wake)}"/></div><div class="fGroup"><label class="fLbl">Bedtime</label><input class="fInput" id="pBed" type="time" value="${hm2(p.bed)}"/></div></div>
+    </div><button class="mSave">Save</button></div>`;
+  let sex=p.sex;m.querySelectorAll('#pSex button').forEach(b=>b.onclick=()=>{sex=b.dataset.v;m.querySelectorAll('#pSex button').forEach(x=>x.classList.toggle('fSegOn',x.dataset.v===sex));});
+  const close=()=>m.remove();m.querySelector('.mClose').onclick=close;m.onclick=e=>{if(e.target===m)close();};
+  m.querySelector('.mSave').onclick=()=>{const toh=s=>{const[a,b]=s.split(':').map(Number);return a+(b||0)/60;};
+    p.weightKg=clamp(+$('#pW').value||p.weightKg,30,250);p.heightCm=clamp(+$('#pH').value||p.heightCm,120,230);p.age=clamp(+$('#pA').value||p.age,12,100);p.sex=sex;p.wake=toh($('#pWake').value);p.bed=toh($('#pBed').value);save();close();renderAll();};
+  $('#modalMount').appendChild(m);
+}
+
+/* ───────── QUIZ (ported from the Vitality quiz engine, flourishes mode) ───────── */
+const QUIZ_CHAPTERS=['your stack','your body','guardrails'];
+const QUIZ=[
+ {ch:0,id:'takes',kind:'multi',prompt:'what do you take?',hint:"pick all that apply — i'll set up your hot bar.",
+   options:[
+     {v:'caffeine',label:'caffeine',sub:'coffee, tea, energy',ic:'☕',seed:'caffeine'},
+     {v:'preworkout',label:'pre-workout',sub:'before training',ic:'🥤',seed:'preworkout'},
+     {v:'adhd',label:'adhd meds',sub:'search exact after',ic:'⚡'},
+     {v:'antidepressant',label:'antidepressant',sub:'search exact after',ic:'💊'},
+     {v:'nicotine',label:'nicotine',sub:'pouch, vape, gum',ic:'🚬',seed:'nicotine'},
+     {v:'none',label:'none yet',sub:'just exploring',ic:'○',excl:true},
+   ]},
+ {ch:0,id:'freq',kind:'single',prompt:'how often do you lean on stimulants?',hint:'this sets your starting tolerance.',
+   options:[{v:'rarely',label:'rarely',sub:'once in a while',ic:'·',tol:0.12},{v:'sometimes',label:'sometimes',sub:'a few times a week',ic:'◔',tol:0.35},{v:'mostdays',label:'most days',sub:'nearly daily',ic:'◑',tol:0.6},{v:'daily',label:'every day',sub:'often more than once',ic:'●',tol:0.85}]},
+ {ch:0,id:'mg',kind:'scale',prompt:'how much caffeine on a normal day?',hint:'rough is fine — a coffee is about 95 mg.',min:0,max:600,step:25,def:200,unit:'mg / day',descr:n=>n===0?'no caffeine':`≈ ${(n/95).toFixed(1).replace(/\.0$/,'')} coffees`},
+ {ch:0,id:'timing',kind:'single',prompt:"when's your last dose, usually?",hint:'so i can protect your sleep.',
+   options:[{v:'morning',label:'morning',sub:'done early',ic:'🌅'},{v:'early_afternoon',label:'early afternoon',sub:'before 2pm',ic:'☕'},{v:'late',label:'late',sub:'into the evening',ic:'🌙'},{v:'none',label:'no pattern',sub:'it varies',ic:'∿'}]},
+ {ch:1,id:'sex',kind:'single',prompt:'a bit about your body.',hint:'this personalizes every half-life.',
+   options:[{v:'male',label:'male',sub:'',ic:'♂'},{v:'female',label:'female',sub:'',ic:'♀'}]},
+ {ch:1,id:'weight',kind:'scale',prompt:'your weight?',hint:'a bigger body means a lower peak per dose.',min:40,max:140,step:1,unit:'kg'},
+ {ch:1,id:'age',kind:'scale',prompt:'your age?',hint:'clearance slows as we get older.',min:14,max:80,step:1,unit:'years'},
+ {ch:2,id:'goal',kind:'single',prompt:'what are you optimizing?',hint:'',
+   options:[{v:'focus',label:'focus',sub:'deep work',ic:'🎯'},{v:'energy',label:'energy',sub:'beat fatigue',ic:'⚡'},{v:'cutback',label:'cut back',sub:'less caffeine',ic:'🔻'},{v:'meds',label:'manage meds',sub:'time them right',ic:'💊'}]},
+ {ch:2,id:'flags',kind:'multi',prompt:'anything i should factor in?',hint:'optional — sharpens my warnings.',
+   options:[{v:'antidepressant',label:'on an antidepressant',sub:'interaction checks',ic:'💊'},{v:'heart',label:'heart / bp condition',sub:'go easy on stims',ic:'🫀'},{v:'anxiety',label:'anxiety-prone',sub:'jitters hit hard',ic:'🧠'},{v:'poorsleep',label:'poor sleeper',sub:'protect my nights',ic:'😴'},{v:'none',label:'none of these',sub:'',ic:'○',excl:true}]},
+];
+const QUIZ_CHECK='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5 7 12l6-7.5"/></svg>';
+let qi=0,qDraft={};
+function openQuiz(){
+  qi=0;
+  qDraft={takes:[],flags:[],mg:state.profile._typicalMg||200,weight:state.profile.weightKg,age:state.profile.age,sex:state.profile.sex,freq:null,timing:null,goal:null};
+  renderQuiz();
+}
+function quizSegs(){return QUIZ_CHAPTERS.map((title,ci)=>({title,ci,qs:QUIZ.map((s,i)=>i).filter(i=>QUIZ[i].ch===ci)}));}
+function isAnswered(step){
+  if(step.kind==='multi')return (qDraft[step.id]||[]).length>0;
+  if(step.kind==='scale')return qDraft[step.id]!=null;
+  return qDraft[step.id]!=null;
+}
+function syncNext(step){const b=$('.pqNext');if(b)b.disabled=!isAnswered(step);}
+function renderQuiz(){
+  const step=QUIZ[qi],mount=$('#quizMount');mount.innerHTML='';
+  const ov=el('div','pqOverlay');
+  const stepper=quizSegs().map(s=>{
+    const done=s.ci<step.ch,active=s.ci===step.ch;
+    const pct=done?100:active?((s.qs.indexOf(qi)+1)/s.qs.length)*100:0;
+    return `<div class="pqSeg ${done?'pqSegDone':''} ${active?'pqSegActive':''}"><span class="pqSegName">${s.title}</span><span class="pqSegTrack"><span class="pqSegFill ${active?'pqSegShimmer':''}" style="width:${pct}%"></span></span></div>`;
+  }).join('');
+  const words=step.prompt.split(' ').map((w,i)=>`<span class="pqWord" style="animation-delay:${(0.04+i*0.055).toFixed(3)}s">${w} </span>`).join('');
+  ov.innerHTML=`<div class="pqDialog">
+    <div class="pqAtmos"></div><div class="pqAurora"><b class="pqAuroraA"></b><b class="pqAuroraB"></b></div><div class="pqParticles"></div>
+    <button class="pqClose" aria-label="Close">×</button>
+    <div class="pqShell">
+      <div class="pqStepper">${stepper}</div>
+      <h2 class="pqTitle">${words}</h2>
+      <div class="pqBody">${step.hint?`<p class="pqHint"><em>${step.hint}</em></p>`:''}<div id="pqBodyMount"></div></div>
+      <div class="pqFoot"><button class="pqBack">${qi===0?'cancel':'← back'}</button><button class="pqNext">${qi===QUIZ.length-1?'finish':'continue'} <span aria-hidden>→</span></button></div>
+    </div></div>`;
+  mount.appendChild(ov);
+  // drift particles (same recipe as the engine)
+  const pc=ov.querySelector('.pqParticles');
+  for(let i=0;i<14;i++){const sp=document.createElement('span');sp.style.left=(Math.random()*100)+'%';sp.style.top=(50+Math.random()*50)+'%';const sz=1+Math.random()*1.4;sp.style.width=sp.style.height=sz+'px';const dur=22+Math.random()*24;sp.style.animationDuration=dur+'s';sp.style.animationDelay=(-Math.random()*dur)+'s';sp.style.setProperty('--dx',(Math.random()*28-14)+'px');sp.style.setProperty('--dy',-(60+Math.random()*50)+'vh');pc.appendChild(sp);}
+  ov.querySelector('.pqClose').onclick=closeQuiz;
+  ov.querySelector('.pqBack').onclick=()=>{if(qi===0)closeQuiz();else{qi--;renderQuiz();}};
+  ov.querySelector('.pqNext').onclick=()=>{if(!isAnswered(step))return;if(qi===QUIZ.length-1)finishQuiz();else{qi++;renderQuiz();}};
+  buildStepBody(step);syncNext(step);
+}
+function firePing(tile){const ico=tile.querySelector('.pqTileIcon');if(!ico)return;ico.querySelectorAll('.pqPing').forEach(p=>p.remove());const p1=el('span','pqPing'),p2=el('span','pqPing pqPing2');ico.appendChild(p1);ico.appendChild(p2);setTimeout(()=>{p1.remove();p2.remove();},950);}
+function buildStepBody(step){
+  const mount=$('#pqBodyMount');mount.innerHTML='';
+  if(step.kind==='scale'){mount.appendChild(buildScale(step));return;}
+  const multi=step.kind==='multi',opts=step.options;
+  const tiles=el('div','pqTiles');
+  opts.forEach((o,i)=>{
+    const sel=multi?(qDraft[step.id]||[]).includes(o.v):qDraft[step.id]===o.v;
+    const solo=(opts.length%2===1)&&(i===opts.length-1);
+    const t=el('button','pqTile pqEnt'+(sel?' pqTileOn':'')+(solo?' pqTileSolo':''));
+    t.style.setProperty('--enter-delay',(0.18+i*0.055).toFixed(3)+'s');
+    t.innerHTML=`${multi?`<span class="pqTileCheck">${QUIZ_CHECK}</span>`:''}<span class="pqTileIcon pqEntIco" style="animation-delay:${(0.18+i*0.055+0.16).toFixed(3)}s">${o.ic||''}</span><span class="pqTileLabel">${o.label}</span>${o.sub?`<span class="pqTileSub">${o.sub}</span>`:''}`;
+    t.onclick=()=>{
+      if(multi){
+        let arr=qDraft[step.id]||[];
+        if(o.excl)arr=arr.includes(o.v)?[]:[o.v];
+        else{arr=arr.filter(x=>x!=='none'&&!(opts.find(z=>z.v===x)||{}).excl);arr=arr.includes(o.v)?arr.filter(x=>x!==o.v):[...arr,o.v];}
+        qDraft[step.id]=arr;
+        [...tiles.children].forEach((c,ci)=>c.classList.toggle('pqTileOn',(qDraft[step.id]||[]).includes(opts[ci].v)));
+        if((qDraft[step.id]||[]).includes(o.v))firePing(t);
+      } else {
+        qDraft[step.id]=o.v;
+        [...tiles.children].forEach((c,ci)=>c.classList.toggle('pqTileOn',opts[ci].v===o.v));
+        firePing(t);
+      }
+      t.classList.remove('pqEnt');t.classList.add('pqJust');setTimeout(()=>t.classList.remove('pqJust'),320);
+      syncNext(step);
+    };
+    tiles.appendChild(t);
+  });
+  mount.appendChild(tiles);
+}
+function buildScale(step){
+  const key=step.id;if(qDraft[key]==null)qDraft[key]=step.def!=null?step.def:Math.round((step.min+step.max)/2);
+  const min=step.min,max=step.max,stepv=step.step;
+  const fmtV=v=>step.fmt?step.fmt(v):String(v);
+  const descr=v=>step.descr?step.descr(v):'';
+  const wrap=el('div','pqScale pqEnt');wrap.style.setProperty('--enter-delay','0.2s');
+  let ticks='';const N=6;for(let i=0;i<N;i++)ticks+=`<span class="pqScaleTick">${Math.round(min+(max-min)*i/(N-1))}</span>`;
+  wrap.innerHTML=`<div class="pqScaleRead"><span class="pqScaleN">${fmtV(qDraft[key])}</span><span class="pqScaleU">${step.unit}</span></div>
+    <div class="pqScaleDescr">${descr(qDraft[key])}</div>
+    <div class="pqScaleLine"><div class="pqScaleFill"></div><div class="pqScaleDot"></div></div>
+    <div class="pqScaleTicks">${ticks}</div>`;
+  const line=wrap.querySelector('.pqScaleLine'),fill=wrap.querySelector('.pqScaleFill'),dot=wrap.querySelector('.pqScaleDot'),nEl=wrap.querySelector('.pqScaleN'),dEl=wrap.querySelector('.pqScaleDescr');
+  const paint=()=>{const v=qDraft[key],pct=((v-min)/(max-min))*100;fill.style.width=pct+'%';dot.style.left=pct+'%';nEl.textContent=fmtV(v);dEl.textContent=descr(v);};
+  const setFromX=cx=>{const r=line.getBoundingClientRect();const f=clamp((cx-r.left)/r.width,0,1);qDraft[key]=Math.round((min+f*(max-min))/stepv)*stepv;paint();syncNext(step);};
+  let drag=false;
+  line.onpointerdown=e=>{drag=true;line.setPointerCapture(e.pointerId);setFromX(e.clientX);};
+  line.onpointermove=e=>{if(drag)setFromX(e.clientX);};
+  line.onpointerup=()=>{drag=false;};
+  paint();return wrap;
+}
+function closeQuiz(){$('#quizMount').innerHTML='';}
+function finishQuiz(){
+  state.profile.weightKg=clamp(qDraft.weight,30,250);
+  state.profile.age=clamp(qDraft.age,12,100);
+  state.profile.sex=qDraft.sex||state.profile.sex;
+  const f=QUIZ.find(s=>s.id==='freq').options.find(o=>o.v===qDraft.freq);state.baseTol=f?f.tol:0;
+  state.profile._typicalMg=qDraft.mg;
+  state.goal=qDraft.goal||null;
+  state.flags=(qDraft.flags||[]).filter(x=>x!=='none');
+  (qDraft.takes||[]).forEach(v=>{const opt=QUIZ[0].options.find(o=>o.v===v);if(opt&&opt.seed){const sub=DB_BY_ID[opt.seed];if(sub&&!inHotbar(sub.id)){const dose=sub.id==='caffeine'?clamp(Math.round(qDraft.mg/2/5)*5,40,400):sub.doseMg;state.hotbar.push({id:sub.id,doseMg:dose,onGraph:true});}}});
+  if((qDraft.takes||[]).includes('antidepressant')&&!state.flags.includes('antidepressant'))state.flags.push('antidepressant');
+  state.onboarded=true;state.profile._smokes=(qDraft.takes||[]).includes('nicotine');
+  save();closeQuiz();renderAll();
+  const needSearch=(qDraft.takes||[]).some(v=>['adhd','antidepressant'].includes(v));
+  if(needSearch){const s=$('#search');if(s){s.focus();s.placeholder='Search your exact ADHD med / antidepressant to add it…';s.scrollIntoView({behavior:'smooth',block:'center'});}}
+}
+
+/* ───────── health watch ─────────
+   Notices over-logging + bad-vitals combinations, then surfaces the short- &
+   long-term effects in red. Vitals (resting HR, sleep) come from the check-in —
+   in Vitality that's the live WHOOP feed. */
+function buildHealth(){
+  const log=todayLog(),p=state.profile,ci=state.checkin;
+  const catOf=id=>(DB_BY_ID[id]||{}).cat;
+  const stimLogs=log.filter(it=>catOf(it.id)==='stim');
+  const adhdLogs=log.filter(it=>catOf(it.id)==='adhd');
+  const nicLogs=log.filter(it=>catOf(it.id)==='nic');
+  const antiLogs=log.filter(it=>catOf(it.id)==='anti');
+  const caffMg=Math.round(stimLogs.reduce((s,l)=>s+(l.doseMg||0),0));
+  const stimTypes=new Set([...stimLogs,...adhdLogs].map(l=>l.id));
+  const anyStim=stimLogs.length||adhdLogs.length;
+  const fb=feelAt(p.bed),sleepDebt=Math.max(0,7.5-ci.sleepH);
+  const highTol=state.hotbar.filter(h=>['stim','adhd','nic'].includes(catOf(h.id))&&tolFor(h.id).lvl>=67);
+  const signals=[];let sev=0;const add=(lvl,txt)=>{signals.push({lvl,txt});sev=Math.max(sev,lvl);};
+
+  if(caffMg>600)add(2,`<b>${caffMg} mg caffeine today</b> — well past the ~400 mg ceiling. Jitter, GI upset and a hard crash get likely.`);
+  else if(caffMg>400)add(1,`<b>${caffMg} mg caffeine today</b> — over the ~400 mg/day general safe ceiling.`);
+  if(stimTypes.size>=2)add(2,`You stacked <b>${stimTypes.size} different stimulants</b> today — their load on heart rate &amp; blood pressure adds up.`);
+  if(adhdLogs.length&&stimLogs.length)add(2,`Caffeine on top of an <b>ADHD stimulant</b> compounds heart rate, blood pressure and jitter.`);
+  if(anyStim&&ci.restingHR>=62)add(1,`Resting HR is <b>${ci.restingHR} bpm</b> and you're stimulant-loaded — give your heart a breather.`);
+  if(anyStim&&sleepDebt>1.5)add(1,`You're masking <b>${sleepDebt.toFixed(1)}h of sleep debt</b> with stimulants — borrowed energy you'll repay.`);
+  if(fb>15&&anyStim)add(1,`A stimulant is still active at bedtime (<b>${Math.round(fb)}/100</b>) — tonight's sleep will suffer.`);
+  if(antiLogs.length&&anyStim)add(1,`Stimulant + <b>antidepressant</b> together — watch for over-activation, raised HR and anxiety.`);
+  if(nicLogs.length)add(2,`<b>Nicotine logged.</b> The most addictive thing in your stack — each dose tightens the loop.`);
+  highTol.forEach(h=>add(1,`<b>${DB_BY_ID[h.id].name} tolerance is high</b> (${tolFor(h.id).lvl}/100) — less effect for more load.`));
+
+  const shortEff=new Set(),longEff=new Set();
+  if(caffMg>400||stimTypes.size>=2){shortEff.add('Jitters, anxiety &amp; racing thoughts');shortEff.add('Raised heart rate &amp; blood pressure');}
+  if(adhdLogs.length){shortEff.add('Appetite suppression &amp; GI upset');shortEff.add('Raised heart rate &amp; blood pressure');}
+  if(fb>15||(anyStim&&caffMg>200))shortEff.add('Trouble falling asleep tonight');
+  if(caffMg>400||stimTypes.size>=2||adhdLogs.length)shortEff.add('An afternoon/evening crash &amp; rebound fatigue');
+  if(nicLogs.length)shortEff.add('Irritability &amp; cravings between doses');
+  if(anyStim&&ci.restingHR>=66)shortEff.add('Palpitations / a fluttering heart');
+
+  if(highTol.length||state.baseTol>=0.6)longEff.add('Tolerance &amp; dependence — needing more for the same effect');
+  if(state.flags.includes('anxiety')&&caffMg>300)longEff.add('Sensitized anxiety &amp; panic over time');
+  if(nicLogs.length||state.hotbar.some(h=>catOf(h.id)==='nic'))longEff.add('Nicotine addiction &amp; cardiovascular disease');
+  if(sleepDebt>1||fb>15)longEff.add('Chronic sleep debt &amp; disrupted sleep architecture');
+  if(stimTypes.size>=2||caffMg>500||adhdLogs.length)longEff.add('Cardiovascular strain from sustained stimulant load');
+
+  return{sev,signals,shortEff:[...shortEff],longEff:[...longEff],caffMg,sleepDebt,ci};
+}
+function renderHealth(){
+  const h=buildHealth(),mount=$('#healthMount');mount.innerHTML='';
+  const tone=h.sev===2?'alert':h.sev===1?'caution':'ok';
+  const card=el('div','health '+tone);
+  const ic=h.sev===0
+    ?'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 5.6a5.5 5.5 0 0 0-7.8 0L12 6.5l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 22l7.8-7.7 1-1a5.5 5.5 0 0 0 0-7.7z"/><path d="M3.5 12.5h4l2-4 3 7 2-4h4" stroke="#04060a" stroke-width="1.6"/></svg>'
+    :'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>';
+  const title=h.sev===2?`That's <em>a lot</em> for one day.`:h.sev===1?`Heads up — <em>ease off a little</em>.`:`You're in a <em>healthy range</em>.`;
+  const sub=h.sev===0?`Nothing flagged. We're watching your load and your vitals as you log.`:`${h.signals.length} thing${h.signals.length>1?'s':''} worth noticing today.`;
+  const debt=h.sleepDebt.toFixed(1);
+  const vhook=`<div class="vHook"><span class="dot"></span>VITALS · resting HR <b>${h.ci.restingHR}</b> · sleep <b>${h.ci.sleepH}h</b> · debt <b>${debt}h</b> · <span style="color:var(--mint)">live WHOOP feed in Vitality</span></div>`;
+  let middle='';
+  if(h.sev===0){
+    const pct=clamp(Math.round(h.caffMg/400*100),0,100);const col=h.caffMg>400?'var(--amber)':'var(--mint)';
+    middle=`<div class="okMeter"><div class="okMeterTop"><span>Caffeine today</span><b>${h.caffMg} / 400 mg</b></div>
+      <div class="okMeterBar"><div class="okMeterFill" style="width:${pct}%;background:${col}"></div></div></div>`;
+  } else {
+    middle=`<div class="sigList">${h.signals.map(s=>`<div class="sig l${s.lvl}"><span class="sd"></span><span>${s.txt}</span></div>`).join('')}</div>`;
+    const cols=[];
+    if(h.shortEff.length)cols.push(`<div class="effCol"><div class="effLbl">⚠ Short-term · today</div>${h.shortEff.map(e=>`<div class="effItem"><span class="x">✕</span><span>${e}</span></div>`).join('')}</div>`);
+    if(h.longEff.length)cols.push(`<div class="effCol"><div class="effLbl">⚠ Long-term · if sustained</div>${h.longEff.map(e=>`<div class="effItem"><span class="x">✕</span><span>${e}</span></div>`).join('')}</div>`);
+    if(cols.length)middle+=`<div class="effGrid">${cols.join('')}</div>`;
+  }
+  card.innerHTML=`<div class="healthTop"><div class="healthIc">${ic}</div><div><div class="healthTitle">${title}</div><div class="healthSub">${sub}</div></div></div>
+    ${vhook}${middle}
+    <div class="healthFoot">Watching: caffeine total, stimulant stacking, late doses, tolerance &amp; your vitals. In Vitality this reads your real WHOOP HR &amp; sleep — and logs to your health record.</div>`;
+  mount.appendChild(card);
+}
+
+/* ───────── wire + render ───────── */
+function renderAll(){renderTicker();renderSetup();renderHotbar();renderPeakWindow();renderLog();renderCheckin();renderHealth();}
+$('#search').addEventListener('input',e=>doSearch(e.target.value));
+$('#search').addEventListener('focus',e=>doSearch(e.target.value));
+$('#search').addEventListener('blur',()=>setTimeout(()=>$('#suggestions').style.display='none',160));
+$('#profChip').onclick=openProfile;
+$('#retakeQuiz').onclick=openQuiz;
+renderCats();renderAll();
+setInterval(renderAll,60000);
+</script>
+</body>
+</html>

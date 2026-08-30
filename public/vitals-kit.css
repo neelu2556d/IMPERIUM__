@@ -1,0 +1,125 @@
+/* Vitals kit — the Vitals section in the shared editorial design language
+   (same layouts/animations as Mentor) with the BLUE sister palette to Mentor's
+   iris. Mentor = violet, Vitals = azure: themed siblings, distinct hues.
+   Colorblind-safe: meaning never rides on hue alone — labels, shapes, position. */
+:root{
+  --bg:#000000; --bg-elevated:#0a0a0a; --fg:#ffffff;
+  /* VITALS accent — azure blue, the cooler sibling to Mentor's iris (#a78bfa) */
+  --accent:#5e9bff; --accent-hi:#8db8ff; --accent-glow:rgba(94,155,255,.42); --accent-deep:#16335e;
+  --amber:#F59E0B;
+  --muted:rgba(255,255,255,.5); --muted-strong:rgba(255,255,255,.7);
+  --border:rgba(255,255,255,.08); --border-strong:rgba(255,255,255,.16);
+  --card:rgba(255,255,255,.02); --card-elevated:rgba(255,255,255,.04);
+  --space-2:.5rem; --space-3:.75rem; --space-4:1rem; --space-5:1.25rem;
+  --space-6:1.5rem; --space-8:2rem; --space-10:2.5rem; --space-16:4rem;
+  --radius-pill:999px;
+  --text-xs:.75rem; --text-sm:.875rem; --text-lg:1.125rem;
+  --serif:'Instrument Serif',Georgia,serif;
+  --sans:'Inter',-apple-system,sans-serif;
+  --mono:'JetBrains Mono','SF Mono',monospace;
+  --ease:cubic-bezier(.16,1,.3,1); --spring:cubic-bezier(.34,1.56,.64,1);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--sans);
+  padding:var(--space-10) var(--space-8) var(--space-16);overflow-x:hidden;-webkit-font-smoothing:antialiased}
+@media (max-width:680px){body{padding:var(--space-6) var(--space-4) var(--space-16)}}
+
+.atmosphere{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(55% 32% at 50% -6%, rgba(94,155,255,.08), transparent 70%),
+    radial-gradient(46% 30% at 100% 102%, rgba(22,51,94,.20), transparent 70%);}
+.shell{position:relative;z-index:5;max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:var(--space-10)}
+
+/* header */
+.header{display:flex;flex-direction:column;gap:var(--space-5);padding-top:var(--space-2)}
+.topRow{display:flex;align-items:center;justify-content:space-between;gap:var(--space-4)}
+.back{font-family:var(--mono);font-size:var(--text-xs);letter-spacing:.14em;text-transform:uppercase;color:var(--accent);text-decoration:none}
+.adjustBtn{font-family:var(--mono);font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted-strong);background:none;border:1px solid var(--border);border-radius:var(--radius-pill);padding:7px 13px;cursor:pointer;transition:all .2s var(--ease)}
+.adjustBtn:hover{border-color:var(--border-strong);color:var(--fg)}
+.eyebrowTop{font-family:var(--mono);font-size:var(--text-xs);letter-spacing:.22em;text-transform:uppercase;color:var(--muted-strong)}
+.titleRow{display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap;margin-top:6px}
+.title{font-family:var(--serif);font-style:italic;font-size:clamp(2.25rem,5vw,3.4rem);font-weight:400;line-height:1;letter-spacing:-.02em;margin:0}
+.title em{color:var(--accent);font-style:italic}
+.statusPill{font-family:var(--mono);font-size:.62rem;font-weight:600;letter-spacing:.18em;text-transform:uppercase;padding:5px 11px;border-radius:var(--radius-pill);color:var(--accent);border:1px solid rgba(94,155,255,.4);background:rgba(94,155,255,.06);display:inline-flex;align-items:center;gap:7px}
+.statusPill .liveDot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent-glow)}
+.statusAmber{color:var(--amber);border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.06)}
+.statusAmber .liveDot{background:var(--amber);box-shadow:0 0 8px var(--amber)}
+.subRow{display:flex;align-items:center;gap:var(--space-4);margin-top:4px}
+.date{font-family:var(--mono);font-size:var(--text-xs);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+
+/* numbered section eyebrow */
+.section{display:flex;flex-direction:column;gap:var(--space-5)}
+.eyebrow{display:flex;align-items:center;gap:var(--space-3)}
+.eyebrowNum{font-family:var(--serif);font-style:italic;font-size:var(--text-lg);color:var(--accent);line-height:1}
+.eyebrowLbl{font-family:var(--mono);font-size:var(--text-xs);letter-spacing:.22em;text-transform:uppercase;color:var(--muted-strong)}
+.eyebrowRule{flex:1;height:1px;background:linear-gradient(90deg,var(--border-strong),transparent)}
+
+/* hero card */
+.heroCard{position:relative;overflow:hidden;display:grid;grid-template-columns:auto 1fr;gap:var(--space-8);align-items:center;
+  border:1px solid rgba(94,155,255,.20);border-radius:18px;padding:var(--space-8);
+  background:radial-gradient(130% 90% at 0% 0%, rgba(94,155,255,.07), transparent 55%), var(--card);
+  box-shadow:0 0 0 1px rgba(94,155,255,.06), 0 0 60px -28px var(--accent-glow)}
+@media (max-width:680px){.heroCard{grid-template-columns:1fr;gap:var(--space-6);padding:var(--space-6)}}
+.heroBody{display:flex;flex-direction:column;gap:var(--space-3)}
+.heroLine{font-family:var(--serif);font-style:italic;font-size:clamp(1.4rem,2.6vw,1.9rem);line-height:1.25;color:var(--fg);margin:0}
+.heroP{font-size:var(--text-sm);line-height:1.65;color:var(--muted);margin:0;max-width:52ch}
+
+/* score ring */
+.ring{position:relative;width:132px;height:132px;flex:0 0 auto}
+.ring svg{transform:rotate(-90deg)}
+.ringInner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ringVal{font-family:var(--serif);font-style:italic;font-size:2.6rem;line-height:1;color:var(--accent)}
+.ringLbl{font-family:var(--mono);font-size:.6rem;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-top:6px}
+
+/* insight nudges */
+.insights{list-style:none;margin:var(--space-4) 0 0;padding:0;display:flex;flex-direction:column;gap:var(--space-3)}
+.insight{display:flex;align-items:flex-start;gap:10px;font-size:var(--text-sm);line-height:1.6;color:var(--muted-strong);max-width:60ch}
+.insightDot{flex:0 0 auto;width:6px;height:6px;margin-top:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent-glow)}
+
+/* talk-about-this pill */
+.talkPill{display:inline-flex;align-items:center;gap:8px;width:fit-content;margin-top:6px;padding:9px 15px;border-radius:var(--radius-pill);border:1px solid rgba(94,155,255,.4);background:rgba(94,155,255,.07);color:var(--accent);font-size:var(--text-sm);cursor:pointer;font-family:var(--sans);transition:all .2s var(--ease)}
+.talkPill:hover{background:rgba(94,155,255,.13);border-color:rgba(94,155,255,.6)}
+
+/* metric cards grid */
+.metricGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-5)}
+@media (max-width:680px){.metricGrid{grid-template-columns:1fr}}
+.card{border:1px solid var(--border);border-radius:18px;padding:var(--space-6);background:var(--card)}
+.metricHd{font-family:var(--mono);font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+.metricVal{font-family:var(--serif);font-style:italic;font-size:2.5rem;line-height:1;margin:12px 0 4px}
+.metricVal small{font-size:1rem;font-style:normal;color:var(--muted);font-family:var(--mono);margin-left:4px}
+.metricLbl{font-size:var(--text-xs);color:var(--muted)}
+.metricNote{font-size:var(--text-sm);color:var(--muted-strong);line-height:1.55;margin:14px 0 0;border-top:1px solid var(--border);padding-top:14px}
+
+/* goal picker cards */
+.goalGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--space-4)}
+@media (max-width:680px){.goalGrid{grid-template-columns:1fr}}
+.goalPick{display:flex;align-items:flex-start;gap:14px;padding:18px;border:1px solid var(--border);border-radius:16px;background:var(--card);cursor:pointer;transition:all .2s var(--ease)}
+.goalPick:hover{border-color:rgba(94,155,255,.5);background:rgba(94,155,255,.04)}
+.goalPick.sel{border-color:var(--accent);background:rgba(94,155,255,.07);box-shadow:0 0 0 1px rgba(94,155,255,.3),0 0 40px -24px var(--accent-glow)}
+.goalGlyph{flex:0 0 auto;width:40px;height:40px;border-radius:11px;border:1px solid rgba(94,155,255,.3);display:flex;align-items:center;justify-content:center;color:var(--accent);background:rgba(94,155,255,.05)}
+.goalName{font-family:var(--serif);font-style:italic;font-size:1.2rem;margin:0 0 3px}
+.goalDesc{font-size:var(--text-sm);color:var(--muted);line-height:1.45;margin:0}
+
+/* active goal card */
+.goalActive{display:grid;grid-template-columns:auto 1fr;gap:var(--space-8);align-items:center;border:1px solid rgba(94,155,255,.2);border-radius:18px;padding:var(--space-8);background:radial-gradient(130% 90% at 0% 0%, rgba(94,155,255,.07), transparent 55%), var(--card)}
+@media (max-width:680px){.goalActive{grid-template-columns:1fr;gap:var(--space-6);padding:var(--space-6)}}
+.howRow{display:flex;align-items:flex-start;gap:10px;font-size:var(--text-sm);color:var(--muted-strong);line-height:1.55;margin-top:8px}
+.howNum{font-family:var(--mono);font-size:.6rem;color:var(--accent);border:1px solid rgba(94,155,255,.4);border-radius:6px;padding:2px 6px;flex:none;margin-top:1px}
+
+/* wearable connect cards */
+.wearGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-5)}
+@media (max-width:680px){.wearGrid{grid-template-columns:1fr}}
+.wearCard{border:1px solid var(--border);border-radius:18px;padding:var(--space-6);background:var(--card);display:flex;flex-direction:column;gap:14px;align-items:flex-start}
+.wearMark{width:46px;height:46px;border-radius:13px;border:1px solid var(--border-strong);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:600;letter-spacing:.04em;color:var(--fg)}
+.wearName{font-family:var(--serif);font-style:italic;font-size:1.3rem;margin:0}
+.connectBtn{font-family:var(--mono);font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;padding:9px 16px;border-radius:var(--radius-pill);border:1px solid rgba(94,155,255,.5);background:rgba(94,155,255,.08);color:var(--accent);cursor:pointer;width:fit-content}
+/* state chips — shape + label carry meaning (not just color), for colorblind clarity */
+.stateChip{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:.58rem;letter-spacing:.12em;text-transform:uppercase;padding:5px 11px;border-radius:var(--radius-pill);border:1px solid var(--border-strong);color:var(--muted-strong)}
+.stateOn{color:var(--accent);border-color:rgba(94,155,255,.45);background:rgba(94,155,255,.06)}
+.stateWait{color:var(--amber);border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.06)}
+.stateChip .ic{font-weight:700}
+
+/* swatch row for components page */
+.swatches{display:flex;flex-direction:column;gap:var(--space-6)}
+.swatchRow{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding-bottom:var(--space-5);border-bottom:1px solid var(--border)}
+.swatchLbl{font-family:var(--mono);font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);width:140px;flex:none}

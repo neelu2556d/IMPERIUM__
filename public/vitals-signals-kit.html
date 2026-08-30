@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Vitals · Your metric</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="vitals-kit.css" />
+<style>
+  /* signal-specific bits, built on the shared kit */
+  .signalCard{position:relative;overflow:hidden;border:1px solid rgba(94,155,255,.22);border-radius:18px;padding:var(--space-8);
+    background:radial-gradient(130% 90% at 0% 0%, rgba(94,155,255,.08), transparent 55%), var(--card);
+    box-shadow:0 0 0 1px rgba(94,155,255,.07), 0 0 70px -30px var(--accent-glow);display:flex;flex-direction:column;gap:var(--space-5)}
+  .verdict{display:flex;align-items:center;gap:14px}
+  .verdictBadge{font-family:var(--mono);font-size:.6rem;font-weight:600;letter-spacing:.16em;text-transform:uppercase;padding:6px 12px;border-radius:var(--radius-pill);
+    color:var(--amber);border:1px solid rgba(245,158,11,.4);background:rgba(245,158,11,.07);display:inline-flex;gap:7px;align-items:center}
+  .verdictBadge .ic{font-weight:700}
+  .verdictLine{font-family:var(--serif);font-style:italic;font-size:clamp(1.5rem,2.8vw,2rem);line-height:1.2;margin:0}
+  .verdictWhy{font-size:var(--text-sm);color:var(--muted);line-height:1.6;max-width:60ch;margin:0}
+  /* the signals that fed the verdict — transparent, each labelled + sourced */
+  .signalRow{display:flex;gap:12px;flex-wrap:wrap}
+  .sigChip{display:flex;align-items:center;gap:10px;padding:11px 14px;border:1px solid var(--border);border-radius:13px;background:var(--card-elevated)}
+  .sigArrow{font-family:var(--mono);font-weight:700}
+  .sigUp{color:var(--accent)} .sigFlat{color:var(--muted-strong)} .sigDown{color:var(--amber)}
+  .sigText{display:flex;flex-direction:column;line-height:1.25}
+  .sigVal{font-size:.95rem;color:var(--fg);font-weight:500}
+  .sigMeta{font-family:var(--mono);font-size:.54rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  /* goal momentum bar */
+  .momentum{display:flex;flex-direction:column;gap:10px}
+  .momBar{height:10px;border-radius:999px;background:rgba(255,255,255,.06);overflow:hidden}
+  .momFill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--accent-deep),var(--accent));box-shadow:0 0 16px -2px var(--accent-glow)}
+  .momMeta{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="atmosphere"></div>
+<div class="shell">
+
+  <header class="header">
+    <div class="topRow"><a class="back" href="vitals-kit.html">← the kit</a></div>
+    <div>
+      <div class="eyebrowTop">Vitality · Vitals</div>
+      <div class="titleRow"><h1 class="title">Your <em>signal</em></h1>
+        <span class="statusPill statusAmber"><span class="liveDot"></span>Ease today</span></div>
+      <div class="subRow"><span class="date">Sun, Jun 14 · fused from WHOOP + Train + Fuel</span></div>
+    </div>
+  </header>
+
+  <!-- 01 today's fused signal -->
+  <section class="section">
+    <div class="eyebrow"><span class="eyebrowNum">·01</span><span class="eyebrowLbl">Today's signal</span><span class="eyebrowRule"></span></div>
+    <div class="signalCard">
+      <div class="verdict"><span class="verdictBadge"><span class="ic">▲</span>Active recovery</span></div>
+      <p class="verdictLine">Today leans recovery. Move, but keep it light.</p>
+      <p class="verdictWhy">Recovery's middling at 61 and you trained hard two days running, so volume today digs a hole. Your shoulder's still flagged too. A walk or easy Pull keeps the streak without the cost.</p>
+      <div class="signalRow">
+        <div class="sigChip"><span class="sigArrow sigFlat">→</span><span class="sigText"><span class="sigVal">Recovery 61</span><span class="sigMeta">WHOOP · moderate</span></span></div>
+        <div class="sigChip"><span class="sigArrow sigUp">↑</span><span class="sigText"><span class="sigVal">Sleep 79%</span><span class="sigMeta">WHOOP · solid</span></span></div>
+        <div class="sigChip"><span class="sigArrow sigDown">↑</span><span class="sigText"><span class="sigVal">Load: 2 hard days</span><span class="sigMeta">Train · high</span></span></div>
+        <div class="sigChip"><span class="sigArrow sigUp">✓</span><span class="sigText"><span class="sigVal">Fuel on track</span><span class="sigMeta">Fuel · adequate</span></span></div>
+        <div class="sigChip"><span class="sigArrow sigDown">!</span><span class="sigText"><span class="sigVal">Right shoulder</span><span class="sigMeta">Vee · flagged</span></span></div>
+      </div>
+      <button class="talkPill">◇ talk about this with Vee</button>
+    </div>
+  </section>
+
+  <!-- 02 goal momentum -->
+  <section class="section">
+    <div class="eyebrow"><span class="eyebrowNum">·02</span><span class="eyebrowLbl">Goal momentum</span><span class="eyebrowRule"></span></div>
+    <div class="card">
+      <div class="momentum">
+        <div style="display:flex;justify-content:space-between;align-items:baseline">
+          <span style="font-family:var(--serif);font-style:italic;font-size:1.4rem">Recover better</span>
+          <span style="font-family:var(--serif);font-style:italic;font-size:1.6rem;color:var(--accent)">68%</span>
+        </div>
+        <div class="momBar"><div class="momFill" style="width:68%"></div></div>
+        <div class="momMeta"><span>start · 54</span><span>7-day avg · 64</span><span>goal · 70</span></div>
+      </div>
+      <p class="metricNote">Your recovery trend is climbing and you're holding above your baseline. Two more steady days at this level and you reach it.</p>
+    </div>
+  </section>
+
+  <!-- 03 how it's built -->
+  <section class="section">
+    <div class="eyebrow"><span class="eyebrowNum">·03</span><span class="eyebrowLbl">Why it's yours alone</span><span class="eyebrowRule"></span></div>
+    <ul class="insights">
+      <li class="insight"><span class="insightDot"></span>WHOOP knows your recovery. Only Vitality also knows your training load, your fuel, your goal, and what you told Vee — so the signal is about <b>you</b>, not a number in a vacuum.</li>
+      <li class="insight"><span class="insightDot"></span>It sharpens as it learns you. Provisional for a few days, then a trusted personal baseline — an 80-year-old and a 20-year-old get different signals from the same recovery.</li>
+    </ul>
+  </section>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Vitality · Widget Designs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#000; --fg:#fff; --w:#6EE7B7; /* --w = the chosen widget color, drives currentColor */
+    --muted:rgba(255,255,255,.5); --muted-2:rgba(255,255,255,.3);
+    --border:rgba(255,255,255,.08); --border-strong:rgba(255,255,255,.16);
+    --card:rgba(255,255,255,.02); --card-2:rgba(255,255,255,.04);
+    --radius:14px; --ease:cubic-bezier(.16,1,.3,1); --spring:cubic-bezier(.34,1.56,.64,1);
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{background:var(--bg);color:var(--fg);font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    min-height:100vh;-webkit-font-smoothing:antialiased;line-height:1.5;
+    background-image:radial-gradient(900px 540px at 12% -8%,rgba(110,231,183,.08),transparent 60%)}
+  ::selection{background:rgba(110,231,183,.28)}
+  .serif{font-family:'Instrument Serif',Georgia,serif;font-style:italic;font-weight:400}
+  .wrap{max-width:1280px;margin:0 auto;padding:44px 30px 90px}
+
+  .head{margin-bottom:24px}
+  .eyebrow{font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--muted)}
+  h1{font-family:'Instrument Serif',serif;font-style:italic;font-size:46px;letter-spacing:.3px;margin:10px 0 8px;line-height:1}
+  .sub{color:var(--muted);font-size:14.5px;max-width:640px}
+
+  .chips{display:flex;gap:9px;flex-wrap:wrap;margin:22px 0 6px}
+  .chip{border:1px solid var(--border);background:transparent;color:var(--muted);border-radius:999px;padding:8px 16px;font-size:13px;
+    font-family:inherit;cursor:pointer;transition:all .2s var(--ease);text-transform:capitalize}
+  .chip:hover{color:#fff;border-color:var(--border-strong)}
+  .chip.on{background:var(--w);color:#04130d;border-color:var(--w);font-weight:600}
+
+  .layout{display:grid;grid-template-columns:1fr 360px;gap:26px;align-items:start;margin-top:18px}
+  @media (max-width:980px){.layout{grid-template-columns:1fr}}
+
+  /* gallery */
+  .gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media (max-width:1180px){.gallery{grid-template-columns:repeat(2,1fr)}}
+  @media (max-width:560px){.gallery{grid-template-columns:1fr}}
+  .card{border:1px solid var(--border);background:var(--card);border-radius:var(--radius);overflow:hidden;cursor:pointer;
+    transition:transform .25s var(--ease),border-color .25s var(--ease)}
+  .card:hover{transform:translateY(-3px);border-color:var(--border-strong)}
+  .card.sel{border-color:var(--w);box-shadow:0 0 0 1px var(--w)}
+  .art{position:relative;height:118px;color:var(--w)}
+  .art svg{position:absolute;inset:0;width:100%;height:100%;opacity:.9}
+  .meta{display:flex;align-items:center;justify-content:space-between;padding:11px 14px}
+  .meta .nm{font-family:'Instrument Serif',serif;font-style:italic;font-size:17px}
+  .meta .ct{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted-2)}
+
+  /* living dots. staggered pop-in entrance, then a soft opacity pulse that loops.
+     --dd (per-dot delay) is set in JS so dots arrive in a wave; idle is gated on
+     body:not(.dots-off) so flicking "Living dots" Off freezes the art (entrance keeps). */
+  .art .dots circle,.preview .part .dots circle{transform-box:fill-box;transform-origin:center;
+    animation:dotIn .55s var(--spring) var(--dd,0s) both}
+  body:not(.dots-off) .art .dots circle,body:not(.dots-off) .preview .part .dots circle{
+    animation:dotIn .55s var(--spring) var(--dd,0s) both, dotlive 2.6s var(--ease) calc(var(--dd,0s) + .55s) infinite}
+  @keyframes dotIn{0%{opacity:0;transform:scale(0)}60%{opacity:1}100%{transform:scale(1)}}
+  @keyframes dotlive{0%,100%{opacity:.55}50%{opacity:1}}
+  body.dots-off .art .dots,body.dots-off .preview .part .dots{display:none}
+
+  /* ambient motion. mirrors the real *TileArt feel:
+     lines draw on then a glow + comet travels them, bars grow from base then breathe,
+     ring arcs charge in then breathe / slow-spin, waves drift, orbits turn, dots pop + pulse.
+     ENTRANCE lives on the base .m-* class (one-shot, always plays). IDLE (infinite) lives only
+     under body:not(.dots-off) so the "Living dots" toggle truly freezes the art when Off.
+     pathLength is normalized to 100 in JS so one fixed dasharray draws any path.
+     Every loop animates only transform / opacity / stroke-dashoffset for cheap mobile motion. */
+
+  /* draw: stroke draws on */
+  .m-draw{stroke-dasharray:100;stroke-dashoffset:100;animation:draw 1.5s var(--ease) var(--d,0s) forwards}
+  body:not(.dots-off) .m-draw{animation:draw 1.5s var(--ease) var(--d,0s) forwards,
+    lineGlow 5.5s ease-in-out calc(var(--d,0s) + 1.6s) infinite}
+  @keyframes draw{to{stroke-dashoffset:0}}
+  @keyframes lineGlow{0%,100%{opacity:var(--op,.85)}50%{opacity:calc(var(--op,.85) * .7)}}
+
+  /* comet: a soft glowing dot travels the primary line forever. offset-path set in JS to the line's d.
+     a faint concentric halo (no CSS filter) gives the glow without a per-frame shadow cost. */
+  .m-comet{opacity:0;offset-rotate:0deg}
+  body:not(.dots-off) .m-comet{animation:cometRun var(--cd,6.5s) linear calc(var(--d,0s) + 1.7s) infinite}
+  @keyframes cometRun{
+    0%{offset-distance:0%;opacity:0}
+    12%{opacity:.95}55%{offset-distance:62%}
+    88%{opacity:.95}100%{offset-distance:100%;opacity:0}}
+
+  /* bars: grow from the baseline, then breathe */
+  .m-bar{transform-box:fill-box;transform-origin:center bottom;transform:scaleY(0);
+    animation:barGrow .7s var(--ease) var(--d,0s) forwards}
+  body:not(.dots-off) .m-bar{animation:barGrow .7s var(--ease) var(--d,0s) forwards,
+    barBreathe 4.2s ease-in-out calc(var(--d,0s) + .7s) infinite}
+  @keyframes barGrow{to{transform:scaleY(1)}}
+  @keyframes barBreathe{0%,100%{transform:scaleY(1)}50%{transform:scaleY(.96)}}
+
+  /* rings (concentric): scale up into place (entrance, inside-out) then a gentle breathe (idle) */
+  .m-ring{transform-box:fill-box;transform-origin:center;animation:ringIn .7s var(--ease) var(--d,0s) both}
+  body:not(.dots-off) .m-ring{animation:ringIn .7s var(--ease) var(--d,0s) both,
+    ringBreathe 4.6s ease-in-out calc(var(--d,0s) + .7s) infinite}
+  @keyframes ringIn{from{opacity:0;transform:scale(.72)}to{opacity:var(--op,.6);transform:scale(1)}}
+  @keyframes ringBreathe{0%,100%{transform:scale(1);opacity:var(--op,.6)}50%{transform:scale(1.04);opacity:calc(var(--op,.6) * 1.14)}}
+
+  /* ring arcs: sweep/charge the arc in (dashoffset only, safe over a pre-rotated transform) */
+  .m-arc{stroke-dasharray:100;stroke-dashoffset:100;animation:draw 1.4s var(--ease) calc(var(--d,0s) + .15s) forwards}
+
+  /* fade-in entrance for elements whose stroke-dasharray already encodes a partial arc (don't clobber it) */
+  .m-fade{animation:fadeIn .9s var(--ease) var(--d,0s) both}
+  @keyframes fadeIn{from{opacity:0}to{opacity:var(--op,.85)}}
+
+  /* drift: the layer draws on (slow, like the line designs) then slides side to side (tides, streams, mood) */
+  .m-drift{transform-box:fill-box;stroke-dasharray:100;stroke-dashoffset:100;
+    animation:draw 1.3s var(--ease) var(--di,0s) both}
+  body:not(.dots-off) .m-drift{animation:draw 1.3s var(--ease) var(--di,0s) forwards,
+    driftX 7.5s ease-in-out calc(var(--di,0s) + 1.3s + var(--d,0s)) infinite}
+  @keyframes driftX{0%,100%{transform:translateX(-4px)}50%{transform:translateX(4px)}}
+
+  /* slow whole-SVG rotation. used for orbit + concentric donut idles. entrance handled per-element. */
+  .art[data-motion="orbit"] svg,.preview .part[data-motion="orbit"] svg,
+  .art[data-spin] svg,.preview .part[data-spin] svg{transform-box:fill-box;transform-origin:center}
+  body:not(.dots-off) .art[data-motion="orbit"] svg,body:not(.dots-off) .preview .part[data-motion="orbit"] svg{
+    animation:spinSlow 26s linear infinite}
+  body:not(.dots-off) .art[data-spin] svg,body:not(.dots-off) .preview .part[data-spin] svg{
+    animation:spinSlow 48s linear infinite}
+  @keyframes spinSlow{to{transform:rotate(360deg)}}
+
+  @media (prefers-reduced-motion:reduce){
+    .art .dots circle,.preview .part .dots circle{animation:none;opacity:var(--rop,.7);transform:none}
+    .m-draw,.m-arc,.m-drift{animation:none;stroke-dashoffset:0}
+    .m-fade{animation:none;opacity:var(--op,.85)}
+    .m-comet{animation:none;display:none}
+    .m-bar{animation:none;transform:none}
+    .m-ring{animation:none;transform:none}
+    .art[data-motion="orbit"] svg,.preview .part[data-motion="orbit"] svg,
+    .art[data-spin] svg,.preview .part[data-spin] svg{animation:none}
+  }
+
+  /* customize panel */
+  .panel{position:sticky;top:24px;border:1px solid var(--border);background:var(--card-2);border-radius:18px;padding:20px}
+  .panel .pk{font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
+  .preview{border:1px solid var(--border-strong);background:#060606;border-radius:var(--radius);position:relative;overflow:hidden;
+    margin:0 auto 6px;display:flex;flex-direction:column;justify-content:space-between;padding:16px 18px;transition:width .35s var(--ease),height .35s var(--ease)}
+  .preview .part{position:absolute;inset:0;color:var(--w)}
+  .preview .part svg{position:absolute;inset:0;width:100%;height:100%}
+  .preview .pnum{position:relative;font-size:10px;letter-spacing:.2em;color:var(--muted-2)}
+  .preview .pfoot{position:relative;display:flex;align-items:flex-end;justify-content:space-between}
+  .preview .ptitle{font-family:'Instrument Serif',serif;font-style:italic;font-size:24px}
+  .preview .parrow{color:var(--muted);font-size:15px}
+  /* sizes */
+  .preview[data-size="s"]{width:240px;height:150px}
+  .preview[data-size="m"]{width:330px;height:150px}
+  .preview[data-size="lw"]{width:330px;height:124px}
+  .preview[data-size="lt"]{width:240px;height:280px}
+
+  .ctl{margin-top:18px}
+  .ctl .lbl{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:9px}
+  .swatches{display:flex;gap:10px}
+  .sw{width:30px;height:30px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .15s var(--ease)}
+  .sw:hover{transform:scale(1.12)}
+  .sw.on{border-color:#fff}
+  .sizes,.toggle{display:flex;gap:8px;flex-wrap:wrap}
+  .seg{border:1px solid var(--border);background:transparent;color:var(--muted);border-radius:9px;padding:8px 13px;font-size:12.5px;
+    font-family:inherit;cursor:pointer;transition:all .18s var(--ease)}
+  .seg:hover{color:#fff;border-color:var(--border-strong)}
+  .seg.on{background:var(--w);color:#04130d;border-color:var(--w);font-weight:600}
+  .actions{display:flex;gap:10px;margin-top:20px}
+  .btn{flex:1;border:0;border-radius:999px;padding:11px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;transition:all .18s var(--ease)}
+  .btn.go{background:var(--w);color:#04130d}
+  .btn.ghost{flex:none;background:transparent;border:1px solid var(--border-strong);color:var(--muted);font-weight:500}
+  .btn.ghost:hover{color:#fff}
+  .hint{font-size:11.5px;color:var(--muted-2);margin-top:12px;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div class="eyebrow">Vitality · Create</div>
+    <h1>Widget Designs</h1>
+    <p class="sub">Pick a look for your tile, then make it yours: change the color, flick the living dots on or off, and size it S, M, or L. Every design is recolorable and drops onto any tile you build.</p>
+  </div>
+
+  <div class="chips" id="chips"></div>
+
+  <div class="layout">
+    <div class="gallery" id="gallery"></div>
+
+    <div class="panel">
+      <div class="pk">Live preview</div>
+      <div class="preview" id="preview" data-size="m">
+        <div class="part" id="previewArt"></div>
+        <div class="pnum">01</div>
+        <div class="pfoot"><span class="ptitle serif" id="previewTitle">My Tile</span><span class="parrow">&#8594;</span></div>
+      </div>
+
+      <div class="ctl">
+        <div class="lbl">Color</div>
+        <div class="swatches" id="swatches"></div>
+      </div>
+      <div class="ctl">
+        <div class="lbl">Living dots</div>
+        <div class="toggle">
+          <button class="seg on" data-dots="on">On</button>
+          <button class="seg" data-dots="off">Off</button>
+        </div>
+      </div>
+      <div class="ctl">
+        <div class="lbl">Size</div>
+        <div class="sizes" id="sizes">
+          <button class="seg" data-size="s">S</button>
+          <button class="seg on" data-size="m">M</button>
+          <button class="seg" data-size="lw">L wide</button>
+          <button class="seg" data-size="lt">L tall</button>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn go" id="applyBtn">Apply to tile</button>
+        <button class="btn ghost" id="exportBtn">Export</button>
+      </div>
+      <div class="hint">Export copies this design's SVG so you can drop it into the tile you built in Claude Code. Or browse the whole library above in your chosen color.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+window.DESIGNS=[{"key":"ascent-line","name":"Ascent","category":"fitness","dots":true,"svg":"<svg viewBox=\"0 0 240 150\" preserveAspectRatio=\"xMidYMid meet\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M20 118 L60 100 L100 84 L140 58 L180 44 L220 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" opacity=\"0.85\"/><path d=\"M20 118 L60 100 L100 84 L140 58 L180 44 L220 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" opacity=\"0.12\"/><line x1=\"20\" y1=\"130\" x2=\"220\" y2=\"130\" stroke=\"currentColor\" stroke-width=\"1\" opacity=\"0.25\"/><g class=\"dots\"><circle cx=\"20\" cy=\"118\" r=\"2.6\" fill=\"currentColor\" opacity=\"0.5\"/><circle cx=\"60\" cy=\"100\" r=\"2.6\" fill=\"currentColor\" opacity=\"0.6\"/><circle cx=\"100\" cy=\"84\" r=\"2.6\" fill=\"currentColor\" opacity=\"0.7\"/><circle cx=\"140\" cy=\"58\" r=\"2.6\" fill=\"currentColor\" opacity=\"0.8\"/><circle cx=\"180\" cy=\"44\" r=\"2.6\" fill=\"currentColor\" opacity=\"0.85\"/><circle cx=\"220\" cy=\"24\" r=\"3.4\" fill=\"currentColor\" opacity=\"0.9\"/></g></svg>"},{"key":"rep-bars","name":"Rep Bars","category":"fitness","dots":true,"svg":"<svg viewBox=\"0 0 240 150\" preserveAspectRatio=\"xMidYMid meet\" xmlns=\"http://www.w3.org/2000/svg\"><line x1=\"30\" y1=\"125\" x2=\"210\" y2=\"125\" stroke=\"currentColor\" stroke-width=\"1\" opacity=\"0.25\"/><line x1=\"40\" y1=\"110\" x2=\"40\" y2=\"122\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\" opacity=\"0.35\"/><line x1=\"68\" y1=\"96\" x2=\"68\" y2=\"122\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\" opacity=\"0.45\"/><line x1=\"96\" y1=\"80\" x2=\"96\" y2=\"122\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\" opacity=\"0.55\"/><line x1=\"124\" y1=\"66\" x2=\"124\" y2=\"122\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\" opacity=\"0.65\"/><line x1=\"152\" y1=\"50\" x2=\"152\" y2=\"122\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\" opacity=\"0.75\"/><line x1=\"180\" y1=\"34\" x2=\"180\" y2=\"122\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\" opacity=\"0.88\"/><g class=\"dots\"><circle cx=\"40\" cy=\"110\" r=\"2.4\" fill=\"currentColor\" opacity=\"0.4\"/><circle cx=\"68\" cy=\"96\" r=\"2.4\" fill=\"currentColor\" opacity=\"0.5\"/><circle cx=\"96\" cy=\"80\" r=\"2.4\" fill=\"currentColor\" opacity=\"0.6\"/><circle cx=\"124\" cy=\"66\" r=\"2.4\" fill=\"currentColor\" opacity=\"0.7\"/><circle cx=\"152\" cy=\"50\" r=\"2.4\" fill=\"currentColor\" opacity=\"0.8\"/><circle cx=\"180\" cy=\"34\" r=\"3.2\" fill=\"currentColor\" opacity=\"0.9\"/></g></svg>"},{"key":"heartbeat-trace","name":"Pulse","category":"fitness","dots":true,"svg":"<svg viewBox=\"0 0 240 150\" preserveAspectRatio=\"xMidYMid meet\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M16 75 L66 75 L80 75 L92 48 L104 104 L116 30 L128 90 L140 75 L156 75 L224 75\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" opacity=\"0.85\"/><path d=\"M16 75 L66 75 L80 75 L92 48 L104 104 L116 30 L128 90 L140 75 L156 75 L224 75\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" opacity=\"0.1\"/><g class=\"dots\"><circle cx=\"116\" cy=\"30\" r=\"3.2\" fill=\"currentColor\" opacity=\"0.9\"/><circle cx=\"16\" cy=\"75\" r=\"2.2\" fill=\"currentColor\" opacity=\"0.35\"/><circle cx=\"224\" cy=\"75\" r=\"2.2\" fill=\"currentColor\" opacity=\"0.5\"/></g></svg>"},{"key":"streak-row","name":"Streak","category":"fitness","dots":true,"svg":"<svg viewBox=\"0 0 240 150\" preserveAspectRatio=\"xMidYMid meet\" xmlns=\"http://www.w3.org/2000/svg\"><line x1=\"28\" y1=\"75\" x2=\"212\" y2=\"75\" stroke=\"currentColor\" stroke-width=\"1\" opacity=\"0.22\"/><g class=\"dots\"><circle cx=\"34\" cy=\"75\" r=\"4\" fill=\"currentColor\" opacity=\"0.4\"/><circle cx=\"64\" cy=\"75\" r=\"4\" fill=\"currentColor\" opacity=\"0.5\"/><circle cx=\"94\" cy=\"75\" r=\"4\" fill=\"currentColor\" opacity=\"0.6\"/><circle cx=\"124\" cy=\"75\" r=\"4\" fill=\"currentColor\" opacity=\"0.7\"/><circle cx=\"154\" cy=\"75\" r=\"4\" fill=\"currentColor\" opacity=\"0.8\"/><circle cx=\"184\" cy=\"75\" r=\"5.4\" fill=\"currentColor\" opacity=\"0.9\"/></g><circle cx=\"184\" cy=\"75\" r=\"10\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.4\" opacity=\"0.4\"/><circle cx=\"214\" cy=\"75\" r=\"3\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\" opacity=\"0.3\"/></svg>"},{"key":"ridge-climb","name":"Ridge","category":"fitness","dots":false,"svg":"<svg viewBox=\"0 0 240 150\" preserveAspectRatio=\"xMidYMid meet\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M14 122 L52 96 L74 110 L108 70 L132 88 L166 44 L190 60 L226 22\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" opacity=\"0.85\"/><path d=\"M14 134 L52 116 L74 124 L108 96 L132 108 L166 78 L190 90 L226 64\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\" opacity=\"0.35\"/><line x1=\"226\" y1=\"22\" x2=\"226\" y2=\"12\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" opacity=\"0.5\"/></svg>"},{"key":"effort-ring","name":"Effort Ring","category":"fitness","dots":true,"svg":"<svg viewBox=\"0 0 200 150\" preserveAspectRatio=\"xMidYMid meet\" xmlns=\"http://www.w3.org/2000/svg\"><circle cx=\"100\" cy=\"75\" r=\"46\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.4\" opacity=\"0.25\"/><path d=\"M100 29 A46 46 0 1 1 54 75\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\" opacity=\"0.85\"/><circle cx=\"100\" cy=\"75\" r=\"28\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1\" opacity=\"0.3\"/><g class=\"dots\"><circle cx=\"100\" cy=\"29\" r=\"3.6\" fill=\"currentColor\" opacity=\"0.9\"/><circle cx=\"100\" cy=\"75\" r=\"2.4\" fill=\"currentColor\" opacity=\"0.55\"/></g></svg>"},{"key":"tide-layers","name":"Tide","category":"health","dots":false,"svg":"<svg viewBox=\"0 0 240 150\" preserveAspectRatio=\"xMidYMid meet\" xmlns=\"http://www.w3.org/2000/svg\"><g fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\"><path d=\"M10 58 C 50 42, 70 42, 110 58 S 190 74, 230 58\" stroke-width=\"1.4\" opacity=\"0.85\"/><path d=\"M10 80 C 50 64, 70 64, 110 80 S 190 96, 230 80\" stroke-width=\"1.3\" opacity=\"0.6\"/><path d=\"M10 102 C 50 86, 70 86, 110 102 S 190 118, 230 102\" stroke-width=\"1.2\" opacity=\"0.4\"/><path d=\"M10 124 C 50 108, 70 108, 110 124 S 190 140, 230 124\" stroke-width=\"1.1\" opacity=\"0.28\"/></g></svg>"},{"key":"crescent-rest","name":"Crescent","category":"health","dots":true,"svg":"<svg viewBox=\"0 0 240 150\" preserveAspectRatio=\"xMidYMid meet\" xmlns=\"http://www.w3.org/2000/svg\"><g fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\"><path d=\"M148 32 A 38 38 0 1 0 148 100 A 30 30 0 1 1 148 32 Z\" stroke-width=\"1.5\" opacity=\"0.85\"/><path d=\"M20 118 C 60 104, 84 104, 120 118 S 200 132, 224 118\" stroke-width=\"1.3\" opacity=\"0.5\"/></g><g class=\"dots\" fill=\"currentColor\"><circle cx=\"66\" cy=\"40\" r=\"1.6\" opacity=\"0.7\"/><circle cx=\"92\" cy=\"58\" r=\"1.3\" opacity=\"0.5\"/><circle cx=\"52\" cy=\"70\" r=\"1.1\" opacity=\"0.4\"/></g></svg>"},{"key":"recovery-rings","name":"Recovery Rings","category":"health","dots":false,"svg":"<svg viewBox=\"0 0 200 150\" preserveAspectRatio=\"xMidYMid meet\" xmlns=\"http://www.w3.org/2000/svg\"><g fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" transform=\"rotate(-90 100 75)\"><circle cx=\"100\" cy=\"75\" r=\"46\" stroke-width=\"2\" opacity=\"0.18\"/><path d=\"M100 29 A 46 46 0 1 1 58 101\" stroke-width=\"2\" opacity=\"0.85\"/><circle cx=\"100\" cy=\"75\" r=\"32\" stroke-width=\"1.8\" opacity=\"0.16\"/><path d=\"M100 43 A 32 32 0 0 1 130 90\" stroke-width=\"1.8\" opacity=\"0.6\"/><circle cx=\"100\" cy=\"75\" r=\"18\" stroke-width=\"1.6\" opacity=\"0.16\"/><path d=\"M100 57 A 18 18 0 0 1 117 70\" stroke-width=\"1.6\" opacity=\"0.45\"/></g></svg>"},{"key":"breathing-pulse","name":"Breathe","category":"health","dots":true,"svg":"<svg viewBox=\"0 0 200 150\" preserveAspectRatio=\"xMidYMid meet\" xmlns=\"http://www.w3.org/2000/svg\"><g fill=\"none\" stroke=\"currentColor\"><circle cx=\"100\" cy=\"75\" r=\"12\" stroke-width=\"1.6\" opacity=\"0.85\"/><circle cx=\"100\" cy=\"75\" r=\"26\" stroke-width=\"1.4\" opacity=\"0.55\"/><circle cx=\"100\" cy=\"75\" r=\"42\" stroke-width=\"1.2\" opacity=\"0.35\"/><circle cx=\"100\" cy=\"75\" r=\"58\" stroke-width=\"1.1\" opacity=\"0.2\"/></g><g class=\"dots\" fill=\"currentColor\"><circle cx=\"100\" cy=\"75\" r=\"2.4\" opacity=\"0.9\"/></g></svg>"},{"key":"weight-trend","name":"Weight Trend","category":"health","dots":true,"svg":"<svg viewBox=\"0 0 240 150\" preserveAspectRatio=\"xMidYMid meet\" xmlns=\"http://www.w3.org/2000/svg\"><g fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M16 50 L 64 66 L 104 60 L 148 84 L 196 96 L 224 110\" stroke-width=\"1.6\" opacity=\"0.85\"/><path d=\"M16 64 C 80 78, 150 92, 224 118\" stroke-width=\"1.2\" opacity=\"0.35\"/></g><g class=\"dots\" fill=\"currentColor\"><circle cx=\"16\" cy=\"50\" r=\"2\" opacity=\"0.8\"/><circle cx=\"64\" cy=\"66\" r=\"2\" opacity=\"0.7\"/><circle cx=\"104\" cy=\"60\" r=\"2\" opacity=\"0.7\"/><circle cx=\"148\" cy=\"84\" r=\"2\" opacity=\"0.7\"/><circle cx=\"196\" cy=\"96\" r=\"2\" opacity=\"0.7\"/><circle cx=\"224\" cy=\"110\" r=\"2.4\" opacity=\"0.9\"/></g></svg>"},{"key":"hrv-ribbon","name":"HRV Ribbon","category":"health","dots":true,"svg":"<svg viewBox=\"0 0 240 150\" preserveAspectRatio=\"xMidYMid meet\" xmlns=\"http://www.w3.org/2000/svg\"><g fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M14 75 H 54 L 64 75 L 72 48 L 82 102 L 92 60 L 100 75 H 134 L 144 75 L 152 54 L 162 96 L 172 66 L 180 75 H 226\" stroke-width=\"1.6\" opacity=\"0.85\"/><path d=\"M14 96 C 70 84, 90 108, 120 96 S 200 84, 226 96\" stroke-width=\"1.1\" opacity=\"0.3\"/></g><g class=\"dots\" fill=\"currentColor\"><circle cx=\"72\" cy=\"48\" r=\"1.8\" opacity=\"0.85\"/><circle cx=\"152\" cy=\"54\" r=\"1.6\" opacity=\"0.7\"/></g></svg>"},{"key":"net-worth-ascent","name":"Ascent","category":"finance","dots":true,"svg":"<svg viewBox=\"0 0 240 150\" preserveAspectRatio=\"xMidYMid meet\" xmlns=\"http://www.w3.org/2000/svg\"><line x1=\"24\" y1=\"126\" x2=\"216\" y2=\"126\" stroke=\"currentColor\" stroke-width=\"1\" opacity=\"0.25\"/><polyline points=\"24,108 60,114 96,88 132,96 168,58 204,38\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" opacity=\"0.9\"/><polyline points=\"24,118 60,112 96,116 132,104 168,100 204,84\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\" stroke-linejoin=\"round\" opacity=\"0.35\"/><g class=\"dots\"><circle cx=\"24\" cy=\"108\" r=\"2.4\" fill=\"currentColor\" opacity=\"0.5\"/><circle cx=\"96\" cy=\"88\" r=\"2.6\" fill=\"currentColor\" opacity=\"0.7\"/><circle cx=\"168\" cy=\"58\" r=\"2.8\" fill=\"currentColor\" opacity=\"0.85\"/><circle cx=\"204\" cy=\"38\" r=\"3.4\" fill=\"currentColor\" opacity=\"0.9\"/></g></svg>"},{"key":"candles","name":"Candles","category":"finance","dots":true,"svg":"<svg viewBox=\"0 0 240 150\" preserveAspectRatio=\"xMidYMid meet\" xmlns=\"http://www.w3.org/2000/svg\"><g stroke=\"currentColor\" stroke-linecap=\"round\"><line x1=\"40\" y1=\"54\" x2=\"40\" y2=\"104\" stroke-width=\"1\" opacity=\"0.4\"/><rect x=\"34\" y=\"66\" width=\"12\" height=\"28\" rx=\"2\" fill=\"none\" stroke-width=\"1.6\" opacity=\"0.7\"/><line x1=\"76\" y1=\"40\" x2=\"76\" y2=\"96\" stroke-width=\"1\" opacity=\"0.4\"/><rect x=\"70\" y=\"50\" width=\"12\" height=\"34\" rx=\"2\" fill=\"none\" stroke-width=\"1.6\" opacity=\"0.85\"/><line x1=\"112\" y1=\"58\" x2=\"112\" y2=\"112\" stroke-width=\"1\" opacity=\"0.35\"/><rect x=\"106\" y=\"78\" width=\"12\" height=\"24\" rx=\"2\" fill=\"none\" stroke-width=\"1.6\" opacity=\"0.55\"/><line x1=\"148\" y1=\"34\" x2=\"148\" y2=\"86\" stroke-width=\"1\" opacity=\"0.4\"/><rect x=\"142\" y=\"44\" width=\"12\" height=\"30\" rx=\"2\" fill=\"none\" stroke-width=\"1.6\" opacity=\"0.8\"/><line x1=\"184\" y1=\"26\" x2=\"184\" y2=\"78\" stroke-width=\"1\" opacity=\"0.45\"/><rect x=\"178\" y=\"36\" width=\"12\" height=\"28\" rx=\"2\" fill=\"none\" stroke-width=\"1.8\" opacity=\"0.9\"/></g><g class=\"dots\"><circle cx=\"76\" cy=\"50\" r=\"2.2\" fill=\"currentColor\" opacity=\"0.7\"/><circle cx=\"184\" cy=\"36\" r=\"2.6\" fill=\"currentColor\" opacity=\"0.9\"/></g></svg>"},{"key":"growth-mountain","name":"Summit","category":"finance","dots":true,"svg":"<svg viewBox=\"0 0 240 150\" preserveAspectRatio=\"xMidYMid meet\" xmlns=\"http://www.w3.org/2000/svg\"><line x1=\"22\" y1=\"122\" x2=\"218\" y2=\"122\" stroke=\"currentColor\" stroke-width=\"1\" opacity=\"0.25\"/><path d=\"M22 122 L22 100 L62 92 L102 64 L142 76 L182 42 L218 30 L218 122 Z\" fill=\"currentColor\" opacity=\"0.12\"/><polyline points=\"22,100 62,92 102,64 142,76 182,42 218,30\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" opacity=\"0.9\"/><g class=\"dots\"><circle cx=\"102\" cy=\"64\" r=\"2.4\" fill=\"currentColor\" opacity=\"0.6\"/><circle cx=\"218\" cy=\"30\" r=\"3.2\" fill=\"currentColor\" opacity=\"0.9\"/></g></svg>"},{"key":"savings-stack","name":"Stack","category":"finance","dots":false,"svg":"<svg viewBox=\"0 0 240 150\" preserveAspectRatio=\"xMidYMid meet\" xmlns=\"http://www.w3.org/2000/svg\"><line x1=\"30\" y1=\"126\" x2=\"210\" y2=\"126\" stroke=\"currentColor\" stroke-width=\"1\" opacity=\"0.25\"/><g fill=\"none\" stroke=\"currentColor\" stroke-linejoin=\"round\"><rect x=\"50\" y=\"96\" width=\"26\" height=\"26\" rx=\"3\" stroke-width=\"1.4\" opacity=\"0.4\"/><rect x=\"92\" y=\"78\" width=\"26\" height=\"44\" rx=\"3\" stroke-width=\"1.5\" opacity=\"0.55\"/><rect x=\"92\" y=\"96\" width=\"26\" height=\"26\" rx=\"3\" stroke-width=\"1\" opacity=\"0.3\"/><rect x=\"134\" y=\"56\" width=\"26\" height=\"66\" rx=\"3\" stroke-width=\"1.6\" opacity=\"0.7\"/><rect x=\"134\" y=\"82\" width=\"26\" height=\"40\" rx=\"3\" stroke-width=\"1\" opacity=\"0.3\"/><rect x=\"176\" y=\"36\" width=\"26\" height=\"86\" rx=\"3\" stroke-width=\"1.8\" opacity=\"0.9\"/><rect x=\"176\" y=\"66\" width=\"26\" height=\"56\" rx=\"3\" stroke-width=\"1\" opacity=\"0.35\"/></g></svg>"},{"key":"budget-ring","name":"Allocation","category":"finance","dots":true,"svg":"<svg viewBox=\"0 0 200 150\" preserveAspectRatio=\"xMidYMid meet\" xmlns=\"http://www.w3.org/2000/svg\"><circle cx=\"100\" cy=\"75\" r=\"46\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1\" opacity=\"0.25\"/><circle cx=\"100\" cy=\"75\" r=\"46\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" opacity=\"0.9\" stroke-dasharray=\"126 163\" transform=\"rotate(-90 100 75)\"/><circle cx=\"100\" cy=\"75\" r=\"46\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" opacity=\"0.5\" stroke-dasharray=\"72 217\" transform=\"rotate(36 100 75)\"/><circle cx=\"100\" cy=\"75\" r=\"30\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1\" opacity=\"0.3\"/><g class=\"dots\"><circle cx=\"100\" cy=\"75\" r=\"3\" fill=\"currentColor\" opacity=\"0.7\"/></g></svg>"},{"key":"spend-stream","name":"Flow","category":"finance","dots":true,"svg":"<svg viewBox=\"0 0 240 150\" preserveAspectRatio=\"xMidYMid meet\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M16 50 C 64 50, 64 100, 112 100 C 160 100, 160 56, 224 56\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" opacity=\"0.85\"/><path d=\"M16 62 C 64 62, 64 110, 112 110 C 160 110, 160 70, 224 70\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.3\" stroke-linecap=\"round\" opacity=\"0.45\"/><path d=\"M16 40 C 64 40, 64 90, 112 90 C 160 90, 160 44, 224 44\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1\" stroke-linecap=\"round\" opacity=\"0.3\"/><g class=\"dots\"><circle cx=\"112\" cy=\"100\" r=\"2.6\" fill=\"currentColor\" opacity=\"0.7\"/><circle cx=\"224\" cy=\"56\" r=\"2.8\" fill=\"currentColor\" opacity=\"0.85\"/><circle cx=\"16\" cy=\"50\" r=\"2.2\" fill=\"currentColor\" opacity=\"0.55\"/></g></svg>"},{"key":"mood-wave","name":"Mood Wave","category":"mind","dots":true,"svg":"<svg viewBox=\"0 0 240 150\" preserveAspectRatio=\"xMidYMid meet\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M10 95 C40 60 60 60 90 82 C120 104 140 50 170 62 C200 74 215 70 230 58\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" opacity=\"0.85\"/><path d=\"M10 110 C45 88 65 96 95 102 C125 108 150 84 180 90 C205 95 218 92 230 86\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\" stroke-linecap=\"round\" opacity=\"0.4\"/><path d=\"M10 78 C40 50 62 56 92 70\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1\" stroke-linecap=\"round\" opacity=\"0.28\"/><g class=\"dots\"><circle cx=\"90\" cy=\"82\" r=\"2.4\" fill=\"currentColor\" opacity=\"0.85\"/><circle cx=\"170\" cy=\"62\" r=\"2.4\" fill=\"currentColor\" opacity=\"0.85\"/><circle cx=\"230\" cy=\"58\" r=\"2\" fill=\"currentColor\" opacity=\"0.55\"/></g></svg>"},{"key":"gratitude-spark","name":"Gratitude Spark","category":"mind","dots":true,"svg":"<svg viewBox=\"0 0 200 150\" preserveAspectRatio=\"xMidYMid meet\" xmlns=\"http://www.w3.org/2000/svg\"><circle cx=\"100\" cy=\"75\" r=\"5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" opacity=\"0.85\"/><g stroke=\"currentColor\" stroke-linecap=\"round\" fill=\"none\"><path d=\"M100 70 L100 28\" stroke-width=\"1.4\" opacity=\"0.55\"/><path d=\"M105 73 L150 52\" stroke-width=\"1.4\" opacity=\"0.5\"/><path d=\"M105 80 L156 100\" stroke-width=\"1.4\" opacity=\"0.45\"/><path d=\"M100 81 L100 120\" stroke-width=\"1.4\" opacity=\"0.5\"/><path d=\"M95 80 L46 102\" stroke-width=\"1.4\" opacity=\"0.42\"/><path d=\"M95 72 L44 50\" stroke-width=\"1.4\" opacity=\"0.5\"/></g><circle cx=\"100\" cy=\"75\" r=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1\" opacity=\"0.22\"/><g class=\"dots\"><circle cx=\"100\" cy=\"28\" r=\"2.6\" fill=\"currentColor\" opacity=\"0.85\"/><circle cx=\"150\" cy=\"52\" r=\"2.4\" fill=\"currentColor\" opacity=\"0.7\"/><circle cx=\"156\" cy=\"100\" r=\"2.2\" fill=\"currentColor\" opacity=\"0.6\"/><circle cx=\"100\" cy=\"120\" r=\"2.4\" fill=\"currentColor\" opacity=\"0.7\"/><circle cx=\"46\" cy=\"102\" r=\"2.2\" fill=\"currentColor\" opacity=\"0.6\"/><circle cx=\"44\" cy=\"50\" r=\"2.4\" fill=\"currentColor\" opacity=\"0.7\"/></g></svg>"},{"key":"focus-orbit","name":"Focus Orbit","category":"mind","dots":true,"svg":"<svg viewBox=\"0 0 200 150\" preserveAspectRatio=\"xMidYMid meet\" xmlns=\"http://www.w3.org/2000/svg\"><circle cx=\"100\" cy=\"75\" r=\"4\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" opacity=\"0.85\"/><ellipse cx=\"100\" cy=\"75\" rx=\"58\" ry=\"30\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\" opacity=\"0.5\"/><ellipse cx=\"100\" cy=\"75\" rx=\"58\" ry=\"30\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1\" opacity=\"0.28\" transform=\"rotate(38 100 75)\"/><g class=\"dots\"><circle cx=\"158\" cy=\"75\" r=\"2.8\" fill=\"currentColor\" opacity=\"0.85\"/><circle cx=\"63\" cy=\"99\" r=\"2.2\" fill=\"currentColor\" opacity=\"0.55\"/></g></svg>"},{"key":"calm-ripples","name":"Calm Ripples","category":"mind","dots":true,"svg":"<svg viewBox=\"0 0 200 150\" preserveAspectRatio=\"xMidYMid meet\" xmlns=\"http://www.w3.org/2000/svg\"><g fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\"><path d=\"M64 75 A 36 36 0 0 1 136 75\" stroke-width=\"1.6\" opacity=\"0.85\"/><path d=\"M44 75 A 56 56 0 0 1 156 75\" stroke-width=\"1.3\" opacity=\"0.5\"/><path d=\"M24 75 A 76 76 0 0 1 176 75\" stroke-width=\"1.1\" opacity=\"0.3\"/><path d=\"M64 75 A 36 36 0 0 0 136 75\" stroke-width=\"1\" opacity=\"0.25\"/></g><g class=\"dots\"><circle cx=\"100\" cy=\"75\" r=\"2.4\" fill=\"currentColor\" opacity=\"0.9\"/></g></svg>"},{"key":"journal-lines","name":"Journal Lines","category":"mind","dots":true,"svg":"<svg viewBox=\"0 0 240 150\" preserveAspectRatio=\"xMidYMid meet\" xmlns=\"http://www.w3.org/2000/svg\"><g stroke=\"currentColor\" stroke-linecap=\"round\" fill=\"none\"><path d=\"M44 48 L176 48\" stroke-width=\"1.6\" opacity=\"0.8\"/><path d=\"M44 70 L196 70\" stroke-width=\"1.3\" opacity=\"0.5\"/><path d=\"M44 92 L150 92\" stroke-width=\"1.3\" opacity=\"0.42\"/><path d=\"M44 114 L182 114\" stroke-width=\"1.1\" opacity=\"0.3\"/></g><path d=\"M30 38 L30 124\" stroke=\"currentColor\" stroke-width=\"1.4\" stroke-linecap=\"round\" opacity=\"0.55\"/><g class=\"dots\"><circle cx=\"176\" cy=\"48\" r=\"2.4\" fill=\"currentColor\" opacity=\"0.85\"/><circle cx=\"196\" cy=\"70\" r=\"2\" fill=\"currentColor\" opacity=\"0.5\"/><circle cx=\"150\" cy=\"92\" r=\"2\" fill=\"currentColor\" opacity=\"0.42\"/></g></svg>"},{"key":"constellation","name":"Constellation","category":"mind","dots":true,"svg":"<svg viewBox=\"0 0 240 150\" preserveAspectRatio=\"xMidYMid meet\" xmlns=\"http://www.w3.org/2000/svg\"><g stroke=\"currentColor\" stroke-linecap=\"round\" fill=\"none\"><path d=\"M42 110 L86 64\" stroke-width=\"1.2\" opacity=\"0.5\"/><path d=\"M86 64 L128 88\" stroke-width=\"1.2\" opacity=\"0.45\"/><path d=\"M128 88 L168 42\" stroke-width=\"1.2\" opacity=\"0.5\"/><path d=\"M168 42 L204 78\" stroke-width=\"1.1\" opacity=\"0.38\"/><path d=\"M86 64 L120 34\" stroke-width=\"1\" opacity=\"0.3\"/></g><g class=\"dots\"><circle cx=\"42\" cy=\"110\" r=\"2.4\" fill=\"currentColor\" opacity=\"0.7\"/><circle cx=\"86\" cy=\"64\" r=\"3\" fill=\"currentColor\" opacity=\"0.85\"/><circle cx=\"128\" cy=\"88\" r=\"2.4\" fill=\"currentColor\" opacity=\"0.65\"/><circle cx=\"168\" cy=\"42\" r=\"2.8\" fill=\"currentColor\" opacity=\"0.8\"/><circle cx=\"204\" cy=\"78\" r=\"2.2\" fill=\"currentColor\" opacity=\"0.55\"/><circle cx=\"120\" cy=\"34\" r=\"1.8\" fill=\"currentColor\" opacity=\"0.45\"/></g></svg>"},{"key":"sparkline-end-dot","name":"Sparkline","category":"data","dots":true,"svg":"<svg viewBox=\"0 0 240 150\" preserveAspectRatio=\"xMidYMid meet\" xmlns=\"http://www.w3.org/2000/svg\"><line x1=\"24\" y1=\"120\" x2=\"216\" y2=\"120\" stroke=\"currentColor\" stroke-width=\"1\" opacity=\"0.25\"/><path d=\"M24 102 L60 88 L92 96 L124 64 L156 76 L188 46 L216 38\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" opacity=\"0.9\"/><g class=\"dots\"><circle cx=\"216\" cy=\"38\" r=\"4.5\" fill=\"currentColor\" opacity=\"0.9\"/><circle cx=\"216\" cy=\"38\" r=\"9\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1\" opacity=\"0.35\"/><circle cx=\"124\" cy=\"64\" r=\"2.4\" fill=\"currentColor\" opacity=\"0.55\"/><circle cx=\"60\" cy=\"88\" r=\"2.4\" fill=\"currentColor\" opacity=\"0.45\"/></g></svg>"},{"key":"bar-set","name":"Bars","category":"data","dots":true,"svg":"<svg viewBox=\"0 0 240 150\" preserveAspectRatio=\"xMidYMid meet\" xmlns=\"http://www.w3.org/2000/svg\"><line x1=\"28\" y1=\"122\" x2=\"212\" y2=\"122\" stroke=\"currentColor\" stroke-width=\"1\" opacity=\"0.25\"/><rect x=\"40\" y=\"86\" width=\"16\" height=\"36\" rx=\"3\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.4\" opacity=\"0.4\"/><rect x=\"76\" y=\"66\" width=\"16\" height=\"56\" rx=\"3\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" opacity=\"0.55\"/><rect x=\"112\" y=\"50\" width=\"16\" height=\"72\" rx=\"3\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" opacity=\"0.9\"/><rect x=\"148\" y=\"74\" width=\"16\" height=\"48\" rx=\"3\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" opacity=\"0.5\"/><rect x=\"184\" y=\"94\" width=\"16\" height=\"28\" rx=\"3\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.4\" opacity=\"0.35\"/><g class=\"dots\"><circle cx=\"120\" cy=\"50\" r=\"3.4\" fill=\"currentColor\" opacity=\"0.9\"/></g></svg>"},{"key":"ring-gauge-tick","name":"Gauge","category":"data","dots":true,"svg":"<svg viewBox=\"0 0 200 150\" preserveAspectRatio=\"xMidYMid meet\" xmlns=\"http://www.w3.org/2000/svg\"><circle cx=\"100\" cy=\"75\" r=\"46\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\" opacity=\"0.25\"/><path d=\"M100 29 A46 46 0 0 1 141 100\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\" opacity=\"0.9\"/><circle cx=\"100\" cy=\"75\" r=\"30\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1\" opacity=\"0.3\"/><line x1=\"100\" y1=\"75\" x2=\"122\" y2=\"58\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" opacity=\"0.6\"/><g class=\"dots\"><circle cx=\"141\" cy=\"100\" r=\"4\" fill=\"currentColor\" opacity=\"0.9\"/><circle cx=\"100\" cy=\"75\" r=\"2.6\" fill=\"currentColor\" opacity=\"0.55\"/></g></svg>"},{"key":"node-scatter","name":"Scatter","category":"data","dots":true,"svg":"<svg viewBox=\"0 0 240 150\" preserveAspectRatio=\"xMidYMid meet\" xmlns=\"http://www.w3.org/2000/svg\"><line x1=\"30\" y1=\"122\" x2=\"210\" y2=\"122\" stroke=\"currentColor\" stroke-width=\"1\" opacity=\"0.22\"/><line x1=\"30\" y1=\"28\" x2=\"30\" y2=\"122\" stroke=\"currentColor\" stroke-width=\"1\" opacity=\"0.22\"/><path d=\"M36 110 L200 44\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1\" stroke-dasharray=\"3 5\" opacity=\"0.3\"/><g class=\"dots\"><circle cx=\"58\" cy=\"100\" r=\"3\" fill=\"currentColor\" opacity=\"0.5\"/><circle cx=\"84\" cy=\"88\" r=\"3.6\" fill=\"currentColor\" opacity=\"0.7\"/><circle cx=\"110\" cy=\"92\" r=\"2.6\" fill=\"currentColor\" opacity=\"0.45\"/><circle cx=\"132\" cy=\"70\" r=\"4\" fill=\"currentColor\" opacity=\"0.9\"/><circle cx=\"158\" cy=\"74\" r=\"3\" fill=\"currentColor\" opacity=\"0.55\"/><circle cx=\"182\" cy=\"56\" r=\"3.4\" fill=\"currentColor\" opacity=\"0.7\"/><circle cx=\"100\" cy=\"58\" r=\"2.4\" fill=\"currentColor\" opacity=\"0.4\"/></g></svg>"},{"key":"area-chart","name":"Area","category":"data","dots":true,"svg":"<svg viewBox=\"0 0 240 150\" preserveAspectRatio=\"xMidYMid meet\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M24 116 L24 92 Q56 78 76 84 Q104 92 124 66 Q150 38 176 52 Q200 64 216 44 L216 116 Z\" fill=\"currentColor\" opacity=\"0.12\"/><path d=\"M24 92 Q56 78 76 84 Q104 92 124 66 Q150 38 176 52 Q200 64 216 44\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" opacity=\"0.9\"/><line x1=\"24\" y1=\"116\" x2=\"216\" y2=\"116\" stroke=\"currentColor\" stroke-width=\"1\" opacity=\"0.25\"/><g class=\"dots\"><circle cx=\"124\" cy=\"66\" r=\"3.2\" fill=\"currentColor\" opacity=\"0.8\"/><circle cx=\"216\" cy=\"44\" r=\"3.6\" fill=\"currentColor\" opacity=\"0.9\"/></g></svg>"},{"key":"dotted-field","name":"Field","category":"data","dots":true,"svg":"<svg viewBox=\"0 0 240 150\" preserveAspectRatio=\"xMidYMid meet\" xmlns=\"http://www.w3.org/2000/svg\"><circle cx=\"128\" cy=\"75\" r=\"22\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1\" opacity=\"0.3\"/><g class=\"dots\"><circle cx=\"48\" cy=\"36\" r=\"1.8\" fill=\"currentColor\" opacity=\"0.3\"/><circle cx=\"88\" cy=\"36\" r=\"1.8\" fill=\"currentColor\" opacity=\"0.3\"/><circle cx=\"128\" cy=\"36\" r=\"1.8\" fill=\"currentColor\" opacity=\"0.35\"/><circle cx=\"168\" cy=\"36\" r=\"1.8\" fill=\"currentColor\" opacity=\"0.3\"/><circle cx=\"208\" cy=\"36\" r=\"1.8\" fill=\"currentColor\" opacity=\"0.25\"/><circle cx=\"48\" cy=\"75\" r=\"1.8\" fill=\"currentColor\" opacity=\"0.35\"/><circle cx=\"88\" cy=\"75\" r=\"2.6\" fill=\"currentColor\" opacity=\"0.6\"/><circle cx=\"128\" cy=\"75\" r=\"4\" fill=\"currentColor\" opacity=\"0.9\"/><circle cx=\"168\" cy=\"75\" r=\"2.6\" fill=\"currentColor\" opacity=\"0.55\"/><circle cx=\"208\" cy=\"75\" r=\"1.8\" fill=\"currentColor\" opacity=\"0.35\"/><circle cx=\"48\" cy=\"114\" r=\"1.8\" fill=\"currentColor\" opacity=\"0.25\"/><circle cx=\"88\" cy=\"114\" r=\"1.8\" fill=\"currentColor\" opacity=\"0.3\"/><circle cx=\"128\" cy=\"114\" r=\"1.8\" fill=\"currentColor\" opacity=\"0.35\"/><circle cx=\"168\" cy=\"114\" r=\"1.8\" fill=\"currentColor\" opacity=\"0.3\"/><circle cx=\"208\" cy=\"114\" r=\"1.8\" fill=\"currentColor\" opacity=\"0.25\"/></g></svg>"}];
+
+  const CATS = ['all','fitness','health','finance','mind','data'];
+  const COLORS = [
+    { name:'Mint', hex:'#6EE7B7' }, { name:'Azure', hex:'#6EA8FF' }, { name:'Ice', hex:'#CFE9FF' },
+    { name:'Amber', hex:'#F5B044' }, { name:'Violet', hex:'#B794F6' }, { name:'Rose', hex:'#F49AC2' },
+  ];
+
+  const gallery = document.getElementById('gallery');
+  const chips = document.getElementById('chips');
+  const swatches = document.getElementById('swatches');
+  const preview = document.getElementById('preview');
+  const previewArt = document.getElementById('previewArt');
+  const previewTitle = document.getElementById('previewTitle');
+
+  let activeCat = 'all';
+  let selected = window.DESIGNS[0];
+
+  // ambient motion per design. matches the real *TileArt language
+  const MOTION = {
+    'ascent-line':'draw','rep-bars':'bars','heartbeat-trace':'draw','streak-row':'pulse','ridge-climb':'draw','effort-ring':'rings',
+    'tide-layers':'drift','crescent-rest':'draw','recovery-rings':'rings','breathing-pulse':'rings','weight-trend':'draw','hrv-ribbon':'draw',
+    'net-worth-ascent':'draw','candles':'bars','growth-mountain':'draw','savings-stack':'bars','budget-ring':'rings','spend-stream':'drift',
+    'mood-wave':'drift','gratitude-spark':'draw','focus-orbit':'orbit','calm-ripples':'rings','journal-lines':'draw','constellation':'draw',
+    'sparkline-end-dot':'draw','bar-set':'bars','ring-gauge-tick':'rings','node-scatter':'pulse','area-chart':'draw','dotted-field':'pulse'
+  };
+  const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // "is this element actually painted with a stroke". resolves stroke inherited
+  // from a wrapping <g> (8 designs set stroke on the group, not the leaf element).
+  const stroked = el => {
+    if (el.getAttribute('stroke') === 'none') return false;
+    if (el.getAttribute('stroke')) return true;
+    try { return getComputedStyle(el).stroke !== 'none'; } catch (e) { return false; }
+  };
+  const opOf = (el, d) => parseFloat(el.getAttribute('opacity') || d);
+  const SVGNS = 'http://www.w3.org/2000/svg';
+
+  // every design's living dots get a staggered pop-in (entrance) then ride the looping pulse
+  // (idle, gated in CSS). independent of motion type so even dot-only designs come alive.
+  function decorateDots(svg) {
+    [...svg.querySelectorAll('.dots circle')].forEach((c, i) => {
+      c.style.setProperty('--dd', (0.55 + i * 0.07).toFixed(2) + 's'); // arrive after the main art
+      c.style.setProperty('--rop', opOf(c, '0.7'));                    // resting opacity for reduced-motion
+    });
+  }
+
+  // turn a <polyline points> into a path d so offset-path can ride it (comet works on either)
+  function pointsToD(pts) {
+    const p = (pts || '').trim().split(/\s+/);
+    return p.map((pair, i) => (i ? 'L' : 'M') + pair.replace(',', ' ')).join(' ');
+  }
+
+  // a soft glowing dot (+ faint halo, no CSS filter) that travels the primary line forever
+  function addComet(svg, primary) {
+    const d = primary.tagName.toLowerCase() === 'polyline'
+      ? pointsToD(primary.getAttribute('points'))
+      : primary.getAttribute('d');
+    if (!d) return;
+    const g = document.createElementNS(SVGNS, 'g');
+    g.setAttribute('class', 'm-comet');
+    g.style.offsetPath = `path('${d}')`;
+    const halo = document.createElementNS(SVGNS, 'circle');
+    halo.setAttribute('r', '5'); halo.setAttribute('fill', 'currentColor'); halo.setAttribute('opacity', '0.18');
+    const core = document.createElementNS(SVGNS, 'circle');
+    core.setAttribute('r', '2.2'); core.setAttribute('fill', 'currentColor'); core.setAttribute('opacity', '0.95');
+    g.appendChild(halo); g.appendChild(core);
+    svg.appendChild(g); // paints on top of the line
+  }
+
+  // decorate a freshly-rendered SVG with its ambient motion. Operates on live DOM,
+  // so the raw DESIGNS strings (and Export) stay clean. motion is presentation only.
+  function animate(container, key) {
+    if (!container) return;
+    const svg = container.querySelector('svg');
+    if (!svg) return;
+    const motion = MOTION[key] || 'pulse';
+    container.setAttribute('data-motion', motion);
+    container.removeAttribute('data-spin');
+    decorateDots(svg);
+    if (reduceMotion) return;
+
+    if (motion === 'draw') {
+      const lines = [...svg.querySelectorAll('path,polyline,line')].filter(stroked);
+      lines.forEach((el, i) => {
+        el.setAttribute('pathLength', '100');              // normalize so one dasharray draws any path
+        el.style.setProperty('--op', opOf(el, '0.85'));
+        el.style.setProperty('--d', (i * 0.12).toFixed(2) + 's');
+        el.classList.add('m-draw');
+      });
+      // glowing comet rides the primary (first, boldest) stroked line. the signature idle
+      const primary = lines.find(el => el.tagName.toLowerCase() !== 'line');
+      if (primary) addComet(svg, primary);
+
+    } else if (motion === 'bars') {
+      [...svg.querySelectorAll('rect,line')]
+        .filter(el => el.tagName.toLowerCase() === 'rect' || el.getAttribute('x1') === el.getAttribute('x2')) // rects + vertical lines, never the baseline
+        .sort((a, b) => (+(a.getAttribute('x') ?? a.getAttribute('x1'))) - (+(b.getAttribute('x') ?? b.getAttribute('x1'))))
+        .forEach((el, i) => { el.style.setProperty('--d', (i * 0.07).toFixed(2) + 's'); el.classList.add('m-bar'); });
+
+    } else if (motion === 'rings') {
+      // donut = concentric arcs pre-rotated into place (recovery rings, allocation).
+      // idle = a slow whole-SVG spin; entrance = arcs charge/fade in (never clobber a partial dasharray).
+      const donut = !!svg.querySelector('[transform*="rotate"]');
+      const arcs = [...svg.querySelectorAll('circle,ellipse,path')].filter(el => stroked(el) && !el.closest('.dots'));
+      if (donut) {
+        container.setAttribute('data-spin', '');
+        arcs.forEach((el, i) => {
+          el.style.setProperty('--op', opOf(el, '0.85'));
+          el.style.setProperty('--d', (i * 0.12).toFixed(2) + 's');
+          if (el.tagName.toLowerCase() === 'path' && !el.getAttribute('stroke-dasharray')) {
+            el.setAttribute('pathLength', '100'); el.classList.add('m-arc');  // charge the sweep in
+          } else {
+            el.classList.add('m-fade');                                       // keep the partial-arc geometry
+          }
+        });
+      } else {
+        // concentric tracks (full circles/ellipses) breathe as the idle; progress arcs (paths)
+        // charge in as the entrance and then hold. one coherent treatment per element, no fighting.
+        arcs.sort((a, b) => parseFloat(a.getAttribute('r') || 0) - parseFloat(b.getAttribute('r') || 0)) // inside-out
+          .forEach((el, i) => {
+            if (el.tagName.toLowerCase() === 'path') {
+              el.setAttribute('pathLength', '100');
+              el.style.setProperty('--op', opOf(el, '0.85'));
+              el.style.setProperty('--d', (i * 0.12).toFixed(2) + 's');
+              el.classList.add('m-arc');                                      // sweep/charge in
+            } else {
+              el.style.setProperty('--op', opOf(el, '0.5'));
+              el.style.setProperty('--d', (i * 0.5).toFixed(2) + 's');
+              el.classList.add('m-ring');                                     // gentle breathe idle
+            }
+          });
+      }
+
+    } else if (motion === 'drift') {
+      [...svg.querySelectorAll('path')].filter(stroked).forEach((el, i) => {
+        el.setAttribute('pathLength', '100');                     // normalize so the layer can draw on
+        el.style.setProperty('--di', (i * 0.1).toFixed(2) + 's'); // draw-on entrance stagger
+        el.style.setProperty('--d', (i * -0.9).toFixed(2) + 's'); // desync each layer's drift phase
+        el.classList.add('m-drift');
+      });
+    }
+    // 'orbit' idle is the whole-SVG spin; 'pulse' designs ride the dot pop-in + pulse from decorateDots.
+
+    // catch-all entrance: every remaining painted node (orbit ellipses, decorative tracks, fill
+    // areas, axes, ticks) fades in too, so every design has a deliberate intro and nothing pops hard.
+    const moved = 'm-draw m-arc m-bar m-ring m-drift m-comet m-fade'.split(' ');
+    [...svg.querySelectorAll('path,polyline,line,rect,circle,ellipse')].forEach((el, i) => {
+      if (el.closest('.dots') || moved.some(c => el.classList.contains(c))) return;
+      const fill = el.getAttribute('fill');
+      if (!stroked(el) && (!fill || fill === 'none')) return;     // skip truly invisible nodes
+      el.style.setProperty('--op', opOf(el, '0.85'));
+      el.style.setProperty('--d', (0.1 + i * 0.05).toFixed(2) + 's');
+      el.classList.add('m-fade');
+    });
+  }
+
+  // category chips
+  CATS.forEach((c, i) => {
+    const b = document.createElement('button');
+    b.className = 'chip' + (i === 0 ? ' on' : '');
+    b.textContent = c;
+    b.onclick = () => { activeCat = c; document.querySelectorAll('.chip').forEach(x => x.classList.remove('on')); b.classList.add('on'); renderGallery(); };
+    chips.appendChild(b);
+  });
+
+  // color swatches
+  COLORS.forEach((c, i) => {
+    const s = document.createElement('div');
+    s.className = 'sw' + (i === 0 ? ' on' : '');
+    s.style.background = c.hex;
+    s.title = c.name;
+    s.onclick = () => { document.documentElement.style.setProperty('--w', c.hex); document.querySelectorAll('.sw').forEach(x => x.classList.remove('on')); s.classList.add('on'); };
+    swatches.appendChild(s);
+  });
+
+  function renderGallery() {
+    const list = window.DESIGNS.filter(d => activeCat === 'all' || d.category === activeCat);
+    gallery.innerHTML = list.map(d =>
+      `<div class="card${d.key === selected.key ? ' sel' : ''}" data-key="${d.key}">
+        <div class="art">${d.svg}</div>
+        <div class="meta"><span class="nm">${d.name}</span><span class="ct">${d.category}</span></div>
+      </div>`).join('');
+    gallery.querySelectorAll('.card').forEach(card => {
+      card.onclick = () => select(card.dataset.key);
+      animate(card.querySelector('.art'), card.dataset.key);
+    });
+  }
+  function select(key) {
+    selected = window.DESIGNS.find(d => d.key === key) || selected;
+    previewArt.innerHTML = selected.svg;
+    animate(previewArt, selected.key);
+    previewTitle.textContent = selected.name;
+    document.querySelectorAll('.card').forEach(c => c.classList.toggle('sel', c.dataset.key === key));
+  }
+
+  // dots toggle
+  document.querySelectorAll('[data-dots]').forEach(b => b.onclick = () => {
+    document.querySelectorAll('[data-dots]').forEach(x => x.classList.remove('on')); b.classList.add('on');
+    document.body.classList.toggle('dots-off', b.dataset.dots === 'off');
+  });
+  // size toggle
+  document.querySelectorAll('#sizes .seg').forEach(b => b.onclick = () => {
+    document.querySelectorAll('#sizes .seg').forEach(x => x.classList.remove('on')); b.classList.add('on');
+    preview.dataset.size = b.dataset.size;
+  });
+
+  // export = copy the selected SVG
+  document.getElementById('exportBtn').onclick = (e) => {
+    navigator.clipboard?.writeText(selected.svg).then(() => { e.target.textContent = 'Copied'; setTimeout(() => e.target.textContent = 'Export', 1200); });
+  };
+  document.getElementById('applyBtn').onclick = (e) => { e.target.textContent = 'Applied ✓'; setTimeout(() => e.target.textContent = 'Apply to tile', 1400); };
+
+  renderGallery();
+  select(selected.key);
+</script>
+</body>
+</html>

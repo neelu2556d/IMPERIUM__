@@ -1,0 +1,49 @@
+{
+  "name": "vitality",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.34.4",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "gen:featured": "mcp/node_modules/.bin/tsx scripts/genFeatured.ts",
+    "test": "jest",
+    "test:watch": "jest --watch"
+  },
+  "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@sentry/nextjs": "^10.58.0",
+    "@supabase/ssr": "^0.10.3",
+    "@supabase/supabase-js": "^2.105.4",
+    "@types/three": "^0.184.1",
+    "canvas-confetti": "^1.9.4",
+    "mcp-handler": "^1.1.0",
+    "next": "14.2.35",
+    "react": "^18",
+    "react-dom": "^18",
+    "server-only": "^0.0.1",
+    "stripe": "^22.1.1",
+    "three": "^0.184.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@types/canvas-confetti": "^1.9.0",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.35",
+    "jest": "^30.4.2",
+    "jest-environment-jsdom": "^30.4.1",
+    "typescript": "^5"
+  }
+}

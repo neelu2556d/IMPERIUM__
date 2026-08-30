@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Peak · revamp preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<script type="importmap">
+{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+</script>
+<style>
+  :root {
+    --bg: #000000;
+    --fg: #ffffff;
+    --mint: #6EE7B7;
+    --mint-hover: #5dd6a6;
+    --mint-deep: #1f4d3d;
+    --mint-glow: rgba(110, 231, 183, 0.4);
+    --amber: #F59E0B;
+    --amber-warm: #d97706;
+    --wine: #7c2d12;
+    --red: #EF4444;
+    --muted: rgba(255, 255, 255, 0.5);
+    --muted-strong: rgba(255, 255, 255, 0.7);
+    --border: rgba(255, 255, 255, 0.08);
+    --border-strong: rgba(255, 255, 255, 0.16);
+    --card: rgba(255, 255, 255, 0.02);
+    --card-elevated: rgba(255, 255, 255, 0.04);
+    --radius-card: 18px;
+    --radius-pill: 999px;
+    --font-serif: 'Instrument Serif', Georgia, serif;
+    --font-inter: 'Inter', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --ease-premium: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-inter);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+
+  /* ---------- atmosphere ---------- */
+  .atmosphere {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background:
+      radial-gradient(ellipse 60% 50% at 50% 26%, rgba(110, 231, 183, 0.13), rgba(110,231,183,0.04) 45%, transparent 70%),
+      radial-gradient(ellipse 30% 24% at 50% 36%, rgba(255, 226, 181, 0.05), transparent 70%),
+      radial-gradient(ellipse 120% 80% at 50% 100%, rgba(14, 38, 30, 0.5), rgba(0,0,0,0.95));
+    animation: drift 60s ease-in-out infinite alternate;
+  }
+  @keyframes drift {
+    from { transform: translate3d(0,0,0); }
+    to { transform: translate3d(-1.5%, 1%, 0); }
+  }
+  .mountains {
+    position: fixed; left: 0; right: 0; bottom: 0; height: 32vh; z-index: 1;
+    pointer-events: none; opacity: 0.85;
+  }
+  .grain {
+    position: fixed; inset: 0; z-index: 2; pointer-events: none; opacity: 0.035;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .particles { position: fixed; inset: 0; z-index: 3; pointer-events: none; }
+  .particle {
+    position: absolute; width: 1.5px; height: 1.5px; border-radius: 50%;
+    background: rgba(233, 239, 233, 0.7);
+    box-shadow: 0 0 6px rgba(167, 243, 208, 0.5);
+    animation: float linear infinite;
+  }
+  @keyframes float {
+    0% { opacity: 0; transform: translateY(0); }
+    10% { opacity: 0.7; }
+    90% { opacity: 0.5; }
+    100% { opacity: 0; transform: translateY(-90vh); }
+  }
+
+  /* ---------- shell ---------- */
+  .shell {
+    position: relative; z-index: 5;
+    max-width: 1080px; margin: 0 auto;
+    padding: clamp(28px, 5vw, 64px) clamp(20px, 4vw, 48px) 160px;
+  }
+
+  /* ---------- top chrome ---------- */
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 38px;
+  }
+  .back {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 7px 14px; border-radius: var(--radius-pill);
+    border: 1px solid var(--border); background: transparent;
+    color: var(--mint); font-size: 0.875rem; font-family: var(--font-inter);
+    cursor: pointer; text-decoration: none;
+    transition: all 0.18s var(--ease);
+  }
+  .back:hover { background: rgba(110,231,183,0.1); border-color: rgba(110,231,183,0.35); transform: translateX(-2px); }
+  .gear {
+    width: 38px; height: 38px; border-radius: 50%;
+    border: 1px solid var(--border); background: transparent;
+    display: grid; place-items: center; color: var(--muted-strong); cursor: pointer;
+    transition: transform 0.4s var(--ease-premium), border-color 0.18s;
+  }
+  .gear:hover { transform: rotate(20deg); border-color: var(--border-strong); }
+
+  /* ---------- header ---------- */
+  .header {
+    display: flex; align-items: flex-start; gap: 22px; margin-bottom: 14px;
+    opacity: 0; animation: fadeUp 0.7s var(--ease-premium) 0.05s forwards;
+  }
+  .gem-wrap {
+    flex: 0 0 auto; width: 152px; height: 152px; position: relative; margin: -18px 0 -18px -14px;
+    animation: gemFloat 9s ease-in-out infinite alternate;
+  }
+  .gem-wrap canvas { width: 100%; height: 100%; display: block; position: relative; z-index: 2; }
+  /* Peak surge — expanding charge ring + energy sparks */
+  .surge-ring {
+    position: absolute; left: 50%; top: 50%; width: 64px; height: 64px; margin: -32px 0 0 -32px;
+    border: 1.5px solid var(--mint); border-radius: 50%; pointer-events: none; z-index: 3;
+    box-shadow: 0 0 14px rgba(110,231,183,0.45); animation: surgeRing 1.15s var(--ease-premium) forwards;
+  }
+  @keyframes surgeRing {
+    from { transform: scale(0.3); opacity: 0.75; }
+    to { transform: scale(2.5); opacity: 0; }
+  }
+  .spark {
+    position: absolute; left: 50%; top: 50%; width: 3px; height: 3px; margin: -1.5px 0 0 -1.5px;
+    border-radius: 50%; background: var(--mint); box-shadow: 0 0 7px rgba(110,231,183,0.9);
+    pointer-events: none; z-index: 3; animation: sparkFly 1.05s cubic-bezier(0.2,0.7,0.2,1) forwards;
+  }
+  @keyframes sparkFly {
+    from { transform: translate(0,0) scale(1); opacity: 1; }
+    to { transform: translate(var(--dx), var(--dy)) scale(0.3); opacity: 0; }
+  }
+  @keyframes gemFloat {
+    from { transform: translateY(0) rotate(-2deg); }
+    to { transform: translateY(-4px) rotate(2deg); }
+  }
+  .gem-halo {
+    position: absolute; inset: -18%; border-radius: 50%;
+    background: radial-gradient(circle, rgba(110,231,183,0.35), transparent 65%);
+    filter: blur(8px); animation: halo 4.4s ease-in-out infinite;
+  }
+  @keyframes halo {
+    0%,100% { transform: scale(0.95); opacity: 0.5; }
+    50% { transform: scale(1.1); opacity: 0.85; }
+  }
+  .header-text { padding-top: 22px; }
+  .title {
+    font-family: var(--font-serif); font-style: italic; font-weight: 400;
+    font-size: clamp(2.25rem, 4.6vw, 3.3rem); line-height: 1.0;
+    letter-spacing: -0.02em;
+  }
+  .title .accent { color: var(--mint); }
+  .subtitle {
+    margin-top: 10px; font-family: var(--font-mono); font-size: 0.7rem;
+    text-transform: uppercase; letter-spacing: 0.2em; color: var(--muted);
+  }
+
+  /* ---------- ticker ---------- */
+  .ticker {
+    position: relative; overflow: hidden; margin: 22px 0 40px;
+    border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    padding: 11px 0;
+    opacity: 0; animation: fadeUp 0.7s var(--ease-premium) 0.12s forwards;
+  }
+  .ticker-track {
+    display: inline-flex; gap: 44px; white-space: nowrap;
+    animation: marquee 38s linear infinite; will-change: transform;
+  }
+  @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  .tick { display: inline-flex; align-items: baseline; gap: 9px; font-family: var(--font-mono); font-size: 0.72rem; }
+  .tick .lbl { color: var(--muted); letter-spacing: 0.14em; text-transform: uppercase; }
+  .tick .val { color: var(--fg); font-weight: 500; }
+  .tick .up { color: var(--mint); }
+  .tick .down { color: var(--red); }
+  .tick .flat { color: var(--amber); }
+
+  /* ---------- card primitives ---------- */
+  .section { margin-bottom: 26px; opacity: 0; animation: fadeUp 0.8s var(--ease-premium) forwards; }
+  .s1 { animation-delay: 0.18s; } .s2 { animation-delay: 0.26s; }
+  .s3 { animation-delay: 0.34s; } .s4 { animation-delay: 0.42s; } .s5 { animation-delay: 0.5s; }
+
+  .eyebrow {
+    display: flex; align-items: center; gap: 11px; margin-bottom: 14px; padding-left: 2px;
+  }
+  .eyebrow .num { font-family: var(--font-serif); font-style: italic; color: var(--muted); font-size: 0.95rem; }
+  .eyebrow .lbl { font-family: var(--font-mono); font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.22em; color: var(--muted-strong); }
+  .eyebrow .rule { flex: 1; height: 1px; background: var(--border); }
+
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius-card); position: relative; overflow: hidden;
+    transition: border-color 0.18s var(--ease), box-shadow 0.45s var(--ease-premium);
+  }
+  .card:hover { border-color: rgba(110,231,183,0.3); box-shadow: 0 0 44px rgba(110,231,183,0.07); }
+
+  /* gem chip (rounded square icon, like the split cards) */
+  .chip {
+    width: 44px; height: 44px; border-radius: 11px; flex: 0 0 auto;
+    border: 1px solid var(--border-strong); background: rgba(110,231,183,0.05);
+    display: grid; place-items: center;
+  }
+  .chip svg { width: 22px; height: 22px; }
+
+  /* status pills */
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: var(--font-mono); font-size: 0.6rem; text-transform: uppercase;
+    letter-spacing: 0.14em; padding: 4px 10px; border-radius: var(--radius-pill);
+    border: 1px solid; white-space: nowrap;
+  }
+  .pill .dot { width: 5px; height: 5px; border-radius: 50%; }
+  .pill-mint { color: var(--mint); border-color: rgba(110,231,183,0.4); }
+  .pill-mint .dot { background: var(--mint); }
+  .pill-amber { color: var(--amber); border-color: rgba(245,158,11,0.4); }
+  .pill-amber .dot { background: var(--amber); }
+  .pill-red { color: var(--red); border-color: rgba(239,68,68,0.4); }
+  .pill-red .dot { background: var(--red); }
+
+  /* ---------- ·01 right now ---------- */
+  .rightnow { display: grid; grid-template-columns: 280px 1fr; gap: 0; }
+  @media (max-width: 720px) { .rightnow { grid-template-columns: 1fr; } }
+  .ring-cell {
+    padding: 34px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    border-right: 1px solid var(--border); gap: 16px;
+  }
+  @media (max-width: 720px) { .ring-cell { border-right: none; border-bottom: 1px solid var(--border); } }
+  .ring { position: relative; width: 190px; height: 190px; }
+  .ring svg { transform: rotate(-90deg); }
+  .ring-center {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 2px;
+  }
+  .ring-score { font-family: var(--font-serif); font-style: italic; font-size: 4.2rem; line-height: 1; }
+  .ring-of { font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.2em; color: var(--muted); text-transform: uppercase; }
+  .ring-tier { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--mint); }
+  /* ring draws itself in on load (final offset 139 = 73%) */
+  .ringProgress { stroke-dashoffset: 139; animation: ringDraw 1.5s var(--ease-premium) 0.45s backwards; }
+  @keyframes ringDraw { from { stroke-dashoffset: 515; } }
+  /* curve line draws left-to-right, area + now-elements reveal after */
+  #curveLine { transition: stroke-dashoffset 1.5s cubic-bezier(0.32,0.72,0,1) 0.6s; }
+  #curveArea { opacity: 0; transition: opacity 0.7s var(--ease) 1.5s; }
+  #curveLate { opacity: 0; transition: opacity 0.5s var(--ease) 1.9s; }
+  #nowTag { opacity: 0; transition: opacity 0.5s var(--ease) 2.0s; }
+  .nowDot { animation: nowPulse 2.6s ease-in-out infinite; }
+  @keyframes nowPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }
+
+  .today-cell { padding: 34px 38px; display: flex; flex-direction: column; justify-content: center; gap: 18px; }
+  .today-call { font-family: var(--font-serif); font-style: italic; font-size: 1.85rem; line-height: 1.15; }
+  .today-call em { color: var(--mint); font-style: italic; }
+  .bullets { display: flex; flex-direction: column; gap: 13px; }
+  .bullet { display: flex; gap: 12px; align-items: flex-start; font-size: 0.92rem; color: var(--muted-strong); line-height: 1.45; }
+  .bullet .bdot { flex: 0 0 auto; width: 6px; height: 6px; border-radius: 50%; background: var(--mint); margin-top: 7px; box-shadow: 0 0 8px var(--mint-glow); }
+  .bullet.warn .bdot { background: var(--amber); box-shadow: 0 0 8px rgba(245,158,11,0.5); }
+  .why {
+    align-self: flex-start; margin-top: 4px; background: none; border: none; cursor: pointer;
+    font-family: var(--font-serif); font-style: italic; font-size: 1rem; color: var(--mint);
+    transition: gap 0.2s; display: inline-flex; gap: 6px;
+  }
+  .why:hover { gap: 11px; }
+
+  /* ---------- ·02 curve ---------- */
+  .curve-card { padding: 26px 26px 18px; }
+  .curve-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .curve-head .h { font-family: var(--font-serif); font-style: italic; font-size: 1.4rem; }
+  .curve-legend { display: flex; gap: 16px; font-family: var(--font-mono); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); }
+  .curve-legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .lg-dot { width: 7px; height: 7px; border-radius: 50%; }
+  .curve-wrap { position: relative; }
+  .now-tag {
+    position: absolute; top: 6px; font-family: var(--font-mono); font-size: 0.58rem;
+    letter-spacing: 0.12em; color: var(--mint); text-transform: uppercase;
+    transform: translateX(-50%);
+  }
+  .axis { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 0.58rem; color: var(--muted); letter-spacing: 0.08em; margin-top: 4px; padding: 0 4px; }
+
+  /* ---------- ·03 peak windows ---------- */
+  .windows { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  @media (max-width: 720px) { .windows { grid-template-columns: 1fr 1fr; } }
+  .win { padding: 18px 18px 16px; }
+  .win-time { font-family: var(--font-serif); font-style: italic; font-size: 1.5rem; }
+  .win-meta { font-family: var(--font-mono); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.14em; color: var(--muted); margin: 3px 0 13px; }
+  .win-bar { height: 5px; border-radius: 99px; background: rgba(255,255,255,0.07); overflow: hidden; }
+  .win-bar i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--mint-deep), var(--mint)); }
+  .win-score { font-family: var(--font-mono); font-size: 0.62rem; color: var(--mint); margin-top: 9px; letter-spacing: 0.1em; }
+
+  /* ---------- ·04 log ---------- */
+  .log-card { padding: 26px; }
+  .log-sub { font-family: var(--font-mono); font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.16em; color: var(--muted); margin-bottom: 16px; }
+  .log-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 12px; }
+  .log-btn {
+    display: flex; align-items: center; gap: 11px; padding: 13px 15px;
+    background: var(--card-elevated); border: 1px solid var(--border);
+    border-radius: 13px; cursor: pointer; color: var(--fg);
+    font-family: var(--font-inter); font-size: 0.9rem; text-align: left;
+    transition: all 0.18s var(--ease);
+  }
+  .log-btn:hover { border-color: rgba(110,231,183,0.4); background: rgba(110,231,183,0.06); transform: translateY(-2px); }
+  .log-btn .ico { width: 18px; height: 18px; flex: 0 0 auto; color: var(--mint); }
+  .log-btn .ico.amber { color: var(--amber); }
+  .mood-row { margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--border); }
+  .mood-q { font-family: var(--font-serif); font-style: italic; font-size: 1.15rem; margin-bottom: 14px; }
+  .mood-chips { display: flex; gap: 10px; flex-wrap: wrap; }
+  .mchip {
+    padding: 9px 16px; border-radius: var(--radius-pill); border: 1px solid var(--border);
+    background: transparent; cursor: pointer; font-family: var(--font-inter); font-size: 0.85rem;
+    color: var(--muted-strong); transition: all 0.18s var(--ease);
+  }
+  .mchip:hover { border-color: rgba(110,231,183,0.4); color: var(--fg); }
+  .mchip .e { margin-right: 7px; }
+
+  /* ---------- ·05 schedule ---------- */
+  .sched-card { padding: 12px 8px; }
+  .sched-row {
+    display: flex; align-items: center; gap: 16px; padding: 15px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sched-row:last-child { border-bottom: none; }
+  .sched-time { font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted); letter-spacing: 0.04em; width: 132px; flex: 0 0 auto; white-space: nowrap; }
+  .sched-title { font-family: var(--font-serif); font-style: italic; font-size: 1.15rem; flex: 1; }
+  .sched-band { width: 4px; align-self: stretch; border-radius: 99px; flex: 0 0 auto; }
+  .sched-add {
+    display: flex; align-items: center; gap: 9px; padding: 15px 20px; width: 100%;
+    background: none; border: none; border-top: 1px dashed var(--border); cursor: pointer;
+    color: var(--mint); font-family: var(--font-serif); font-style: italic; font-size: 1.05rem;
+    transition: gap 0.2s;
+  }
+  .sched-add:hover { gap: 14px; }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ── airy info modal — same pattern as the setup page popup ── */
+  .modal-backdrop {
+    position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 24px;
+    background: rgba(0,0,0,0.62); backdrop-filter: blur(9px);
+    animation: mbIn 0.25s var(--ease) forwards;
+  }
+  .modal-backdrop[hidden] { display: none; }
+  @keyframes mbIn { from { opacity: 0; } to { opacity: 1; } }
+  .modal {
+    position: relative; width: 100%; max-width: 524px;
+    background: rgba(9,11,10,0.97); border: 1px solid var(--border-strong);
+    border-radius: var(--radius-card); padding: 30px 34px 26px;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.6), 0 0 60px rgba(110,231,183,0.06);
+    animation: modalIn 0.32s var(--ease-premium) forwards;
+  }
+  @keyframes modalIn { from { opacity: 0; transform: translateY(14px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+  .modal-close {
+    position: absolute; top: 15px; right: 18px; background: none; border: none; cursor: pointer;
+    color: var(--muted); font-size: 1.5rem; line-height: 1; transition: color 0.18s;
+  }
+  .modal-close:hover { color: var(--fg); }
+  .modal-eyebrow { display: flex; align-items: center; gap: 11px; font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted-strong); }
+  .modal-gem { width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--border-strong); background: rgba(110,231,183,0.06); display: grid; place-items: center; flex: 0 0 auto; }
+  .modal-gem svg { width: 15px; height: 15px; color: var(--mint); }
+  .modal-rule { height: 1px; background: var(--border); margin: 16px 0 18px; }
+  .modal-title { font-family: var(--font-serif); font-style: italic; font-size: 1.95rem; line-height: 1.08; }
+  .modal-title em { color: var(--mint); font-style: italic; }
+  .modal-body { margin-top: 14px; font-size: 0.95rem; line-height: 1.55; color: var(--muted-strong); }
+  .drivers { margin: 22px 0 4px; display: flex; flex-direction: column; gap: 12px; }
+  .driver { display: grid; grid-template-columns: 96px 1fr 44px; align-items: center; gap: 14px; }
+  .d-label { font-family: var(--font-mono); font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+  .d-bar { height: 5px; border-radius: 99px; background: rgba(255,255,255,0.06); overflow: hidden; }
+  .d-bar i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--mint-deep), var(--mint)); }
+  .d-bar i.neg { background: linear-gradient(90deg, rgba(245,158,11,0.35), var(--amber)); }
+  .d-val { font-family: var(--font-mono); font-size: 0.72rem; text-align: right; }
+  .d-val.up { color: var(--mint); } .d-val.down { color: var(--amber); }
+  .modal-note { display: flex; align-items: center; gap: 16px; margin: 24px 0 20px; }
+  .note-rule { flex: 1; height: 1px; background: var(--border); }
+  .modal-note em { font-family: var(--font-serif); font-style: italic; font-size: 1.05rem; color: #a7f3d0; white-space: nowrap; }
+  .modal-foot { font-family: var(--font-mono); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.18em; color: var(--muted); }
+  /* tiny "i" affordance on cards */
+  .info-i {
+    width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--border-strong);
+    background: none; color: var(--muted-strong); font-family: var(--font-serif); font-style: italic;
+    font-size: 0.8rem; cursor: pointer; display: inline-grid; place-items: center; line-height: 1;
+    transition: all 0.18s var(--ease); flex: 0 0 auto;
+  }
+  .info-i:hover { border-color: rgba(110,231,183,0.45); color: var(--mint); }
+
+  .preview-flag {
+    position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 50;
+    font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--muted); background: rgba(10,10,10,0.9); border: 1px solid var(--border);
+    padding: 7px 16px; border-radius: var(--radius-pill); backdrop-filter: blur(8px);
+  }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; } .section, .header, .ticker { opacity: 1 !important; } }
+</style>
+</head>
+<body>
+  <div class="atmosphere"></div>
+  <svg class="mountains" viewBox="0 0 1440 320" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="mtFar" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#0d1a17" stop-opacity="0"/>
+        <stop offset="55%" stop-color="#0d1a17" stop-opacity="0.55"/>
+        <stop offset="100%" stop-color="#0d1a17" stop-opacity="0.95"/>
+      </linearGradient>
+      <linearGradient id="mtNear" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#050a09" stop-opacity="0.4"/>
+        <stop offset="60%" stop-color="#050a09" stop-opacity="0.95"/>
+        <stop offset="100%" stop-color="#050a09" stop-opacity="1"/>
+      </linearGradient>
+    </defs>
+    <path d="M0,210 L160,150 L320,200 L480,120 L640,190 L800,140 L960,205 L1120,150 L1280,200 L1440,160 L1440,320 L0,320 Z" fill="url(#mtFar)"/>
+    <path d="M0,260 L200,210 L380,255 L560,200 L760,250 L960,205 L1160,255 L1360,220 L1440,250 L1440,320 L0,320 Z" fill="url(#mtNear)"/>
+  </svg>
+  <div class="grain"></div>
+  <div class="particles" id="particles"></div>
+
+  <div class="shell">
+    <!-- top chrome -->
+    <div class="topbar">
+      <a class="back" href="#">← Fitness</a>
+      <button class="gear" aria-label="settings">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+      </button>
+    </div>
+
+    <!-- header -->
+    <div class="header">
+      <div class="gem-wrap">
+        <div class="gem-halo"></div>
+        <canvas id="peakGem"></canvas>
+      </div>
+      <div class="header-text">
+        <h1 class="title">Your <span class="accent">peak</span> today</h1>
+        <div class="subtitle">Sunday, May 31 · live state</div>
+      </div>
+    </div>
+
+    <!-- ticker -->
+    <div class="ticker">
+      <div class="ticker-track">
+        <span class="tick"><span class="lbl">recovery</span><span class="val up">72%</span></span>
+        <span class="tick"><span class="lbl">hrv</span><span class="val up">61ms ▲</span></span>
+        <span class="tick"><span class="lbl">sleep</span><span class="val flat">84%</span></span>
+        <span class="tick"><span class="lbl">strain</span><span class="val">11.2</span></span>
+        <span class="tick"><span class="lbl">sleep debt</span><span class="val down">−1.4h</span></span>
+        <span class="tick"><span class="lbl">resting hr</span><span class="val up">54 bpm</span></span>
+        <!-- duplicate for seamless loop -->
+        <span class="tick"><span class="lbl">recovery</span><span class="val up">72%</span></span>
+        <span class="tick"><span class="lbl">hrv</span><span class="val up">61ms ▲</span></span>
+        <span class="tick"><span class="lbl">sleep</span><span class="val flat">84%</span></span>
+        <span class="tick"><span class="lbl">strain</span><span class="val">11.2</span></span>
+        <span class="tick"><span class="lbl">sleep debt</span><span class="val down">−1.4h</span></span>
+        <span class="tick"><span class="lbl">resting hr</span><span class="val up">54 bpm</span></span>
+      </div>
+    </div>
+
+    <!-- ·01 right now -->
+    <div class="section s1">
+      <div class="eyebrow"><span class="num">·01</span><span class="lbl">Right now</span><span class="rule"></span><button class="info-i info-open" aria-label="why this score">i</button></div>
+      <div class="card rightnow">
+        <div class="ring-cell">
+          <div class="ring">
+            <svg width="190" height="190" viewBox="0 0 190 190">
+              <circle cx="95" cy="95" r="82" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="10"/>
+              <circle class="ringProgress" cx="95" cy="95" r="82" fill="none" stroke="url(#ringG)" stroke-width="10" stroke-linecap="round"
+                stroke-dasharray="515" stroke-dashoffset="139" />
+              <defs>
+                <linearGradient id="ringG" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#1f4d3d"/>
+                  <stop offset="100%" stop-color="#6EE7B7"/>
+                </linearGradient>
+              </defs>
+            </svg>
+            <div class="ring-center">
+              <div class="ring-score" id="ringScore">0</div>
+              <div class="ring-of">of 100</div>
+            </div>
+          </div>
+          <div class="ring-tier">● solid · train normal</div>
+        </div>
+        <div class="today-cell">
+          <div class="today-call">You're in a <em>good window</em>. Train, then protect tonight's sleep.</div>
+          <div class="bullets">
+            <div class="bullet"><span class="bdot"></span><span>Recovery at 72% backs a normal session. No need to hold back.</span></div>
+            <div class="bullet warn"><span class="bdot"></span><span>Last coffee by 2:00 PM to keep tonight's sleep clean.</span></div>
+            <div class="bullet"><span class="bdot"></span><span>Best lifting window opens around 4:00 PM.</span></div>
+          </div>
+          <button class="why info-open">Why this score →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ·02 your day -->
+    <div class="section s2">
+      <div class="eyebrow"><span class="num">·02</span><span class="lbl">Your day</span><span class="rule"></span></div>
+      <div class="card curve-card">
+        <div class="curve-head">
+          <div class="h">Energy curve</div>
+          <div class="curve-legend">
+            <span><span class="lg-dot" style="background:var(--mint)"></span>energy</span>
+            <span><span class="lg-dot" style="background:var(--amber)"></span>caffeine</span>
+            <span><span class="lg-dot" style="background:rgba(255,255,255,0.3)"></span>events</span>
+          </div>
+        </div>
+        <div class="curve-wrap">
+          <div class="now-tag" id="nowTag" style="left: 58%;">now · 73</div>
+          <svg width="100%" height="220" viewBox="0 0 1000 220" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="areaG" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="rgba(110,231,183,0.28)"/>
+                <stop offset="100%" stop-color="rgba(110,231,183,0)"/>
+              </linearGradient>
+            </defs>
+            <!-- event bands -->
+            <rect x="120" y="0" width="90" height="220" fill="rgba(255,255,255,0.03)"/>
+            <rect x="560" y="0" width="130" height="220" fill="rgba(110,231,183,0.05)"/>
+            <!-- grid -->
+            <line x1="0" y1="60" x2="1000" y2="60" stroke="rgba(255,255,255,0.04)"/>
+            <line x1="0" y1="120" x2="1000" y2="120" stroke="rgba(255,255,255,0.04)"/>
+            <line x1="0" y1="180" x2="1000" y2="180" stroke="rgba(255,255,255,0.04)"/>
+            <!-- area -->
+            <path id="curveArea" d="M0,170 C80,150 120,90 180,95 C250,100 290,160 360,150 C430,140 470,70 540,60 C610,50 650,80 720,70 C800,58 850,40 920,55 C960,63 980,80 1000,86 L1000,220 L0,220 Z" fill="url(#areaG)"/>
+            <!-- line -->
+            <path id="curveLine" d="M0,170 C80,150 120,90 180,95 C250,100 290,160 360,150 C430,140 470,70 540,60 C610,50 650,80 720,70 C800,58 850,40 920,55 C960,63 980,80 1000,86" fill="none" stroke="var(--mint)" stroke-width="2.5"/>
+            <g id="curveLate">
+              <!-- substance dots -->
+              <circle cx="180" cy="95" r="5" fill="var(--amber)" stroke="#000" stroke-width="2"/>
+              <circle cx="430" cy="145" r="5" fill="var(--mint)" stroke="#000" stroke-width="2"/>
+              <!-- now line -->
+              <line x1="580" y1="0" x2="580" y2="220" stroke="var(--mint)" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.7"/>
+              <circle class="nowDot" cx="580" cy="58" r="6" fill="var(--mint)"/>
+              <circle cx="580" cy="58" r="11" fill="none" stroke="var(--mint)" stroke-width="1.5" opacity="0.4"/>
+            </g>
+          </svg>
+        </div>
+        <div class="axis"><span>6 AM</span><span>9 AM</span><span>12 PM</span><span>3 PM</span><span>6 PM</span><span>9 PM</span><span>12 AM</span></div>
+      </div>
+    </div>
+
+    <!-- ·03 peak windows -->
+    <div class="section s3">
+      <div class="eyebrow"><span class="num">·03</span><span class="lbl">Peak windows</span><span class="rule"></span></div>
+      <div class="windows">
+        <div class="card win">
+          <div class="win-time">9:30 AM</div>
+          <div class="win-meta">morning · 70 min</div>
+          <div class="win-bar"><i style="width:82%"></i></div>
+          <div class="win-score">peak 88 · focus work</div>
+        </div>
+        <div class="card win">
+          <div class="win-time">4:00 PM</div>
+          <div class="win-meta">afternoon · 95 min</div>
+          <div class="win-bar"><i style="width:94%"></i></div>
+          <div class="win-score">peak 96 · train here</div>
+        </div>
+        <div class="card win">
+          <div class="win-time">7:15 PM</div>
+          <div class="win-meta">evening · 50 min</div>
+          <div class="win-bar"><i style="width:64%"></i></div>
+          <div class="win-score">peak 74 · light work</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ·04 log -->
+    <div class="section s4">
+      <div class="eyebrow"><span class="num">·04</span><span class="lbl">Log</span><span class="rule"></span></div>
+      <div class="card log-card">
+        <div class="log-sub">tap to log · everything reshapes your curve</div>
+        <div class="log-grid">
+          <button class="log-btn"><svg class="ico amber" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4Z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>Caffeine</button>
+          <button class="log-btn"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2.7s6 6.5 6 10.3a6 6 0 0 1-12 0C6 9.2 12 2.7 12 2.7Z"/></svg>Hydration</button>
+          <button class="log-btn"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>Supplement</button>
+          <button class="log-btn"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m6.5 6.5 11 11M21 21l-1-1M3 3l1 1M18 22l4-4M2 6l4-4M6.5 17.5 4 20M17.5 6.5 20 4"/></svg>Workout</button>
+          <button class="log-btn"><svg class="ico amber" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Nicotine</button>
+          <button class="log-btn"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3v18M5 8l7-5 7 5"/></svg>Meal</button>
+        </div>
+        <div class="mood-row">
+          <div class="mood-q">How's your energy right now?</div>
+          <div class="mood-chips">
+            <button class="mchip"><span class="e">😵</span>Drained</button>
+            <button class="mchip"><span class="e">😕</span>Low</button>
+            <button class="mchip"><span class="e">😐</span>Even</button>
+            <button class="mchip"><span class="e">🙂</span>Good</button>
+            <button class="mchip"><span class="e">⚡</span>Peak</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ·05 schedule -->
+    <div class="section s5">
+      <div class="eyebrow"><span class="num">·05</span><span class="lbl">Your schedule</span><span class="rule"></span></div>
+      <div class="card sched-card">
+        <div class="sched-row">
+          <div class="sched-band" style="background:var(--amber)"></div>
+          <div class="sched-time">8:00 – 9:00 AM</div>
+          <div class="sched-title">Deep work block</div>
+          <span class="pill pill-amber"><span class="dot"></span>focus</span>
+        </div>
+        <div class="sched-row">
+          <div class="sched-band" style="background:rgba(255,255,255,0.25)"></div>
+          <div class="sched-time">12:30 PM</div>
+          <div class="sched-title">Lunch</div>
+          <span class="pill pill-mint"><span class="dot"></span>meal</span>
+        </div>
+        <div class="sched-row">
+          <div class="sched-band" style="background:var(--mint)"></div>
+          <div class="sched-time">4:00 – 5:30 PM</div>
+          <div class="sched-title">Push day · heavy</div>
+          <span class="pill pill-mint"><span class="dot"></span>workout</span>
+        </div>
+        <button class="sched-add">+ add to your day</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- airy info modal — opened by "Why this score" + any .info-open trigger -->
+  <div class="modal-backdrop" id="whyModal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-label="Why this score">
+      <button class="modal-close" aria-label="close">×</button>
+      <div class="modal-eyebrow">
+        <span class="modal-gem">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4.5 13.5H11l-1 8.5L19.5 10.5H13L13 2Z"/></svg>
+        </span>
+        Recovery · Sleep · Load
+      </div>
+      <div class="modal-rule"></div>
+      <div class="modal-title">Why you're at <em>73</em></div>
+      <p class="modal-body">A solid day. Strong recovery and clean sleep are carrying the score, and your last caffeine lands early enough to protect tonight. One drag: a little sleep debt is still on the books.</p>
+      <div class="drivers">
+        <div class="driver"><span class="d-label">Recovery</span><span class="d-bar"><i style="width:80%"></i></span><span class="d-val up">+28</span></div>
+        <div class="driver"><span class="d-label">Sleep</span><span class="d-bar"><i style="width:64%"></i></span><span class="d-val up">+18</span></div>
+        <div class="driver"><span class="d-label">HRV</span><span class="d-bar"><i style="width:52%"></i></span><span class="d-val up">+11</span></div>
+        <div class="driver"><span class="d-label">Caffeine</span><span class="d-bar"><i style="width:44%"></i></span><span class="d-val up">+9</span></div>
+        <div class="driver"><span class="d-label">Sleep debt</span><span class="d-bar"><i class="neg" style="width:20%"></i></span><span class="d-val down">−5</span></div>
+      </div>
+      <div class="modal-note"><span class="note-rule"></span><em>You're in the top third of your week.</em><span class="note-rule"></span></div>
+      <div class="modal-foot">Based on your WHOOP + logs</div>
+    </div>
+  </div>
+
+  <div class="preview-flag">Peak · revamp preview · not live</div>
+
+  <!-- ── Real Vitality gem: vanilla port of SectionGem, engraved BOLT (the Peak mark),
+       biased to hold the bolt long and flicker briefly to the V. ── -->
+  <script type="module">
+    import * as THREE from 'three';
+
+    const GLYPHS = {
+      V:    (c) => { c.beginPath(); c.moveTo(146,174); c.lineTo(256,360); c.lineTo(366,174); c.stroke(); },
+      BOLT: (c) => { c.beginPath(); c.moveTo(286,158); c.lineTo(216,256); c.lineTo(280,256); c.lineTo(228,358); c.stroke(); },
+    };
+
+    const PARAMS = { cursorTilt: 0.18, spring: 0.06, mintTint: 0.12, roughness: 0.08,
+                     transmission: 0.82, thickness: 1.8, ior: 1.55, keyWarmth: 0.55 };
+    const MINT = new THREE.Color('#6EE7B7'), WARM = new THREE.Color('#FFE2B5'),
+          COOL_MINT = new THREE.Color('#A7F3D0'), NEUTRAL = new THREE.Color('#F2FFF8');
+    const glassColor = NEUTRAL.clone().lerp(MINT, PARAMS.mintTint);
+    const keyColor = MINT.clone().lerp(WARM, PARAMS.keyWarmth);
+
+    function initGem() {
+      const canvas = document.getElementById('peakGem');
+      if (!canvas) return;
+      let renderer;
+      try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true }); }
+      catch (e) { console.warn('[peakGem] WebGL failed', e); return; }
+      renderer.setClearColor(0x000000, 0);
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.05;
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(28, 1, 0.1, 100);
+      camera.position.set(0, 0.05, 4.6); camera.lookAt(0, 0, 0);
+
+      // procedural env (same painted canvas as HeroCrystal/SectionGem)
+      const ec = document.createElement('canvas'); ec.width = 1024; ec.height = 512;
+      const x = ec.getContext('2d');
+      x.fillStyle = '#0a1a18'; x.fillRect(0,0,1024,512);
+      const paint = (cx,cy,r,stops) => { const g = x.createRadialGradient(cx,cy,0,cx,cy,r);
+        stops.forEach(([o,col]) => g.addColorStop(o,col)); x.fillStyle = g; x.fillRect(0,0,1024,512); };
+      paint(280,170,520,[[0,'rgba(180,255,220,1)'],[0.4,'rgba(110,231,183,0.45)'],[1,'rgba(110,231,183,0)']]);
+      paint(760,200,500,[[0,'rgba(255,235,195,1)'],[0.4,'rgba(255,220,170,0.42)'],[1,'rgba(255,220,170,0)']]);
+      paint(512,470,380,[[0,'rgba(140,220,190,0.9)'],[1,'rgba(140,220,190,0)']]);
+      paint(420,90,80,[[0,'rgba(255,255,255,.85)'],[1,'rgba(255,255,255,0)']]);
+      const envSrc = new THREE.CanvasTexture(ec);
+      envSrc.mapping = THREE.EquirectangularReflectionMapping; envSrc.colorSpace = THREE.SRGBColorSpace; envSrc.needsUpdate = true;
+      const pmrem = new THREE.PMREMGenerator(renderer);
+      scene.environment = pmrem.fromEquirectangular(envSrc).texture; envSrc.dispose();
+
+      const geo = new THREE.OctahedronGeometry(1, 0); // sharp double-pyramid — reads as a "peak", unique to this page
+      const baseEmissiveColor = new THREE.Color('#0d4a36');
+      const completeEmissiveColor = new THREE.Color('#2fbf8a');
+      const mat = new THREE.MeshPhysicalMaterial({
+        color: glassColor, transmission: PARAMS.transmission, thickness: PARAMS.thickness, ior: PARAMS.ior,
+        roughness: PARAMS.roughness, metalness: 0, attenuationColor: MINT.clone(), attenuationDistance: 1.0,
+        clearcoat: 0.7, clearcoatRoughness: 0.04, envMapIntensity: 2.8, transparent: true,
+        side: THREE.DoubleSide, emissive: baseEmissiveColor.clone(), emissiveIntensity: 0.5 });
+      const baseEmissive = mat.emissiveIntensity;
+      const mesh = new THREE.Mesh(geo, mat); scene.add(mesh);
+
+      const wire = new THREE.LineSegments(new THREE.EdgesGeometry(geo, 1),
+        new THREE.LineBasicMaterial({ color: 0xa7f3d0, transparent: true, opacity: 0.7, depthTest: false }));
+      wire.renderOrder = 2; wire.scale.setScalar(1.001); mesh.add(wire);
+
+      // face detection
+      const faces = [], faceVerts = [], NM = 0.999, pos = geo.attributes.position;
+      for (let i = 0; i < pos.count; i += 3) {
+        const v0 = new THREE.Vector3().fromBufferAttribute(pos,i),
+              v1 = new THREE.Vector3().fromBufferAttribute(pos,i+1),
+              v2 = new THREE.Vector3().fromBufferAttribute(pos,i+2);
+        const n = new THREE.Vector3().subVectors(v1,v0).cross(new THREE.Vector3().subVectors(v2,v0)).normalize();
+        let m = -1; for (let j=0;j<faces.length;j++){ if (faces[j].normal.dot(n) > NM){ m=j; break; } }
+        if (m>=0) faceVerts[m].push(v0,v1,v2); else { faces.push({center:new THREE.Vector3(), normal:n}); faceVerts.push([v0,v1,v2]); }
+      }
+      for (let i=0;i<faces.length;i++){ const u=[]; for (const v of faceVerts[i]){ if(!u.some(p=>p.distanceTo(v)<1e-5)) u.push(v); }
+        const c=new THREE.Vector3(); u.forEach(v=>c.add(v)); c.divideScalar(u.length); faces[i].center=c; }
+
+      const makeTex = (draw) => {
+        const cv = document.createElement('canvas'); cv.width=512; cv.height=512;
+        const c = cv.getContext('2d'); c.lineCap='round'; c.lineJoin='round';
+        const L = (col,w,blur) => { c.shadowColor='#6EE7B7'; c.shadowBlur=blur; c.strokeStyle=col; c.lineWidth=w; draw(c); };
+        L('rgba(110,231,183,0.10)',18,90); L('rgba(110,231,183,0.22)',13,52); L('rgba(167,243,208,0.50)',7,26);
+        L('rgba(196,250,220,0.85)',4,12); L('rgba(240,255,245,1.00)',1.8,4);
+        const t = new THREE.CanvasTexture(cv); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=4; t.needsUpdate=true; return t;
+      };
+      const texSection = makeTex(GLYPHS.BOLT), texBrand = makeTex(GLYPHS.V);
+
+      const vMat = new THREE.MeshBasicMaterial({ map: texSection, transparent: true,
+        blending: THREE.AdditiveBlending, depthWrite: false, depthTest: true, side: THREE.FrontSide, opacity: 0 });
+      const vMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.62,0.62), vMat); vMesh.renderOrder = 3; mesh.add(vMesh);
+
+      const _q=new THREE.Quaternion(),_e=new THREE.Euler(),_n=new THREE.Vector3(),_pu=new THREE.Vector3(),
+            _du=new THREE.Vector3(),_cr=new THREE.Vector3(),_cor=new THREE.Quaternion(),
+            _Y=new THREE.Vector3(0,1,0),_Z=new THREE.Vector3(0,0,1),CDIR=new THREE.Vector3(0,0,1);
+      const faceDot = (i) => { _n.copy(faces[i].normal).applyQuaternion(mesh.quaternion); return _n.dot(CDIR); };
+      const placeOnFace = (i) => { const f=faces[i];
+        vMesh.position.copy(f.center).add(_n.copy(f.normal).multiplyScalar(0.012));
+        vMesh.quaternion.setFromUnitVectors(_Z, f.normal);
+        _pu.copy(_Y).applyQuaternion(vMesh.quaternion);
+        _du.copy(_Y).sub(_n.copy(f.normal).multiplyScalar(_Y.dot(f.normal)));
+        if (_du.lengthSq()<1e-4) return; _du.normalize();
+        const cosA=_pu.dot(_du); _cr.crossVectors(_pu,_du); const sinA=_cr.dot(f.normal);
+        _cor.setFromAxisAngle(f.normal, Math.atan2(sinA,cosA)); vMesh.quaternion.premultiply(_cor); };
+
+      scene.add(new THREE.AmbientLight(0x1a3a2c, 0.15));
+      const k = new THREE.DirectionalLight(keyColor.getHex(), 4.0); k.position.set(2.6,1.8,2.2); scene.add(k);
+      const rm = new THREE.DirectionalLight(COOL_MINT.getHex(), 2.2); rm.position.set(-2.8,1.2,-2.0); scene.add(rm);
+      const fl = new THREE.DirectionalLight(0x88c4b0, 0.6); fl.position.set(0,-2.5,1); scene.add(fl);
+
+      // Hero-style tumble: spin continuously around a tilted axis so faces
+      // rotate through the front. The glyph rides whichever face is most
+      // exposed, flickering in as it turns toward the camera and out as it
+      // turns away — same behavior as the landing-page crystal.
+      const SPIN_AXIS = new THREE.Vector3(0.34, 1, 0.16).normalize();
+      const SPIN_BASE = 0.25, SPIN_VAR = 0.14; // rad/s — slow tumble + gentle ebb/flow
+      let spinSpeed = SPIN_BASE;
+      const _spin = new THREE.Quaternion();
+      mesh.quaternion.setFromAxisAngle(SPIN_AXIS, Math.random() * Math.PI * 2); // random start pose
+
+      const resize = () => { const w=canvas.clientWidth, h=canvas.clientHeight;
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, 1.75)); renderer.setSize(w,h,false);
+        camera.aspect=w/h; camera.updateProjectionMatrix(); };
+      resize(); new ResizeObserver(resize).observe(canvas);
+
+      const target={x:0,y:0}, current={x:0,y:0};
+      window.addEventListener('mousemove', (e)=>{ const nx=(e.clientX/window.innerWidth)*2-1, ny=(e.clientY/window.innerHeight)*2-1;
+        target.x=ny*PARAMS.cursorTilt; target.y=nx*PARAMS.cursorTilt; }, { passive:true });
+
+      // Face-claim flicker cycle (the hero pattern): claim the most-exposed
+      // face, flicker the glyph in, hold, fade out, then claim the next.
+      // Each claim is mostly the BOLT; roughly every 5th shows the V.
+      const FADE_IN_DUR=0.5, HOLD_DUR=2.2, FADE_OUT_DUR=0.5;
+      const CYCLE_DUR=FADE_IN_DUR+HOLD_DUR+FADE_OUT_DUR;
+      const CLAIM_DOT=0.86;
+      let activeFace=-1, cycleStart=0, cycleComplete=true, flickPat=0, claimCount=0;
+      const HOLD_FLICKERS = [
+        (t,s)=>0.86+0.10*Math.sin(t*7+s)+(Math.sin(t*19+s*2)>0.85?-0.45:0),
+        (t,s)=>0.84+0.14*Math.sin(t*5.2+s)*Math.sin(t*2.1+s*0.5),
+        (t,s)=>0.94+(Math.sin(t*23+s)*Math.sin(t*11+s*0.3)>0.65?-0.55:0),
+        (t,s)=>0.90+0.07*Math.sin(t*2.0+s),
+      ];
+      // ambient heartbeat pulse
+      const PULSE_DUR=1.5, PULSE_SCALE=0.04, PULSE_EM=0.5;
+      let pulseStart=-Infinity, nextPulse=6+Math.random()*8;
+      const ENV_LO=0.82, ENV_HI=0.94;
+      const smooth=(lo,hi,v)=>{ const t=Math.max(0,Math.min(1,(v-lo)/(hi-lo))); return t*t*(3-2*t); };
+      const prm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      // ── Peak surge: a charge-up flare + expanding ring + energy sparks,
+      //    fired every ~22-36s. The signature "alive" move for this page. ──
+      const wrap = canvas.parentElement;
+      let surgeStart = -Infinity, nextSurge = 11 + Math.random() * 8;
+      const SURGE_DUR = 1.4;
+      function fireSurge() {
+        if (!wrap || prm) return;
+        const ring = document.createElement('div'); ring.className = 'surge-ring';
+        ring.addEventListener('animationend', () => ring.remove()); wrap.appendChild(ring);
+        for (let i = 0; i < 13; i++) {
+          const sp = document.createElement('div'); sp.className = 'spark';
+          const ang = Math.random() * Math.PI * 2, dist = 44 + Math.random() * 56;
+          sp.style.setProperty('--dx', (Math.cos(ang) * dist).toFixed(1) + 'px');
+          sp.style.setProperty('--dy', (Math.sin(ang) * dist - 16).toFixed(1) + 'px'); // slight upward bias
+          sp.style.animationDelay = (Math.random() * 0.09).toFixed(2) + 's';
+          sp.addEventListener('animationend', () => sp.remove()); wrap.appendChild(sp);
+        }
+      }
+
+      const clock = new THREE.Clock();
+      let elapsed = 0;
+
+      function tick() {
+        const dt = Math.min(clock.getDelta(), 0.05);
+        elapsed += dt; const t = elapsed;
+
+        if (prm) { let bi=0,bd=-Infinity; for(let i=0;i<faces.length;i++){const d=faceDot(i); if(d>bd){bd=d;bi=i;}}
+          placeOnFace(bi); vMat.opacity=0.5; renderer.render(scene,camera); requestAnimationFrame(tick); return; }
+
+        // continuous tilted-axis tumble that gently slows down and speeds up.
+        // Two slow out-of-phase sines = an organic, non-metronomic drift;
+        // the eased follow keeps every change gradual so it never distracts.
+        const targetSpeed = SPIN_BASE + SPIN_VAR * (0.62*Math.sin(t*0.16) + 0.38*Math.sin(t*0.33 + 1.3));
+        spinSpeed += (targetSpeed - spinSpeed) * 0.025;
+        _spin.setFromAxisAngle(SPIN_AXIS, spinSpeed*dt);
+        mesh.quaternion.multiply(_spin);
+
+        // ambient heartbeat pulse
+        if (t>=nextPulse && t-pulseStart>PULSE_DUR) { pulseStart=t; nextPulse=t+20+Math.random()*25; }
+        let pulse=0; const pt=t-pulseStart;
+        if (pt>=0 && pt<PULSE_DUR){ const pk=PULSE_DUR/2; const r=Math.max(0,1-Math.abs(pt-pk)/pk); pulse=r*r*(3-2*r); }
+
+        // surge: fast attack, slow decay; fires the DOM ring + sparks on trigger
+        if (t>=nextSurge && t-surgeStart>SURGE_DUR){ surgeStart=t; nextSurge=t+22+Math.random()*14; fireSurge(); }
+        let surge=0; const su=t-surgeStart;
+        if (su>=0 && su<SURGE_DUR){ const a = su<0.22 ? su/0.22 : Math.max(0,1-(su-0.22)/(SURGE_DUR-0.22)); surge=a*a*(3-2*a); }
+
+        // claim the most-exposed face when the current cycle finishes
+        if (cycleComplete) {
+          let bi=-1, bd=-Infinity;
+          for (let i=0;i<faces.length;i++){ if(i===activeFace) continue; const d=faceDot(i); if(d>bd){bd=d;bi=i;} }
+          if (bi>=0 && bd>=CLAIM_DOT) {
+            activeFace=bi; cycleStart=t; cycleComplete=false; flickPat=bi%HOLD_FLICKERS.length;
+            claimCount++; vMat.map = (claimCount%5===0) ? texBrand : texSection; // mostly bolt, V ~1 in 5
+          }
+        }
+        if (activeFace>=0) placeOnFace(activeFace);
+
+        let cycleOp=0;
+        if (!cycleComplete) {
+          const c = t-cycleStart;
+          if (c<FADE_IN_DUR){ const ramp=c/FADE_IN_DUR; const fk=0.55+0.45*Math.abs(Math.sin(t*11+flickPat)); cycleOp=ramp*fk; }
+          else if (c<FADE_IN_DUR+HOLD_DUR){ cycleOp=HOLD_FLICKERS[flickPat](t,flickPat); }
+          else if (c<CYCLE_DUR){ const off=(c-FADE_IN_DUR-HOLD_DUR)/FADE_OUT_DUR; const st=Math.sin(t*38+flickPat)>-0.4?1:0.1; cycleOp=(1-off)*st; }
+          else { cycleComplete=true; cycleOp=0; }
+        }
+        // glyph fades naturally as its face turns away from camera
+        const env = activeFace>=0 ? smooth(ENV_LO, ENV_HI, faceDot(activeFace)) : 0;
+        let op = cycleOp*env;
+
+        if (surge>0.02) { vMat.map = texSection; op = Math.max(op, surge*env); } // bolt flares during the charge
+        mesh.scale.setScalar(1 + PULSE_SCALE*pulse + 0.08*surge);
+        mat.emissiveIntensity = baseEmissive + PULSE_EM*pulse + 1.6*surge;
+        mat.emissive.copy(baseEmissiveColor).lerp(completeEmissiveColor, Math.min(1, 0.3*pulse + 0.85*surge));
+        op += 0.08*pulse*env + 0.45*surge*env;
+
+        vMat.opacity = Math.max(0, Math.min(1, op));
+        renderer.render(scene, camera);
+        requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    }
+    initGem();
+  </script>
+
+  <!-- ── On-load reveal: ring counts up, curve draws on, now-dot lands last ── -->
+  <script>
+    (function () {
+      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      // score ring count-up 0 → 73
+      const scoreEl = document.getElementById('ringScore');
+      const TARGET = 73;
+      if (scoreEl) {
+        if (reduce) { scoreEl.textContent = TARGET; }
+        else {
+          const start = performance.now(), delay = 450, dur = 1300;
+          (function step(now) {
+            const e = now - start - delay;
+            if (e <= 0) { requestAnimationFrame(step); return; }
+            const p = Math.min(1, e / dur), eased = 1 - Math.pow(1 - p, 3);
+            scoreEl.textContent = Math.round(eased * TARGET);
+            if (p < 1) requestAnimationFrame(step); else scoreEl.textContent = TARGET;
+          })(performance.now());
+        }
+      }
+
+      // energy curve draws left-to-right
+      const line = document.getElementById('curveLine');
+      if (line) {
+        const len = line.getTotalLength();
+        line.style.transition = 'none';
+        line.style.strokeDasharray = len;
+        line.style.strokeDashoffset = reduce ? 0 : len;
+        line.getBoundingClientRect(); // flush reflow before re-enabling transition
+        line.style.transition = '';
+        if (!reduce) requestAnimationFrame(() => { line.style.strokeDashoffset = 0; });
+      }
+
+      // staged reveals (CSS owns the per-element delay)
+      ['curveArea', 'curveLate', 'nowTag'].forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (reduce) el.style.opacity = 1;
+        else requestAnimationFrame(() => { el.style.opacity = 1; });
+      });
+    })();
+
+    const p = document.getElementById('particles');
+    for (let i = 0; i < 22; i++) {
+      const d = document.createElement('div');
+      d.className = 'particle';
+      d.style.left = Math.random() * 100 + '%';
+      d.style.top = (60 + Math.random() * 40) + '%';
+      d.style.animationDuration = (22 + Math.random() * 28) + 's';
+      d.style.animationDelay = (-Math.random() * 30) + 's';
+      p.appendChild(d);
+    }
+
+    // ── info modal open/close ──
+    const modal = document.getElementById('whyModal');
+    const openModal = () => { modal.hidden = false; };
+    const closeModal = () => { modal.hidden = true; };
+    document.querySelectorAll('.info-open').forEach((b) => b.addEventListener('click', openModal));
+    modal.querySelector('.modal-close').addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.hidden) closeModal(); });
+  </script>
+</body>
+</html>

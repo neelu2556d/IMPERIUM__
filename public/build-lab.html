@@ -1,0 +1,577 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Build a tile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Instrument+Serif:ital@1&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#000; --sheet:#070707; --elevated:#0a0a0a; --fg:#fff;
+    --mint:#6EE7B7; --mint-hover:#5dd6a6; --mint-ink:#042a1c; --amber:#F59E0B;
+    --muted:rgba(255,255,255,.5); --muted-strong:rgba(255,255,255,.7);
+    --border:rgba(255,255,255,.08); --border-strong:rgba(255,255,255,.16);
+    --card:rgba(255,255,255,.02); --card-2:rgba(255,255,255,.04);
+    --gold:#cbb87e;
+    --ease:cubic-bezier(.2,.8,.2,1);
+    --ease-premium:cubic-bezier(.16,1,.3,1);
+    --spring:cubic-bezier(.34,1.56,.64,1);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:var(--bg); color:var(--fg);
+    font-family:'Inter',system-ui,sans-serif; -webkit-font-smoothing:antialiased;
+    letter-spacing:-.011em; overflow:hidden; position:relative;
+  }
+  /* aurora body backdrop: mint glow top, dark vignette bottom */
+  body::before{
+    content:""; position:fixed; inset:0; z-index:0; pointer-events:none;
+    background:
+      radial-gradient(900px 520px at 50% -12%, rgba(110,231,183,.07), transparent 60%),
+      radial-gradient(700px 600px at 100% 120%, rgba(0,0,0,.6), transparent 60%);
+  }
+  ::selection{background:rgba(110,231,183,.28); color:#fff}
+  button,input,textarea{font-family:inherit; letter-spacing:inherit}
+  svg{display:block}
+
+  /* grain overlay */
+  .grain{position:fixed; inset:0; z-index:90; pointer-events:none; opacity:.035; mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
+
+  /* faint dashboard behind */
+  .behind{position:fixed; inset:0; z-index:1; padding:24px; filter:blur(5px) saturate(.55); opacity:.16; pointer-events:none; transition:opacity .45s var(--ease)}
+  .behind .row{display:grid; grid-template-columns:2fr 1fr 1fr; gap:18px; margin-bottom:18px}
+  .behind .row.two{grid-template-columns:1fr 1fr}
+  .behind .b{border:1px solid var(--border); border-radius:22px; background:linear-gradient(160deg,rgba(110,231,183,.045),rgba(255,255,255,.01)); height:140px}
+  .behind .b.tall{height:216px}
+
+  /* scrim + window */
+  .scrim{
+    position:fixed; inset:0; z-index:60; background:rgba(0,0,0,.6); backdrop-filter:blur(8px);
+    display:grid; place-items:center; padding:max(20px,env(safe-area-inset-top)) 20px 20px;
+  }
+  /* contained app window: bounded height, three app-rows (titlebar / panes / action bar) */
+  .win{
+    width:min(1040px,100%); height:min(720px,90vh);
+    display:grid; grid-template-rows:auto 1fr auto;
+    border:1px solid var(--border-strong);
+    background:
+      radial-gradient(1100px 360px at 22% -8%, rgba(110,231,183,.05), transparent 62%),
+      var(--sheet);
+    border-radius:22px; overflow:hidden;
+    box-shadow:0 48px 120px -28px rgba(0,0,0,.9), 0 0 0 1px rgba(255,255,255,.02) inset;
+    animation:cozyPop .55s var(--spring) both;
+  }
+  @keyframes cozyPop{from{opacity:0; transform:scale(.9)} to{opacity:1; transform:scale(1)}}
+  .scrim.closing{opacity:0; transition:opacity .4s var(--ease); pointer-events:none}
+  .scrim.closing .win{transform:scale(.96); transition:transform .4s var(--ease)}
+
+  /* staggered fadeUp */
+  @keyframes fadeUp{from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none}}
+  .fade{opacity:0; animation:fadeUp .5s var(--ease-premium) both}
+  @keyframes livingDot{0%,100%{opacity:.55} 50%{opacity:1}}
+
+  /* ---- compact app titlebar ---- */
+  .titlebar{
+    display:flex; align-items:center; gap:12px;
+    padding:13px 16px 13px 18px; border-bottom:1px solid var(--border);
+  }
+  .brand{display:flex; align-items:center; gap:10px; min-width:0; flex:1}
+  .title{
+    font-family:'Instrument Serif',Georgia,serif; font-style:italic;
+    font-size:1.4rem; line-height:1; letter-spacing:.2px;
+    display:flex; align-items:center; gap:9px; margin:0; white-space:nowrap;
+  }
+  .title .spark{display:inline-flex; width:16px; height:16px; color:var(--mint); margin-top:1px; flex:none}
+  .hint{font-size:.78rem; color:var(--muted); letter-spacing:-.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0}
+  .hint b{color:var(--muted-strong); font-weight:600}
+  .titlebar .dot{width:4px; height:4px; border-radius:50%; background:var(--muted); opacity:.5; flex:none}
+  .x{appearance:none; border:1px solid var(--border-strong); background:transparent; color:var(--fg); width:32px; height:32px; border-radius:999px; cursor:pointer; flex:none; display:grid; place-items:center; transition:background .18s var(--ease), border-color .18s var(--ease), transform .12s var(--ease)}
+  .x:hover{background:var(--card-2); border-color:var(--mint)}
+  .x:active{transform:scale(.94)}
+  .x:focus-visible{outline:none; box-shadow:0 0 0 2px var(--bg),0 0 0 3px var(--mint)}
+  .x svg{width:14px; height:14px}
+
+  /* ---- two-pane body (the split view) ---- */
+  .panes{
+    display:grid; grid-template-columns:1fr 1fr; min-height:0;
+    background:linear-gradient(180deg,rgba(255,255,255,.012),transparent);
+  }
+  .pane{display:flex; flex-direction:column; min-height:0; min-width:0}
+  .pane.left{border-right:1px solid var(--border)}
+  .panehead{
+    display:flex; align-items:center; gap:9px; flex:none;
+    padding:11px 16px; border-bottom:1px solid var(--border);
+  }
+  .panehead .kk{display:flex; align-items:center; gap:8px; font-size:.7rem; letter-spacing:.13em; text-transform:uppercase; color:var(--muted); font-weight:600}
+  .panehead .kk .no{color:var(--mint); font-variant-numeric:tabular-nums; font-weight:700; opacity:.9}
+  .panehead .spacer{flex:1}
+
+  /* small pane-head action: Starter ghost reset + Run it outlined-mint */
+  .miniact{display:inline-flex; align-items:center; gap:9px}
+  .btn{
+    appearance:none; display:inline-flex; align-items:center; justify-content:center; gap:7px; white-space:nowrap;
+    font-size:.78rem; font-weight:600; letter-spacing:-.01em; border-radius:10px; padding:8px 13px; cursor:pointer;
+    border:1px solid var(--border-strong); background:transparent; color:var(--fg);
+    transition:background .16s var(--ease), border-color .16s var(--ease), transform .12s var(--ease);
+  }
+  .btn svg{width:14px; height:14px}
+  .btn:hover{background:var(--card-2); border-color:var(--mint)}
+  .btn:active{transform:scale(.97)}
+  .btn:focus-visible{outline:none; box-shadow:0 0 0 2px var(--sheet),0 0 0 3px var(--mint)}
+  /* Keep: filled mint primary */
+  .btn.primary{background:var(--mint); color:var(--mint-ink); border-color:transparent}
+  .btn.primary:hover{background:var(--mint-hover); border-color:transparent}
+  /* Starter: ghost reset */
+  .btn.ghost{color:var(--muted-strong); border-color:var(--border)}
+  .btn.ghost:hover{color:var(--fg)}
+  /* Run it: outlined mint */
+  .btn.mintline{border-color:rgba(110,231,183,.42); background:rgba(110,231,183,.08); color:var(--mint)}
+  .btn.mintline:hover{background:rgba(110,231,183,.13); border-color:rgba(110,231,183,.7)}
+  .btn.sm{padding:7px 11px; font-size:.74rem; border-radius:9px}
+
+  /* live dot + sealed chip in preview pane head */
+  .livedot{width:8px; height:8px; border-radius:50%; background:var(--muted-strong); flex:none; opacity:.4; transition:background .25s var(--ease), box-shadow .25s var(--ease), opacity .25s var(--ease)}
+  .pane.right.live .livedot{background:var(--mint); opacity:1; box-shadow:0 0 8px rgba(110,231,183,.85); animation:livingDot 2.6s ease-in-out infinite}
+  .sealtag{display:inline-flex; align-items:center; gap:6px; font-size:.68rem; font-weight:600; letter-spacing:.02em; color:var(--mint); border:1px solid rgba(110,231,183,.3); background:rgba(110,231,183,.06); border-radius:999px; padding:3px 9px 3px 7px}
+  .sealtag svg{width:11px; height:11px}
+
+  /* ---- left pane body: code editor ---- */
+  .editwrap{flex:1; min-height:0; display:flex; flex-direction:column; padding:14px 16px}
+  textarea#code{
+    flex:1; width:100%; min-height:0; resize:none; display:block;
+    background:#040404; color:#cfeede;
+    border:1px solid var(--border); border-radius:13px; padding:14px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.76rem; line-height:1.65; tab-size:2; letter-spacing:0;
+    transition:border-color .18s var(--ease), box-shadow .18s var(--ease);
+  }
+  textarea#code:focus{outline:none; box-shadow:0 0 0 2px var(--sheet),0 0 0 3px var(--mint)}
+  textarea#code::selection{background:rgba(110,231,183,.3); color:#fff}
+  textarea#code::-webkit-scrollbar{width:8px}
+  textarea#code::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1); border-radius:99px}
+  .runmsg{display:none; margin-top:10px; flex:none; font-size:.76rem; line-height:1.45; font-weight:500}
+  .runmsg.show{display:block; animation:fadeUp .26s var(--ease-premium) both}
+  .runmsg.warn{color:var(--amber)}
+  .runmsg.ok{color:var(--mint)}
+
+  /* ---- right pane body: live sealed preview ---- */
+  .stagewrap{flex:1; min-height:0; display:flex; flex-direction:column; padding:14px 16px}
+  .stage{
+    flex:1; min-height:0; position:relative; border-radius:14px; overflow:hidden;
+    border:1px solid var(--border-strong);
+    background:
+      radial-gradient(620px 220px at 18% -10%, rgba(110,231,183,.06), transparent 62%),
+      var(--elevated);
+    box-shadow:0 24px 70px -34px rgba(0,0,0,.9), 0 0 0 1px rgba(255,255,255,.015) inset;
+    transition:border-color .25s var(--ease), box-shadow .25s var(--ease);
+  }
+  .pane.right.live .stage{border-color:rgba(110,231,183,.3); box-shadow:0 24px 70px -34px rgba(0,0,0,.9), 0 0 50px rgba(110,231,183,.07)}
+  .stage iframe{width:100%; height:100%; border:0; background:#000; display:block}
+  .stage .placeholder{position:absolute; inset:0; display:grid; place-items:center; text-align:center; padding:24px; color:var(--muted); font-size:.82rem; line-height:1.5}
+
+  /* ---- bottom action bar: name + Keep + sealed note ---- */
+  .actionbar{
+    display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+    padding:13px 16px; border-top:1px solid var(--border);
+    background:linear-gradient(0deg,rgba(255,255,255,.012),transparent);
+  }
+  /* sealed note as a small inline chip */
+  .sealchip{
+    display:inline-flex; align-items:center; gap:9px; min-width:0;
+    border:1px solid var(--border); border-radius:999px; padding:6px 13px 6px 8px;
+    background:linear-gradient(180deg,rgba(110,231,183,.035),var(--card));
+  }
+  .sealchip .si{width:24px; height:24px; flex:none; border-radius:8px; display:grid; place-items:center; color:var(--mint); border:1px solid rgba(110,231,183,.28); background:rgba(110,231,183,.06)}
+  .sealchip .si svg{width:13px; height:13px}
+  .sealchip .stxt{font-size:.76rem; color:var(--muted); letter-spacing:-.01em; line-height:1.4; min-width:0}
+  .sealchip .stxt b{color:var(--muted-strong); font-weight:600}
+
+  .barspacer{flex:1; min-width:8px}
+
+  /* name input (compact, in the bar) */
+  .namebox{position:relative; display:flex; align-items:center; flex:none; width:200px}
+  .namebox .ni{position:absolute; left:12px; width:15px; height:15px; color:var(--muted); pointer-events:none; transition:color .18s var(--ease)}
+  .namebox input{
+    width:100%; background:var(--card); border:1px solid var(--border); color:var(--fg);
+    font-family:inherit; font-size:.84rem; font-weight:600; letter-spacing:-.012em;
+    padding:9px 12px 9px 36px; border-radius:11px;
+    transition:border-color .18s var(--ease), box-shadow .18s var(--ease);
+  }
+  .namebox input::placeholder{color:var(--muted); font-weight:500}
+  .namebox input:focus{outline:none; box-shadow:0 0 0 2px var(--sheet),0 0 0 3px var(--mint)}
+  .namebox:focus-within .ni{color:var(--mint)}
+
+  .keepwrap{display:flex; align-items:center; gap:11px; flex:none}
+  .keepwrap .btn.primary{padding:10px 18px; font-size:.84rem}
+
+  /* saving status line: lights up to "saved to your account" */
+  .status{display:flex; align-items:center; gap:8px; font-size:.76rem; color:var(--muted); letter-spacing:-.01em; min-width:0; flex:none}
+  .status .sd{width:7px; height:7px; border-radius:50%; background:var(--muted-strong); opacity:.4; flex:none; transition:background .25s var(--ease), box-shadow .25s var(--ease), opacity .25s var(--ease)}
+  .status.saving{color:var(--muted-strong)}
+  .status.saving .sd{background:var(--amber); opacity:1; box-shadow:0 0 7px rgba(245,158,11,.7); animation:livingDot 1.1s ease-in-out infinite}
+  .status.saved{color:var(--mint)}
+  .status.saved .sd{background:var(--mint); opacity:1; box-shadow:0 0 8px rgba(110,231,183,.85)}
+  .status .sx{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+
+  /* ---- post-keep confirmation ---- */
+  .pop{position:fixed; inset:0; z-index:80; display:none; place-items:center; padding:24px; background:rgba(0,0,0,.6); backdrop-filter:blur(8px)}
+  .pop.open{display:grid; animation:fadeUp .22s var(--ease) both}
+  .pop .pcard{width:min(392px,100%); border:1px solid var(--border-strong); background:radial-gradient(420px 180px at 50% -10%, rgba(110,231,183,.09), transparent 60%), var(--elevated); border-radius:22px; padding:30px 28px 26px; text-align:center; animation:cozyPopBig .5s var(--spring) both}
+  @keyframes cozyPopBig{from{opacity:0; transform:scale(.9)} to{opacity:1; transform:scale(1)}}
+  .pop .tick{width:54px; height:54px; margin:2px auto 18px; border-radius:50%; display:grid; place-items:center; background:rgba(110,231,183,.13); color:var(--mint); box-shadow:0 0 0 7px rgba(110,231,183,.05)}
+  .pop .tick svg{width:26px; height:26px}
+  .pop h4{margin:0 0 9px; font-size:1.0625rem; font-weight:600; letter-spacing:-.015em}
+  .pop p{margin:0 0 22px; color:var(--muted); font-size:.8125rem; line-height:1.55}
+  .pop p b{color:var(--fg); font-weight:600}
+  .pop .prow{display:flex; gap:10px}
+  .pop .prow .btn{flex:1}
+
+  /* ---- toast ---- */
+  .toast{position:fixed; left:50%; bottom:30px; transform:translateX(-50%) translateY(20px); z-index:95;
+    display:none; align-items:center; gap:10px; padding:12px 18px; border-radius:14px;
+    border:1px solid rgba(110,231,183,.28); background:rgba(10,10,10,.92); backdrop-filter:blur(10px);
+    box-shadow:0 18px 48px -18px rgba(0,0,0,.9), 0 0 44px rgba(110,231,183,.07);
+    color:var(--fg); font-size:.8125rem; font-weight:600; letter-spacing:-.01em; white-space:nowrap}
+  .toast.show{display:flex; animation:toastIn .42s var(--spring) both}
+  @keyframes toastIn{from{opacity:0; transform:translateX(-50%) translateY(20px)} to{opacity:1; transform:translateX(-50%) translateY(0)}}
+  .toast .td{width:18px; height:18px; border-radius:50%; display:grid; place-items:center; background:rgba(110,231,183,.16); color:var(--mint); flex:none}
+  .toast .td svg{width:11px; height:11px}
+
+  /* ---- responsive: phone stacks the two panes, stays compact ---- */
+  @media(max-width:760px){
+    .scrim{padding:10px 8px}
+    .win{border-radius:18px; height:94vh; width:100%; grid-template-rows:auto 1fr auto}
+    .panes{grid-template-columns:1fr; grid-template-rows:minmax(0,1fr) minmax(0,1fr); overflow:auto}
+    .pane.left{border-right:0; border-bottom:1px solid var(--border)}
+    .editwrap{min-height:180px}
+    .stagewrap{min-height:220px}
+    .title{font-size:1.25rem}
+    /* hide the inline hint on the smallest titlebars to keep it tight */
+    .hint, .titlebar .dot{display:none}
+    .actionbar{gap:10px}
+    .namebox{flex:1 1 auto; width:auto; min-width:140px}
+    .sealchip{order:3; flex:1 1 100%}
+    .barspacer{display:none}
+    .keepwrap{flex:1 1 auto; justify-content:space-between}
+  }
+  @media(max-width:430px){
+    .panehead{padding:10px 13px}
+    .editwrap,.stagewrap{padding:12px 13px}
+    .keepwrap{flex-wrap:wrap; gap:9px}
+    .keepwrap .btn.primary{flex:1 1 auto}
+    .miniact .btn .lbl{display:none}
+    .miniact .btn{padding:8px 11px}
+    .toast{left:12px; right:12px; bottom:18px; transform:translateY(20px); white-space:normal}
+    .toast.show{animation:toastInMobile .42s var(--spring) both}
+  }
+  @keyframes toastInMobile{from{opacity:0; transform:translateY(20px)} to{opacity:1; transform:translateY(0)}}
+
+  @media(prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important}
+    .fade{opacity:1}
+  }
+</style>
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+
+  <!-- faint dashboard behind (sibling of the overlay) -->
+  <div class="behind" aria-hidden="true">
+    <div class="row"><div class="b tall"></div><div class="b"></div><div class="b"></div></div>
+    <div class="row two"><div class="b"></div><div class="b"></div></div>
+    <div class="row"><div class="b"></div><div class="b"></div><div class="b"></div></div>
+  </div>
+
+  <div class="scrim">
+    <div class="win" role="dialog" aria-label="Build a tile">
+
+      <!-- compact app titlebar -->
+      <div class="titlebar">
+        <div class="brand">
+          <h1 class="title">
+            <span class="spark" title="Build a tile" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4.5 13.5H11l-1 8.5 8.5-11.5H12Z"/></svg>
+            </span>
+            Build a tile
+          </h1>
+          <span class="dot" aria-hidden="true"></span>
+          <span class="hint">Paste what <b>Claude</b> built, run it, keep it.</span>
+        </div>
+        <button class="x" id="closeBtn" aria-label="Back to Library">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+        </button>
+      </div>
+
+      <!-- two panes, side by side -->
+      <div class="panes">
+
+        <!-- LEFT: HTML editor -->
+        <section class="pane left">
+          <div class="panehead">
+            <div class="kk"><span class="no">01</span>Your tile</div>
+            <span class="spacer"></span>
+            <div class="miniact">
+              <button class="btn ghost sm" id="resetBtn" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 4v4h4"/></svg>
+                <span class="lbl">Starter</span>
+              </button>
+              <button class="btn mintline sm" id="runBtn" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 5.5v13l11-6.5z"/></svg>
+                <span class="lbl">Run it</span>
+              </button>
+            </div>
+          </div>
+          <div class="editwrap">
+            <textarea id="code" spellcheck="false" aria-label="Tile HTML"></textarea>
+            <p class="runmsg" id="runMsg" role="alert"></p>
+          </div>
+        </section>
+
+        <!-- RIGHT: live sealed preview -->
+        <section class="pane right" id="rightPane">
+          <div class="panehead">
+            <div class="kk"><span class="no">02</span><span id="liveLabel">Live tile</span></div>
+            <span class="spacer"></span>
+            <span class="livedot" aria-hidden="true"></span>
+            <span class="sealtag">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10.5" width="15" height="10" rx="2.2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg>
+              Sealed
+            </span>
+          </div>
+          <div class="stagewrap">
+            <div class="stage">
+              <iframe id="preview" sandbox="allow-scripts" title="Live sealed tile preview"></iframe>
+              <div class="placeholder" id="placeholder" hidden>Paste a tile and press Run it to see it come alive.</div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- bottom action bar: name + Keep + sealed note -->
+      <div class="actionbar">
+        <span class="sealchip">
+          <span class="si" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M9.5 12l1.8 1.8L15 10"/></svg>
+          </span>
+          <span class="stxt"><b>Runs in a sealed box.</b> It cannot read your data or keys.</span>
+        </span>
+
+        <span class="barspacer"></span>
+
+        <div class="status" id="status" role="status">
+          <span class="sd" aria-hidden="true"></span>
+          <span class="sx" id="statusText">Saved to your account when you keep it.</span>
+        </div>
+
+        <div class="namebox">
+          <span class="ni" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="1.8"/><rect x="13" y="4" width="7" height="7" rx="1.8"/><rect x="4" y="13" width="7" height="7" rx="1.8"/><rect x="13" y="13" width="7" height="7" rx="1.8"/></svg>
+          </span>
+          <input id="name" type="text" placeholder="My to-do tile" value="My to-do tile" spellcheck="false" autocomplete="off" aria-label="Name your tile" />
+        </div>
+
+        <div class="keepwrap">
+          <button class="btn primary" id="keepBtn" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11l3 3v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Z"/><path d="M8 4v5h7V4"/><path d="M8 14h8"/><path d="M8 17.5h5"/></svg>
+            Keep
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- post-keep confirmation -->
+  <div class="pop" id="pop" role="dialog" aria-label="Tile kept">
+    <div class="pcard">
+      <div class="tick" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg></div>
+      <h4>Kept. It is on your dashboard now.</h4>
+      <p id="popBody"><b>My to-do tile</b> is yours, saved to your account. It is on your dashboard now.</p>
+      <div class="prow">
+        <button class="btn ghost" id="keepBuilding" type="button">Keep building</button>
+        <button class="btn primary" id="openLib" type="button">Open Library</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- toast -->
+  <div class="toast" id="toast" role="status">
+    <span class="td"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg></span>
+    <span id="toastText">Kept</span>
+  </div>
+
+  <script>
+    /* ---------- a real, working starter tile: a sealed to-do list ---------- */
+    const STARTER = `<!doctype html>
+<html lang="en"><head><meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root{ --mint:#6EE7B7; --mint-ink:#042a1c; --bg:#000; --fg:#fff;
+    --muted:rgba(255,255,255,.5); --card:rgba(255,255,255,.04); --border:rgba(255,255,255,.1); }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{ background:var(--bg); color:var(--fg); font-family:'Inter',system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased; letter-spacing:-.01em; padding:18px; }
+  .kk{ font-size:.68rem; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); font-weight:600; }
+  h1{ margin:6px 0 14px; font-size:1.3rem; font-weight:600; letter-spacing:-.02em; }
+  .add{ display:flex; gap:8px; margin-bottom:14px; }
+  input{ flex:1; min-width:0; background:var(--card); border:1px solid var(--border); color:var(--fg);
+    font-family:inherit; font-size:.9rem; padding:11px 13px; border-radius:11px; }
+  input::placeholder{color:var(--muted)}
+  input:focus{ outline:none; border-color:var(--mint); box-shadow:0 0 0 2px var(--bg),0 0 0 3px var(--mint); }
+  button.go{ border:0; background:var(--mint); color:var(--mint-ink); font-family:inherit; font-weight:700;
+    font-size:1.2rem; line-height:1; width:44px; border-radius:11px; cursor:pointer; }
+  button.go:active{ transform:scale(.95); }
+  ul{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
+  li{ display:flex; align-items:center; gap:12px; background:var(--card); border:1px solid var(--border);
+    border-radius:12px; padding:12px 14px; cursor:pointer; transition:border-color .15s, background .15s; }
+  li:hover{ border-color:rgba(110,231,183,.4); }
+  .box{ width:20px; height:20px; flex:none; border-radius:6px; border:2px solid var(--muted);
+    display:grid; place-items:center; transition:border-color .15s, background .15s; }
+  li.done .box{ background:var(--mint); border-color:var(--mint); }
+  .box svg{ width:13px; height:13px; color:var(--mint-ink); opacity:0; transition:opacity .15s; }
+  li.done .box svg{ opacity:1; }
+  .txt{ flex:1; font-size:.92rem; letter-spacing:-.01em; }
+  li.done .txt{ color:var(--muted); text-decoration:line-through; }
+  .empty{ color:var(--muted); font-size:.85rem; padding:8px 2px; }
+</style></head>
+<body>
+  <div class="kk">Today</div>
+  <h1>To-do</h1>
+  <div class="add">
+    <input id="t" placeholder="Add a task" autocomplete="off" />
+    <button class="go" id="a" aria-label="Add">+</button>
+  </div>
+  <ul id="list"></ul>
+<script>
+  var list = document.getElementById('list');
+  var input = document.getElementById('t');
+  var items = [
+    { text:'Drink a glass of water', done:true },
+    { text:'10 minute walk', done:false },
+    { text:'Plan tomorrow', done:false }
+  ];
+  function render(){
+    list.innerHTML = '';
+    if(!items.length){ list.innerHTML = '<div class="empty">All clear. Add your first task.</div>'; return; }
+    items.forEach(function(it, i){
+      var li = document.createElement('li');
+      if(it.done) li.className = 'done';
+      li.innerHTML = '<span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg></span><span class="txt"></span>';
+      li.querySelector('.txt').textContent = it.text;
+      li.onclick = function(){ items[i].done = !items[i].done; render(); };
+      list.appendChild(li);
+    });
+  }
+  function add(){
+    var v = input.value.trim();
+    if(!v) return;
+    items.push({ text:v, done:false });
+    input.value = '';
+    render();
+    input.focus();
+  }
+  document.getElementById('a').onclick = add;
+  input.addEventListener('keydown', function(e){ if(e.key === 'Enter') add(); });
+  render();
+<\/script>
+</body></html>`;
+
+    /* ---------- elements ---------- */
+    const scrim = document.querySelector('.scrim');
+    const code = document.getElementById('code');
+    const preview = document.getElementById('preview');
+    const rightPane = document.getElementById('rightPane');
+    const placeholder = document.getElementById('placeholder');
+    const runMsg = document.getElementById('runMsg');
+    const liveLabel = document.getElementById('liveLabel');
+    const nameInput = document.getElementById('name');
+    const statusEl = document.getElementById('status');
+    const statusText = document.getElementById('statusText');
+    const pop = document.getElementById('pop');
+    const popBody = document.getElementById('popBody');
+    const toast = document.getElementById('toast');
+    const toastText = document.getElementById('toastText');
+    let toastTimer = null, saveTimer = null;
+
+    function showToast(msg){
+      toastText.textContent = msg;
+      toast.classList.remove('show');
+      void toast.offsetWidth;
+      toast.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(function(){ toast.classList.remove('show'); }, 2400);
+    }
+    function clearRunMsg(){ runMsg.className = 'runmsg'; runMsg.textContent = ''; }
+
+    /* ---------- run: render the HTML into the real sealed iframe ---------- */
+    function run(){
+      const html = code.value.trim();
+      if(!html){
+        runMsg.className = 'runmsg warn show';
+        runMsg.textContent = 'Paste a tile first, or load the starter to see it run.';
+        rightPane.classList.remove('live');
+        preview.removeAttribute('srcdoc');
+        placeholder.hidden = false;
+        liveLabel.textContent = 'No tile yet';
+        return;
+      }
+      clearRunMsg();
+      placeholder.hidden = true;
+      preview.setAttribute('srcdoc', html);
+      rightPane.classList.add('live');
+      liveLabel.textContent = 'Live tile';
+    }
+
+    document.getElementById('runBtn').onclick = run;
+    document.getElementById('resetBtn').onclick = function(){
+      code.value = STARTER;
+      run();
+      runMsg.className = 'runmsg ok show';
+      runMsg.textContent = 'Starter tile loaded and running.';
+      setTimeout(clearRunMsg, 2200);
+    };
+
+    /* ---------- keep: cozy saving status, then confirmation ---------- */
+    function setStatus(state, text){
+      statusEl.className = 'status' + (state ? ' ' + state : '');
+      statusText.textContent = text;
+    }
+    document.getElementById('keepBtn').onclick = function(){
+      const name = nameInput.value.trim() || 'Untitled tile';
+      clearTimeout(saveTimer);
+      setStatus('saving', 'Saving to your account.');
+      saveTimer = setTimeout(function(){
+        setStatus('saved', 'Saved to your account.');
+        popBody.innerHTML = '<b></b> is yours, saved to your account. It is on your dashboard now.';
+        popBody.querySelector('b').textContent = name;
+        pop.classList.add('open');
+      }, 900);
+    };
+
+    /* ---------- popup ---------- */
+    document.getElementById('keepBuilding').onclick = function(){ pop.classList.remove('open'); };
+    document.getElementById('openLib').onclick = function(){ pop.classList.remove('open'); showToast('Opening Library'); };
+    pop.addEventListener('click', function(e){ if(e.target === pop) pop.classList.remove('open'); });
+
+    /* ---------- close chrome ---------- */
+    function closeOverlay(){ scrim.classList.add('closing'); }
+    document.getElementById('closeBtn').onclick = closeOverlay;
+
+    document.addEventListener('keydown', function(e){
+      if(e.key === 'Escape'){
+        if(pop.classList.contains('open')) pop.classList.remove('open');
+        else closeOverlay();
+      }
+    });
+
+    /* ---------- first paint: load starter and run it live ---------- */
+    code.value = STARTER;
+    run();
+  </script>
+</body>
+</html>

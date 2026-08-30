@@ -1,0 +1,1526 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Vitality — Crystal Library</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:ital,wght@1,400;1,500&display=swap" rel="stylesheet" />
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+    }
+  }
+  </script>
+
+  <style>
+    :root {
+      --bg:           #000;
+      --surface:      rgba(255, 255, 255, 0.025);
+      --surface-2:    rgba(255, 255, 255, 0.04);
+      --border:       rgba(255, 255, 255, 0.08);
+      --border-soft:  rgba(255, 255, 255, 0.06);
+      --divider:      rgba(255, 255, 255, 0.07);
+      --text:         rgba(255, 255, 255, 0.95);
+      --text-2:       rgba(255, 255, 255, 0.60);
+      --text-3:       rgba(255, 255, 255, 0.40);
+      --text-4:       rgba(255, 255, 255, 0.25);
+      --mint:         #6ee7b7;
+      --mint-soft:    rgba(110, 231, 183, 0.10);
+      --radius:       20px;
+      --radius-md:    14px;
+      --ease:         cubic-bezier(0.22, 0.61, 0.36, 1);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      background: #000; color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+    body { padding: 56px 24px 80px; }
+    .wrap { max-width: 1180px; margin: 0 auto; position: relative; z-index: 0; }
+
+    /* Single shared WebGL canvas — covers the whole viewport, transparent,
+       pointer-events disabled. Each gem renders into its own scissor
+       region matching its placeholder rect. One context, many "windows". */
+    #shared-canvas {
+      position: fixed; inset: 0;
+      width: 100vw; height: 100vh;
+      pointer-events: none;
+      z-index: 1;
+    }
+    /* Card text needs to sit above the shared canvas so it's readable. */
+    .gem-meta, .home-divider, .header, .footer { position: relative; z-index: 2; }
+
+    .header { text-align: center; margin-bottom: 56px; }
+    .eyebrow {
+      font-size: 11px; font-weight: 500; letter-spacing: 0.32em;
+      text-transform: uppercase; color: var(--text-3);
+      margin-bottom: 14px;
+    }
+    h1 {
+      font-family: 'Fraunces', serif; font-style: italic; font-weight: 400;
+      font-size: clamp(36px, 6vw, 56px); letter-spacing: -0.02em;
+      color: var(--text); line-height: 1.05;
+    }
+    h1 em { color: var(--mint); font-style: italic; }
+    .lede {
+      max-width: 520px; margin: 18px auto 0;
+      font-size: 14px; line-height: 1.6; color: var(--text-2);
+    }
+
+    .home-divider {
+      display: flex; align-items: center; gap: 14px;
+      margin: 64px 0 28px;
+    }
+    .home-divider::before,
+    .home-divider::after {
+      content: ''; flex: 1; height: 1px; background: var(--divider);
+    }
+    .home-divider span {
+      font-size: 12px; font-weight: 600; letter-spacing: 0.25em;
+      text-transform: uppercase; color: #fff; white-space: nowrap;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 18px;
+    }
+    .gem-card {
+      background: var(--surface);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius);
+      padding: 16px 16px 18px;
+      display: flex; flex-direction: column; align-items: center;
+      transition: border-color 0.2s var(--ease), background 0.2s var(--ease);
+    }
+    .gem-card:hover {
+      border-color: rgba(110, 231, 183, 0.18);
+      background: rgba(110, 231, 183, 0.02);
+    }
+    /* Hero gem is solo in its row — cap its width so it doesn't
+       balloon to the full container width. */
+    #grid-hero { display: block; }
+    #grid-hero .gem-card { max-width: 520px; margin: 0 auto; }
+
+    .gem-stage {
+      width: 100%; aspect-ratio: 1 / 1;
+      position: relative;
+    }
+    /* Halo backdrop — soft mint radial glow behind the gem; opt-in
+       per-behavior. Sits BEHIND the shared canvas (z-index: 0). */
+    .gem-stage.halo::before {
+      content: ''; position: absolute; inset: -8%;
+      background: radial-gradient(circle at 50% 50%,
+        rgba(110, 231, 183, 0.22) 0%,
+        rgba(110, 231, 183, 0.09) 32%,
+        rgba(110, 231, 183, 0) 65%);
+      pointer-events: none;
+      animation: haloBreath 5.5s ease-in-out infinite;
+      z-index: 0;
+    }
+    @keyframes haloBreath {
+      0%, 100% { opacity: 0.7; transform: scale(1); }
+      50%      { opacity: 1;   transform: scale(1.04); }
+    }
+
+    .gem-meta {
+      width: 100%; margin-top: 12px;
+      display: flex; justify-content: space-between; align-items: baseline;
+      gap: 12px;
+    }
+
+    /* ── Icon reference grid — flat glyph previews, no 3D ── */
+    .icon-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+      position: relative; z-index: 2;
+    }
+    .icon-card {
+      background: var(--surface);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-md);
+      padding: 18px 14px 16px;
+      display: flex; flex-direction: column; align-items: center;
+      text-align: center;
+    }
+    .icon-card canvas {
+      width: 120px; height: 120px;
+      display: block;
+    }
+    .icon-card .icon-name {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.22em;
+      text-transform: uppercase; color: var(--text);
+      margin-top: 14px;
+    }
+    .icon-card .icon-desc {
+      font-size: 11px; color: var(--text-3);
+      margin-top: 4px; line-height: 1.45;
+    }
+    .gem-label {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.22em;
+      text-transform: uppercase; color: var(--text);
+    }
+    .gem-sub {
+      font-size: 10px; font-weight: 500; letter-spacing: 0.16em;
+      text-transform: uppercase; color: var(--text-3);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .footer {
+      margin-top: 64px; text-align: center;
+      font-size: 12px; color: var(--text-3); letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="shared-canvas"></canvas>
+
+  <div class="wrap">
+    <header class="header">
+      <div class="eyebrow">VITALITY · STUDIO · MMXXVI</div>
+      <h1>The <em>crystal</em> library.</h1>
+      <p class="lede">
+        Every gem rendered with the same scene that powers the landing hero —
+        mint glass, procedural environment, five-layer engraved glyph, per-face
+        flicker. Mix shape and glyph to fit any module.
+      </p>
+    </header>
+
+    <div class="home-divider"><span>Hero · The V</span></div>
+    <div class="grid" id="grid-hero"></div>
+
+    <div class="home-divider"><span>Behaviors — personality archetypes</span></div>
+    <div class="grid" id="grid-behaviors"></div>
+
+    <div class="home-divider"><span>Modules</span></div>
+    <div class="grid" id="grid-modules"></div>
+
+    <div class="home-divider"><span>Shapes — same V, different solid</span></div>
+    <div class="grid" id="grid-shapes"></div>
+
+    <div class="home-divider"><span>Icon reference — what each mark means</span></div>
+    <div class="icon-grid" id="grid-icons"></div>
+
+    <div class="home-divider"><span>Nutrition &amp; tracking — the VitalityIcon set</span></div>
+    <div class="icon-grid" id="grid-icons-fuel"></div>
+
+    <div class="footer">A study in restraint · Built by twins</div>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { PMREMGenerator } from 'three';
+
+    /* ──────────────────────────────────────────────────────────────
+       Shared-renderer multi-viewport architecture.
+
+       Browsers cap WebGL contexts (~16). A design library with 24+
+       gems exceeds that. Instead of one renderer per gem, we use ONE
+       full-viewport canvas + ONE renderer + ONE PMREM env. Each gem
+       owns a scene + camera + mesh + glyph + behavior state, and the
+       global tick loop draws each gem into a scissor region matching
+       its DOM placeholder. Standard "multiple canvases, one renderer"
+       pattern (threejs.org/manual). One context, unlimited gems.
+       ────────────────────────────────────────────────────────────── */
+
+    const PARAMS = {
+      rotationSpeed: 0.08,
+      wobbleAmplitude: 0.10,
+      cursorTilt: 0.18,
+      spring: 0.06,
+      mintTint: 0.12,
+      roughness: 0.08,
+      transmission: 0.82,
+      thickness: 1.8,
+      ior: 1.55,
+      keyWarmth: 0.55,
+    };
+    const MINT      = new THREE.Color('#6EE7B7');
+    const WARM      = new THREE.Color('#FFE2B5');
+    const COOL_MINT = new THREE.Color('#A7F3D0');
+    const NEUTRAL   = new THREE.Color('#F2FFF8');
+    const computeGlassColor = () => NEUTRAL.clone().lerp(MINT, PARAMS.mintTint);
+    const computeKeyColor   = () => MINT.clone().lerp(WARM, PARAMS.keyWarmth);
+
+    /* Cursor target shared by all gems. */
+    const cursorTarget = { x: 0, y: 0 };
+    window.addEventListener('mousemove', (e) => {
+      const nx = (e.clientX / window.innerWidth)  * 2 - 1;
+      const ny = (e.clientY / window.innerHeight) * 2 - 1;
+      cursorTarget.x = ny * PARAMS.cursorTilt;
+      cursorTarget.y = nx * PARAMS.cursorTilt;
+    }, { passive: true });
+    window.addEventListener('touchmove', (e) => {
+      if (!e.touches[0]) return;
+      const nx = (e.touches[0].clientX / window.innerWidth)  * 2 - 1;
+      const ny = (e.touches[0].clientY / window.innerHeight) * 2 - 1;
+      cursorTarget.x = ny * PARAMS.cursorTilt;
+      cursorTarget.y = nx * PARAMS.cursorTilt;
+    }, { passive: true });
+
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    /* ── One-time renderer setup ───────────────────────────────── */
+    const sharedCanvas = document.getElementById('shared-canvas');
+    const renderer = new THREE.WebGLRenderer({
+      canvas: sharedCanvas, antialias: true, alpha: true,
+    });
+    renderer.setClearColor(0x000000, 0);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
+    renderer.setScissorTest(true);
+    renderer.autoClear = false;
+
+    function syncRendererSize() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+      renderer.setPixelRatio(dpr);
+      renderer.setSize(window.innerWidth, window.innerHeight, false);
+    }
+    syncRendererSize();
+    window.addEventListener('resize', syncRendererSize);
+
+    /* ── Shared PMREM environment ─────────────────────────────────
+       Same painted canvas as the production hero gem. Generated once
+       and assigned to every gem's scene. */
+    const envCanvas = document.createElement('canvas');
+    envCanvas.width = 1024; envCanvas.height = 512;
+    {
+      const ctx = envCanvas.getContext('2d');
+      ctx.fillStyle = '#0a1a18'; ctx.fillRect(0, 0, 1024, 512);
+      const g1 = ctx.createRadialGradient(280, 170, 0, 280, 170, 520);
+      g1.addColorStop(0, 'rgba(180,255,220,1)');
+      g1.addColorStop(0.4, 'rgba(110,231,183,0.45)');
+      g1.addColorStop(1, 'rgba(110,231,183,0)');
+      ctx.fillStyle = g1; ctx.fillRect(0, 0, 1024, 512);
+      const g2 = ctx.createRadialGradient(760, 200, 0, 760, 200, 500);
+      g2.addColorStop(0, 'rgba(255,235,195,1)');
+      g2.addColorStop(0.4, 'rgba(255,220,170,0.42)');
+      g2.addColorStop(1, 'rgba(255,220,170,0)');
+      ctx.fillStyle = g2; ctx.fillRect(0, 0, 1024, 512);
+      const g3 = ctx.createRadialGradient(512, 470, 0, 512, 470, 380);
+      g3.addColorStop(0, 'rgba(140,220,190,0.9)');
+      g3.addColorStop(1, 'rgba(140,220,190,0)');
+      ctx.fillStyle = g3; ctx.fillRect(0, 0, 1024, 512);
+      const g4 = ctx.createRadialGradient(420, 90, 0, 420, 90, 80);
+      g4.addColorStop(0, 'rgba(255,255,255,.85)');
+      g4.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = g4; ctx.fillRect(0, 0, 1024, 512);
+    }
+    const envSource = new THREE.CanvasTexture(envCanvas);
+    envSource.mapping = THREE.EquirectangularReflectionMapping;
+    envSource.colorSpace = THREE.SRGBColorSpace;
+    envSource.needsUpdate = true;
+    const pmrem = new PMREMGenerator(renderer);
+    const sharedEnvTex = pmrem.fromEquirectangular(envSource).texture;
+    envSource.dispose();
+
+    /* ── Geometries (lazy-built, shared by shape) ───────────────── */
+    const geoCache = new Map();
+    function getGeometry(shape) {
+      if (geoCache.has(shape)) return geoCache.get(shape);
+      let g;
+      if      (shape === 'dodecahedron') g = new THREE.DodecahedronGeometry(1, 0);
+      else if (shape === 'tetrahedron')  g = new THREE.TetrahedronGeometry(1, 0);
+      else if (shape === 'octahedron')   g = new THREE.OctahedronGeometry(1, 0);
+      else if (shape === 'sphere')       g = new THREE.IcosahedronGeometry(1, 2);
+      else                                g = new THREE.IcosahedronGeometry(1, 0);
+      geoCache.set(shape, g);
+      return g;
+    }
+
+    /* ── Global gem registry + animation loop ─────────────────── */
+    const gems = [];
+
+    const clock = new THREE.Clock();
+    function tick() {
+      requestAnimationFrame(tick);
+      const dt = Math.min(clock.getDelta(), 0.05);
+      const t = clock.getElapsedTime();
+
+      // Clear the entire shared canvas once per frame.
+      renderer.setScissorTest(false);
+      renderer.clear();
+      renderer.setScissorTest(true);
+
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+
+      for (const gem of gems) {
+        const r = gem.placeholder.getBoundingClientRect();
+        // Skip off-screen gems entirely — no scene update, no render.
+        if (r.bottom < 0 || r.top > vh || r.right < 0 || r.left > vw) continue;
+
+        gem.update(t, dt);
+
+        // WebGL viewport origin is bottom-left. Flip the rect's Y.
+        const x = r.left;
+        const y = vh - r.bottom;
+        const w = r.width;
+        const h = r.height;
+        renderer.setViewport(x, y, w, h);
+        renderer.setScissor(x, y, w, h);
+        // Aspect of each gem scene matches its placeholder rect.
+        gem.camera.aspect = w / h;
+        gem.camera.updateProjectionMatrix();
+
+        renderer.render(gem.scene, gem.camera);
+        if (gem.particleScene) {
+          renderer.render(gem.particleScene, gem.camera);
+        }
+      }
+    }
+    requestAnimationFrame(tick);
+
+    /* ──────────────────────────────────────────────────────────────
+       createCrystal — build a gem scene + behavior state, register it.
+
+       Returns a disposer that unregisters and frees resources.
+       NO per-call renderer / PMREM / resize observer — those are
+       shared at module level.
+       ────────────────────────────────────────────────────────────── */
+    function createCrystal(placeholder, { shape = 'icosahedron', drawGlyph, behavior = {} } = {}) {
+      const b = behavior;
+      const ROT_SPEED = b.rotationSpeed   ?? PARAMS.rotationSpeed;
+      const WOB_AMP   = b.wobbleAmplitude ?? PARAMS.wobbleAmplitude;
+      const FADE_IN_DUR  = b.fadeInDur  ?? 1.1;
+      const HOLD_DUR     = b.holdDur    ?? 3.4;
+      const FADE_OUT_DUR = b.fadeOutDur ?? 0.45;
+      const CYCLE_DUR    = FADE_IN_DUR + HOLD_DUR + FADE_OUT_DUR;
+      const CLAIM_DOT = 0.92, ENV_LO = 0.82, ENV_HI = 0.94;
+      const smoothstep = (lo, hi, x) => {
+        const tt = Math.max(0, Math.min(1, (x - lo) / (hi - lo)));
+        return tt * tt * (3 - 2 * tt);
+      };
+
+      const scene = new THREE.Scene();
+      scene.environment = sharedEnvTex;
+      const camera = new THREE.PerspectiveCamera(28, 1, 0.1, 100);
+      camera.position.set(0, 0.05, 4.6);
+      camera.lookAt(0, 0, 0);
+
+      const geo = getGeometry(shape);
+      const mat = new THREE.MeshPhysicalMaterial({
+        color: computeGlassColor(),
+        transmission: PARAMS.transmission,
+        thickness: PARAMS.thickness,
+        ior: PARAMS.ior,
+        roughness: PARAMS.roughness,
+        metalness: 0,
+        attenuationColor: MINT.clone(),
+        attenuationDistance: 1.0,
+        clearcoat: 0.7,
+        clearcoatRoughness: 0.04,
+        envMapIntensity: 2.8,
+        transparent: true,
+        side: THREE.DoubleSide,
+        emissive: new THREE.Color('#0d4a36'),
+        emissiveIntensity: 0.5,
+      });
+      const mesh = new THREE.Mesh(geo, mat);
+      scene.add(mesh);
+
+      const edgesGeo = new THREE.EdgesGeometry(geo, 1);
+      const wireMat = new THREE.LineBasicMaterial({
+        color: 0xa7f3d0, transparent: true, opacity: 0.7, depthTest: false,
+      });
+      const wire = new THREE.LineSegments(edgesGeo, wireMat);
+      wire.renderOrder = 2;
+      wire.scale.setScalar(1.001);
+      mesh.add(wire);
+
+      /* ── Face detection (merge coplanar triangles) ──────────── */
+      const faces = [];
+      const faceVerts = [];
+      const NORMAL_MATCH = 0.999;
+      const posAttr = geo.attributes.position;
+      for (let i = 0; i < posAttr.count; i += 3) {
+        const v0 = new THREE.Vector3().fromBufferAttribute(posAttr, i);
+        const v1 = new THREE.Vector3().fromBufferAttribute(posAttr, i + 1);
+        const v2 = new THREE.Vector3().fromBufferAttribute(posAttr, i + 2);
+        const normal = new THREE.Vector3()
+          .subVectors(v1, v0)
+          .cross(new THREE.Vector3().subVectors(v2, v0))
+          .normalize();
+        let matchIdx = -1;
+        for (let j = 0; j < faces.length; j++) {
+          if (faces[j].normal.dot(normal) > NORMAL_MATCH) { matchIdx = j; break; }
+        }
+        if (matchIdx >= 0) faceVerts[matchIdx].push(v0, v1, v2);
+        else { faces.push({ center: new THREE.Vector3(), normal }); faceVerts.push([v0, v1, v2]); }
+      }
+      for (let i = 0; i < faces.length; i++) {
+        const unique = [];
+        for (const v of faceVerts[i]) {
+          if (!unique.some((u) => u.distanceTo(v) < 1e-5)) unique.push(v);
+        }
+        const center = new THREE.Vector3();
+        for (const v of unique) center.add(v);
+        center.divideScalar(unique.length);
+        faces[i].center = center;
+      }
+
+      /* ── Glyph texture (5-layer glow stack) ──────────────────── */
+      const vCanvas = document.createElement('canvas');
+      vCanvas.width = 512; vCanvas.height = 512;
+      const vCtx = vCanvas.getContext('2d');
+      vCtx.lineCap = 'round'; vCtx.lineJoin = 'round';
+      const drawLayer = (color, lineWidth, blur) => {
+        vCtx.shadowColor = '#6EE7B7';
+        vCtx.shadowBlur = blur;
+        vCtx.strokeStyle = color;
+        vCtx.lineWidth = lineWidth;
+        (drawGlyph || GLYPHS.V)(vCtx);
+      };
+      drawLayer('rgba(110, 231, 183, 0.10)', 18, 90);
+      drawLayer('rgba(110, 231, 183, 0.22)', 13, 52);
+      drawLayer('rgba(167, 243, 208, 0.50)',  7, 26);
+      drawLayer('rgba(196, 250, 220, 0.85)',  4, 12);
+      drawLayer('rgba(240, 255, 245, 1.00)', 1.8, 4);
+
+      const vTex = new THREE.CanvasTexture(vCanvas);
+      vTex.colorSpace = THREE.SRGBColorSpace;
+      vTex.anisotropy = 4;
+      vTex.needsUpdate = true;
+
+      const vMat = new THREE.MeshBasicMaterial({
+        map: vTex, transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false, depthTest: true,
+        side: THREE.FrontSide, opacity: 0,
+      });
+      const vGeo = new THREE.PlaneGeometry(0.62, 0.62);
+      const vMesh = new THREE.Mesh(vGeo, vMat);
+      vMesh.renderOrder = 3;
+      mesh.add(vMesh);
+
+      const HOLD_FLICKERS = [
+        (t, s) => 0.86 + 0.10 * Math.sin(t * 7 + s) +
+                  (Math.sin(t * 19 + s * 2) > 0.85 ? -0.45 : 0),
+        (t, s) => 0.84 + 0.14 * Math.sin(t * 5.2 + s) * Math.sin(t * 2.1 + s * 0.5),
+        (t, s) => 0.94 + (Math.sin(t * 23 + s) * Math.sin(t * 11 + s * 0.3) > 0.65 ? -0.55 : 0),
+        (t, s) => 0.90 + 0.07 * Math.sin(t * 2.0 + s),
+      ];
+
+      const _q = new THREE.Quaternion();
+      const _e = new THREE.Euler();
+      const _n = new THREE.Vector3();
+      const _planeUp  = new THREE.Vector3();
+      const _desiredUp = new THREE.Vector3();
+      const _cross = new THREE.Vector3();
+      const _correct = new THREE.Quaternion();
+      const _Y = new THREE.Vector3(0, 1, 0);
+      const _Z = new THREE.Vector3(0, 0, 1);
+      const CAMERA_DIR = new THREE.Vector3(0, 0, 1);
+
+      const getFaceWorldDot = (idx) => {
+        _e.set(mesh.rotation.x, mesh.rotation.y, mesh.rotation.z);
+        _q.setFromEuler(_e);
+        _n.copy(faces[idx].normal).applyQuaternion(_q);
+        return _n.dot(CAMERA_DIR);
+      };
+      const placeOnFace = (idx) => {
+        const f = faces[idx];
+        vMesh.position.copy(f.center).add(_n.copy(f.normal).multiplyScalar(0.012));
+        vMesh.quaternion.setFromUnitVectors(_Z, f.normal);
+        _planeUp.copy(_Y).applyQuaternion(vMesh.quaternion);
+        _desiredUp.copy(_Y).sub(_n.copy(f.normal).multiplyScalar(_Y.dot(f.normal)));
+        if (_desiredUp.lengthSq() < 1e-4) return;
+        _desiredUp.normalize();
+        const cosA = _planeUp.dot(_desiredUp);
+        _cross.crossVectors(_planeUp, _desiredUp);
+        const sinA = _cross.dot(f.normal);
+        const angle = Math.atan2(sinA, cosA);
+        _correct.setFromAxisAngle(f.normal, angle);
+        vMesh.quaternion.premultiply(_correct);
+      };
+
+      /* ── Lights ───────────────────────────────────────────────── */
+      scene.add(new THREE.AmbientLight(0x1a3a2c, 0.15));
+      const key = new THREE.DirectionalLight(computeKeyColor().getHex(), 4.0);
+      key.position.set(2.6, 1.8, 2.2); scene.add(key);
+      const rim = new THREE.DirectionalLight(COOL_MINT.getHex(), 2.2);
+      rim.position.set(-2.8, 1.2, -2.0); scene.add(rim);
+      const fill = new THREE.DirectionalLight(0x88c4b0, 0.6);
+      fill.position.set(0, -2.5, 1); scene.add(fill);
+
+      /* ── Atmospheric effects (optional) — in their own scene ───
+         Three modes:
+           'ring'   — single thin torus outline, slowly rotating.
+                      Architectural Saturn-ring feel.
+           'pulse'  — concentric mint rings expand outward, fade,
+                      and recycle in staggered phase (sonar pings).
+           'orbit'  — 6 evenly-spaced precision dots on a single
+                      clean orbital ring (refined; no scatter).
+
+         All use additive blending so they read as glowing
+         atmosphere, not foreground objects. Particle scene is
+         separate from the main scene to keep them out of the
+         MeshPhysicalMaterial transmission pass. */
+      let particles = null;
+      let particleData = null;
+      let particleScene = null;
+      let particleDisposables = [];
+      if (b.particles) {
+        particles = new THREE.Group();
+        particleScene = new THREE.Scene();
+        particleScene.add(particles);
+
+        const mode = b.particles.mode ?? 'ring';
+
+        if (mode === 'ring') {
+          /* Single thin torus, edge-on with a slight tilt — reads as
+             a precision orbital ring (think Saturn or a halo). */
+          const tg = new THREE.TorusGeometry(1.55, 0.006, 10, 128);
+          const tm = new THREE.LineBasicMaterial({
+            color: 0xa7f3d0, transparent: true, opacity: 0.6,
+            blending: THREE.AdditiveBlending, depthWrite: false,
+          });
+          const ringEdges = new THREE.EdgesGeometry(tg, 0.5);
+          const ringWire = new THREE.LineSegments(ringEdges, tm);
+          ringWire.rotation.x = Math.PI / 2 + (Math.random() - 0.5) * 0.6;
+          ringWire.rotation.z = (Math.random() - 0.5) * 0.5;
+          particles.add(ringWire);
+          particleDisposables.push(tg, ringEdges, tm);
+          particleData = [{ mode: 'ring', mesh: ringWire }];
+
+        } else if (mode === 'pulse') {
+          /* 3 concentric expanding rings in staggered phase. Each
+             starts at the gem's surface radius and grows outward,
+             fading as it goes — sonar ping. */
+          const N = 3;
+          particleData = new Array(N);
+          for (let i = 0; i < N; i++) {
+            const rg = new THREE.RingGeometry(0.99, 1.01, 96);
+            const rm = new THREE.MeshBasicMaterial({
+              color: 0xa7f3d0, transparent: true, opacity: 0,
+              side: THREE.DoubleSide,
+              blending: THREE.AdditiveBlending, depthWrite: false,
+            });
+            const ring = new THREE.Mesh(rg, rm);
+            particles.add(ring);
+            particleDisposables.push(rg, rm);
+            particleData[i] = { mode: 'pulse', mesh: ring, phase: i / N };
+          }
+
+        } else {
+          /* 'orbit' — N evenly-spaced precision dots on a single
+             clean ring (defaults to 6). Each dot is a small sprite
+             with restrained opacity — atmosphere, not fireworks. */
+          const N = b.particles.count ?? 6;
+          const sprCanvas = document.createElement('canvas');
+          sprCanvas.width = 64; sprCanvas.height = 64;
+          const sctx = sprCanvas.getContext('2d');
+          const sg = sctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+          sg.addColorStop(0,    'rgba(220, 255, 235, 0.95)');
+          sg.addColorStop(0.35, 'rgba(167, 243, 208, 0.55)');
+          sg.addColorStop(1,    'rgba(110, 231, 183, 0)');
+          sctx.fillStyle = sg; sctx.fillRect(0, 0, 64, 64);
+          const sprTex = new THREE.CanvasTexture(sprCanvas);
+          sprTex.colorSpace = THREE.SRGBColorSpace;
+          particleScene.userData.sprTex = sprTex;
+
+          const radius   = b.particles.radius   ?? 1.55;
+          const tiltX    = b.particles.tiltX    ?? 0.35;
+          const baseTilt = Math.PI / 2;
+          particleData = new Array(N);
+          for (let i = 0; i < N; i++) {
+            const m = new THREE.SpriteMaterial({
+              map: sprTex, color: 0xc8f8e0,
+              transparent: true, blending: THREE.AdditiveBlending,
+              depthWrite: false, opacity: 0.55,
+            });
+            const sp = new THREE.Sprite(m);
+            sp.scale.setScalar(0.10);
+            particles.add(sp);
+            particleDisposables.push(m);
+            particleData[i] = {
+              mode: 'orbit', sprite: sp,
+              angle: (i / N) * Math.PI * 2,
+              radius, tiltX,
+            };
+          }
+        }
+      }
+
+      const baseEmissiveIntensity = mat.emissiveIntensity;
+      const baseGlassColor = mat.color.clone();
+      const warmGlass = new THREE.Color('#fff0d2');
+      const _tmpColor = new THREE.Color();
+
+      /* ── Per-gem state for the loop ──────────────────────────── */
+      let baseY = 0;
+      const current = { x: 0, y: 0 };
+      let activeFaceIdx = -1, cycleStart = 0, cycleComplete = true, activePattern = 0;
+
+      function update(t, dt) {
+        if (prefersReducedMotion) {
+          if (activeFaceIdx < 0) {
+            let bestIdx = 0, bestDot = -Infinity;
+            for (let i = 0; i < faces.length; i++) {
+              const d = getFaceWorldDot(i);
+              if (d > bestDot) { bestDot = d; bestIdx = i; }
+            }
+            activeFaceIdx = bestIdx;
+            placeOnFace(activeFaceIdx);
+          }
+          vMat.opacity = 0.45;
+          return;
+        }
+
+        baseY += dt * ROT_SPEED;
+        const wobbleX = Math.sin(t * Math.max(ROT_SPEED, 0.02) * 0.5) * WOB_AMP;
+        current.x += (cursorTarget.x - current.x) * PARAMS.spring;
+        current.y += (cursorTarget.y - current.y) * PARAMS.spring;
+        mesh.rotation.x = wobbleX + current.x;
+        mesh.rotation.y = baseY + current.y;
+        mesh.rotation.z = Math.sin(t * 0.03) * 0.04;
+
+        if (b.pulse) {
+          const amp = b.pulse.amp ?? 0.5;
+          const per = b.pulse.period ?? 2.6;
+          const w = (Math.sin((t / per) * Math.PI * 2) + 1) / 2;
+          mat.emissiveIntensity = baseEmissiveIntensity * (1 - amp) + baseEmissiveIntensity * (1 + amp) * w;
+        }
+        if (b.breathe) {
+          const amp = b.breathe.amp ?? 0.025;
+          const per = b.breathe.period ?? 4.0;
+          mesh.scale.setScalar(1 + Math.sin((t / per) * Math.PI * 2) * amp);
+        }
+        if (b.tintShift) {
+          const amp = b.tintShift.amp ?? 0.25;
+          const per = b.tintShift.period ?? 6.0;
+          const w = (Math.sin((t / per) * Math.PI * 2) + 1) / 2;
+          _tmpColor.copy(baseGlassColor).lerp(warmGlass, w * amp);
+          mat.color.copy(_tmpColor);
+        }
+        if (b.wireframePulse) {
+          const w = (Math.sin(t * 1.3) + 1) / 2;
+          wireMat.opacity = 0.35 + 0.55 * w;
+        }
+
+        if (particles && particleData) {
+          for (let i = 0; i < particleData.length; i++) {
+            const p = particleData[i];
+            if (p.mode === 'ring') {
+              p.mesh.rotation.y += dt * 0.35;
+            } else if (p.mode === 'pulse') {
+              /* Period = 2.4s. Ring starts at scale 1 (gem surface),
+                 expands to 2.4, fades from 0.7 to 0 over the same time. */
+              const period = 2.4;
+              const ph = ((t / period) + p.phase) % 1;
+              p.mesh.scale.setScalar(1 + ph * 1.4);
+              p.mesh.material.opacity = (1 - ph) * 0.55 * (ph < 0.05 ? ph / 0.05 : 1);
+            } else if (p.mode === 'orbit') {
+              p.angle += dt * 0.18;
+              const x = Math.cos(p.angle) * p.radius;
+              const z = Math.sin(p.angle) * p.radius;
+              const y = x * p.tiltX;
+              p.sprite.position.set(x, y, z);
+              // gentle, low-amplitude twinkle so they don't read as static
+              p.sprite.material.opacity = 0.40 + 0.20 * (0.5 + 0.5 * Math.sin(t * 1.6 + i));
+            }
+          }
+        }
+
+        if (b.persistentGlyph) {
+          let bestIdx = 0, bestDot = -Infinity;
+          for (let i = 0; i < faces.length; i++) {
+            const d = getFaceWorldDot(i);
+            if (d > bestDot) { bestDot = d; bestIdx = i; }
+          }
+          activeFaceIdx = bestIdx;
+          placeOnFace(activeFaceIdx);
+          const micro = 0.05 * Math.sin(t * 5.7 + 0.4);
+          const blink = (Math.sin(t * 17 + 1.1) * Math.sin(t * 5 + 0.8)) > 0.82 ? -0.5 : 0;
+          const envelope = smoothstep(ENV_LO, ENV_HI, bestDot);
+          vMat.opacity = Math.max(0.12, Math.min(1, (0.92 + micro + blink) * envelope));
+        } else {
+          if (cycleComplete) {
+            let bestIdx = -1, bestDot = -Infinity;
+            for (let i = 0; i < faces.length; i++) {
+              if (i === activeFaceIdx) continue;
+              const d = getFaceWorldDot(i);
+              if (d > bestDot) { bestDot = d; bestIdx = i; }
+            }
+            if (bestIdx >= 0 && bestDot >= CLAIM_DOT) {
+              activeFaceIdx = bestIdx;
+              cycleStart = t;
+              cycleComplete = false;
+              activePattern = bestIdx % HOLD_FLICKERS.length;
+              placeOnFace(activeFaceIdx);
+            }
+          }
+          let cycleOpacity = 0;
+          if (!cycleComplete) {
+            const localT = t - cycleStart;
+            if (localT < FADE_IN_DUR) {
+              const ramp  = localT / FADE_IN_DUR;
+              const flick = 0.55 + 0.45 * Math.abs(Math.sin(t * 11 + activePattern));
+              cycleOpacity = ramp * flick;
+            } else if (localT < FADE_IN_DUR + HOLD_DUR) {
+              cycleOpacity = HOLD_FLICKERS[activePattern](t, activePattern);
+            } else if (localT < CYCLE_DUR) {
+              const off    = (localT - FADE_IN_DUR - HOLD_DUR) / FADE_OUT_DUR;
+              const strobe = Math.sin(t * 38 + activePattern) > -0.4 ? 1 : 0.1;
+              cycleOpacity = (1 - off) * strobe;
+            } else {
+              cycleComplete = true;
+              cycleOpacity = 0;
+            }
+          }
+          const envelope = activeFaceIdx >= 0
+            ? smoothstep(ENV_LO, ENV_HI, getFaceWorldDot(activeFaceIdx))
+            : 0;
+          vMat.opacity = Math.max(0, Math.min(1, cycleOpacity * envelope));
+        }
+      }
+
+      const gem = { scene, camera, mesh, placeholder, update, particleScene };
+      gems.push(gem);
+
+      return () => {
+        const idx = gems.indexOf(gem);
+        if (idx >= 0) gems.splice(idx, 1);
+        edgesGeo.dispose();
+        wireMat.dispose();
+        vGeo.dispose();
+        vMat.dispose();
+        vTex.dispose();
+        mat.dispose();
+        if (particles) {
+          for (const d of particleDisposables) d.dispose && d.dispose();
+          if (particleScene && particleScene.userData.sprTex) {
+            particleScene.userData.sprTex.dispose();
+          }
+        }
+      };
+    }
+
+    /* ──────────────────────────────────────────────────────────────
+       Glyph library — tech-minimal vocabulary. Every glyph is a
+       single architectural stroke (open or closed) in the same
+       family as the V hero mark: no closed pictograms (no heart
+       silhouettes, no star outlines), no chunky pictograph weights.
+       Each represents an IDEA, not a literal object — pulse-line
+       not heart, staircase not star, gauge bar not barbell.
+
+       Stay roughly inside (140, 140) → (372, 372) so the glyph fits
+       within an icosahedron face triangle when mapped to the 0.62
+       plane. Coords are in a 512² canvas, centered at (256, 256).
+       ────────────────────────────────────────────────────────────── */
+    const GLYPHS = {
+      /* Hero brand mark — keep. */
+      V: (ctx) => {
+        ctx.beginPath();
+        ctx.moveTo(146, 174); ctx.lineTo(256, 360); ctx.lineTo(366, 174);
+        ctx.stroke();
+      },
+      /* Confirmation / completion — single sharp tick. */
+      CHECK: (ctx) => {
+        ctx.beginPath();
+        ctx.moveTo(146, 268); ctx.lineTo(226, 348); ctx.lineTo(370, 172);
+        ctx.stroke();
+      },
+      /* Add / new / extend — clean cross. */
+      PLUS: (ctx) => {
+        ctx.beginPath();
+        ctx.moveTo(256, 160); ctx.lineTo(256, 352);
+        ctx.moveTo(160, 256); ctx.lineTo(352, 256);
+        ctx.stroke();
+      },
+      /* Foundation / structure — hexagon outline. */
+      HEX: (ctx) => {
+        const cx = 256, cy = 256, R = 112;
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+          const a = (i / 6) * Math.PI * 2 - Math.PI / 2;
+          const x = cx + Math.cos(a) * R;
+          const y = cy + Math.sin(a) * R;
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.closePath(); ctx.stroke();
+      },
+
+      /* Recovery / vitals — heartbeat: flat baseline + ONE prominent
+         QRS spike + a smaller recovery spike. Simplified from a busy
+         8-segment EKG to 6 segments — reads instantly at neon width. */
+      PULSE: (ctx) => {
+        ctx.beginPath();
+        ctx.moveTo(140, 256);
+        ctx.lineTo(216, 256);
+        ctx.lineTo(238, 296);   // small dip
+        ctx.lineTo(258, 180);   // tall spike up
+        ctx.lineTo(282, 320);   // sharp spike down
+        ctx.lineTo(302, 256);
+        ctx.lineTo(372, 256);
+        ctx.stroke();
+      },
+      /* Streak / progression — three-step staircase ascending.
+         Cut from 4 to 3 steps; cleaner gestalt at neon width. */
+      ASCEND: (ctx) => {
+        ctx.beginPath();
+        ctx.moveTo(140, 344); ctx.lineTo(216, 344);
+        ctx.lineTo(216, 268); ctx.lineTo(296, 268);
+        ctx.lineTo(296, 192); ctx.lineTo(372, 192);
+        ctx.stroke();
+      },
+      /* Encourage — plain upward arrow ("keep going, you're rising"). */
+      ARROW_UP: (ctx) => {
+        ctx.beginPath();
+        ctx.moveTo(256, 360); ctx.lineTo(256, 168);
+        ctx.moveTo(192, 232); ctx.lineTo(256, 162); ctx.lineTo(320, 232);
+        ctx.stroke();
+      },
+      /* Consider — balance scale ("weighing the options"). */
+      BALANCE: (ctx) => {
+        ctx.beginPath();
+        ctx.moveTo(112, 188); ctx.lineTo(400, 188);   // beam
+        ctx.moveTo(256, 188); ctx.lineTo(256, 388);   // post
+        ctx.moveTo(196, 388); ctx.lineTo(316, 388);   // base
+        ctx.moveTo(256, 188); ctx.lineTo(256, 140);   // hanger
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(112, 188); ctx.lineTo(72, 268); ctx.lineTo(152, 268); ctx.closePath();
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(400, 188); ctx.lineTo(360, 268); ctx.lineTo(440, 268); ctx.closePath();
+        ctx.stroke();
+      },
+      /* Let's go — pennant flag on a pole (race-start "go!"). */
+      FLAG: (ctx) => {
+        ctx.beginPath();
+        ctx.moveTo(184, 148); ctx.lineTo(184, 376);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(184, 168); ctx.lineTo(338, 200); ctx.lineTo(184, 232);
+        ctx.stroke();
+      },
+      /* Listening — a source dot + two sound waves (kept clean). */
+      LISTEN: (ctx) => {
+        const a = Math.PI * 0.28;
+        ctx.beginPath(); ctx.arc(180, 256, 16, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(180, 256, 100, -a, a); ctx.stroke();
+        ctx.beginPath(); ctx.arc(180, 256, 168, -a, a); ctx.stroke();
+      },
+      /* Celebrate — wrapped gift box with a bow ("reward unlocked"). */
+      GIFT: (ctx) => {
+        ctx.beginPath();
+        ctx.moveTo(150, 214); ctx.lineTo(362, 214); ctx.lineTo(362, 252); ctx.lineTo(150, 252);
+        ctx.closePath(); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(168, 252); ctx.lineTo(168, 392); ctx.lineTo(344, 392); ctx.lineTo(344, 252);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(256, 214); ctx.lineTo(256, 392); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(256, 210); ctx.bezierCurveTo(198, 150, 168, 190, 244, 212); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(256, 210); ctx.bezierCurveTo(314, 150, 344, 190, 268, 212); ctx.stroke();
+      },
+      /* Cheer — short rays bursting outward around an open center. */
+      RAYS: (ctx) => {
+        const cx = 256, cy = 256, r0 = 118, r1 = 178;
+        for (let i = 0; i < 8; i++) {
+          const a = (i / 8) * Math.PI * 2 - Math.PI / 2;
+          ctx.beginPath();
+          ctx.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0);
+          ctx.lineTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1);
+          ctx.stroke();
+        }
+      },
+      /* Win — trophy cup with handles. */
+      TROPHY: (ctx) => {
+        ctx.beginPath();
+        ctx.moveTo(192, 178); ctx.lineTo(320, 178); ctx.lineTo(320, 196);
+        ctx.bezierCurveTo(320, 266, 294, 304, 256, 304);
+        ctx.bezierCurveTo(218, 304, 192, 266, 192, 196);
+        ctx.closePath(); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(256, 304); ctx.lineTo(256, 346);
+        ctx.moveTo(232, 346); ctx.lineTo(280, 346);
+        ctx.moveTo(208, 366); ctx.lineTo(304, 366);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(192, 188); ctx.bezierCurveTo(150, 194, 150, 248, 196, 254); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(320, 188); ctx.bezierCurveTo(362, 194, 362, 248, 316, 254); ctx.stroke();
+      },
+      /* Twinkle — five-point star. */
+      STAR: (ctx) => {
+        const cx = 256, cy = 262, R = 128, r = 52;
+        ctx.beginPath();
+        for (let i = 0; i < 10; i++) {
+          const rad = i % 2 === 0 ? R : r;
+          const a = -Math.PI / 2 + (i * Math.PI) / 5;
+          const x = cx + Math.cos(a) * rad, y = cy + Math.sin(a) * rad;
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.closePath(); ctx.stroke();
+      },
+      /* Groove — eighth note (dance / come alive). */
+      MUSIC: (ctx) => {
+        ctx.beginPath(); ctx.ellipse(210, 332, 38, 27, -0.35, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(245, 322); ctx.lineTo(245, 164); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(245, 164);
+        ctx.bezierCurveTo(302, 178, 314, 216, 292, 254);
+        ctx.stroke();
+      },
+      /* Let's go (variant 1) — a rocket lifting off. */
+      ROCKET: (ctx) => {
+        ctx.beginPath();
+        ctx.moveTo(256, 96);
+        ctx.bezierCurveTo(320, 176, 320, 272, 296, 336);
+        ctx.lineTo(216, 336);
+        ctx.bezierCurveTo(192, 272, 192, 176, 256, 96);
+        ctx.closePath(); ctx.stroke();
+        ctx.beginPath(); ctx.arc(256, 208, 27, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(216, 336); ctx.lineTo(160, 400); ctx.lineTo(216, 368); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(296, 336); ctx.lineTo(352, 400); ctx.lineTo(296, 368); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(240, 348); ctx.lineTo(240, 392);
+        ctx.moveTo(272, 348); ctx.lineTo(272, 392);
+        ctx.stroke();
+      },
+      /* Let's go (variant 2) — two chevrons climbing. */
+      CHEVRONS: (ctx) => {
+        ctx.beginPath(); ctx.moveTo(160, 272); ctx.lineTo(256, 192); ctx.lineTo(352, 272); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(160, 368); ctx.lineTo(256, 288); ctx.lineTo(352, 368); ctx.stroke();
+      },
+      /* Let's go (variant 3) — a paper plane gliding forward. */
+      PLANE: (ctx) => {
+        ctx.beginPath();
+        ctx.moveTo(416, 112); ctx.lineTo(112, 240); ctx.lineTo(240, 280); ctx.lineTo(272, 384);
+        ctx.closePath(); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(240, 280); ctx.lineTo(416, 112); ctx.stroke();
+      },
+      /* Level up (variant 1) — staircase climbing off a ground line. */
+      STEPS: (ctx) => {
+        ctx.beginPath();
+        ctx.moveTo(112, 400); ctx.lineTo(208, 400);
+        ctx.lineTo(208, 304); ctx.lineTo(304, 304);
+        ctx.lineTo(304, 208); ctx.lineTo(400, 208);
+        ctx.lineTo(400, 112);
+        ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(80, 432); ctx.lineTo(432, 432); ctx.stroke();
+      },
+      /* Level up (variant 2) — three rising tier bars on a baseline. */
+      TIERS: (ctx) => {
+        ctx.beginPath();
+        ctx.moveTo(104, 272); ctx.lineTo(184, 272); ctx.lineTo(184, 400); ctx.lineTo(104, 400); ctx.closePath();
+        ctx.moveTo(216, 192); ctx.lineTo(296, 192); ctx.lineTo(296, 400); ctx.lineTo(216, 400); ctx.closePath();
+        ctx.moveTo(328, 112); ctx.lineTo(408, 112); ctx.lineTo(408, 400); ctx.lineTo(328, 400); ctx.closePath();
+        ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(80, 416); ctx.lineTo(432, 416); ctx.stroke();
+      },
+      /* Level up (variant 3) — an arrow breaking up through a ceiling line. */
+      BREAKTHROUGH: (ctx) => {
+        ctx.beginPath(); ctx.moveTo(96, 368); ctx.lineTo(416, 368); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(256, 352); ctx.lineTo(256, 128);
+        ctx.moveTo(176, 208); ctx.lineTo(256, 112); ctx.lineTo(336, 208);
+        ctx.stroke();
+      },
+      /* Energy / peak — two-segment thin bolt. */
+      BOLT: (ctx) => {
+        ctx.beginPath();
+        ctx.moveTo(286, 158);
+        ctx.lineTo(216, 256);
+        ctx.lineTo(280, 256);
+        ctx.lineTo(228, 358);
+        ctx.stroke();
+      },
+      /* Fitness / strength — clean dumbbell. Two tall rectangular
+         weight plates connected by a horizontal bar. The Apple Health
+         "dumbbell.fill" silhouette, rendered as outlined strokes.
+         Reads instantly as a gym icon. */
+      BAR: (ctx) => {
+        // Left weight (tall outlined rectangle)
+        ctx.beginPath();
+        ctx.moveTo(150, 196);
+        ctx.lineTo(196, 196);
+        ctx.lineTo(196, 316);
+        ctx.lineTo(150, 316);
+        ctx.closePath();
+        ctx.stroke();
+        // Right weight
+        ctx.beginPath();
+        ctx.moveTo(316, 196);
+        ctx.lineTo(362, 196);
+        ctx.lineTo(362, 316);
+        ctx.lineTo(316, 316);
+        ctx.closePath();
+        ctx.stroke();
+        // Bar between the two plates
+        ctx.beginPath();
+        ctx.moveTo(196, 256);
+        ctx.lineTo(316, 256);
+        ctx.stroke();
+      },
+      /* Hydration / water — clean teardrop silhouette, single closed
+         bezier path. Standard Apple-Health water mark at neon weight. */
+      DROP: (ctx) => {
+        ctx.beginPath();
+        ctx.moveTo(256, 162);
+        ctx.bezierCurveTo(208, 234, 184, 282, 184, 314);
+        ctx.bezierCurveTo(184, 354, 218, 376, 256, 376);
+        ctx.bezierCurveTo(294, 376, 328, 354, 328, 314);
+        ctx.bezierCurveTo(328, 282, 304, 234, 256, 162);
+        ctx.closePath();
+        ctx.stroke();
+      },
+      /* Sleep / rest — three Z's stacked diagonally, drifting up + right
+         like classic comic-strip "sleeping" marks. Way more legible than
+         a crescent for the sleep concept. */
+      ZZZ: (ctx) => {
+        ctx.beginPath();
+        // Large Z (bottom-left, closest, most prominent)
+        ctx.moveTo(150, 296); ctx.lineTo(226, 296);
+        ctx.lineTo(150, 372); ctx.lineTo(226, 372);
+        // Medium Z (middle, drifting up-right)
+        ctx.moveTo(228, 222); ctx.lineTo(288, 222);
+        ctx.lineTo(228, 282); ctx.lineTo(288, 282);
+        // Small Z (top-right, furthest, smallest)
+        ctx.moveTo(294, 162); ctx.lineTo(340, 162);
+        ctx.lineTo(294, 208); ctx.lineTo(340, 208);
+        ctx.stroke();
+      },
+      /* Night / calm — thin crescent arc, NOT a closed shape. Kept in
+         the library for future night-mode / wind-down modules. */
+      CRESCENT: (ctx) => {
+        ctx.beginPath();
+        ctx.arc(256, 256, 108, Math.PI * 0.30, Math.PI * 1.70);
+        ctx.stroke();
+      },
+      /* Wearables / signal — one elegant sine period. */
+      SINE: (ctx) => {
+        ctx.beginPath();
+        ctx.moveTo(140, 256);
+        ctx.bezierCurveTo(180, 188, 220, 188, 256, 256);
+        ctx.bezierCurveTo(292, 324, 332, 324, 372, 256);
+        ctx.stroke();
+      },
+      /* Focus / precision — sniper-style reticle: outer ring + four
+         directional tick marks breaking the ring at compass points.
+         Replaces the "dartboard" two-concentric-circles look. */
+      RINGS: (ctx) => {
+        ctx.beginPath();
+        ctx.arc(256, 256, 96, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        // Four crosshair ticks reaching toward (but not into) the ring
+        ctx.moveTo(256, 134); ctx.lineTo(256, 174);  // top
+        ctx.moveTo(256, 338); ctx.lineTo(256, 378);  // bottom
+        ctx.moveTo(134, 256); ctx.lineTo(174, 256);  // left
+        ctx.moveTo(338, 256); ctx.lineTo(378, 256);  // right
+        ctx.stroke();
+      },
+      /* Direction / momentum — single upward chevron. */
+      CHEVRON: (ctx) => {
+        ctx.beginPath();
+        ctx.moveTo(166, 304);
+        ctx.lineTo(256, 216);
+        ctx.lineTo(346, 304);
+        ctx.stroke();
+      },
+      /* Presence / now — outer ring + enlarged center pip.
+         Center radius bumped from 10 → 22 so the pip survives the
+         5-layer glow at neon stroke width (outer layer is 18px). */
+      DOT: (ctx) => {
+        ctx.beginPath();
+        ctx.arc(256, 256, 96, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(256, 256, 22, 0, Math.PI * 2);
+        ctx.stroke();
+      },
+
+      /* Push day — chevron above a baseline. Force projected above. */
+      PUSH: (ctx) => {
+        ctx.beginPath();
+        ctx.moveTo(149, 213); ctx.lineTo(256, 128); ctx.lineTo(363, 213);
+        ctx.moveTo(107, 341); ctx.lineTo(405, 341);
+        ctx.stroke();
+      },
+      /* Pull day — baseline above a chevron. Force pulled below. */
+      PULL: (ctx) => {
+        ctx.beginPath();
+        ctx.moveTo(107, 171); ctx.lineTo(405, 171);
+        ctx.moveTo(149, 299); ctx.lineTo(256, 384); ctx.lineTo(363, 299);
+        ctx.stroke();
+      },
+      /* Legs day — arched gateway (Π / inverted U). Foundation. */
+      LEGS: (ctx) => {
+        ctx.beginPath();
+        ctx.moveTo(149, 373);                            // left pillar bottom
+        ctx.lineTo(149, 192);                            // up to start of arch
+        ctx.arc(256, 192, 107, Math.PI, 0, false);       // arch from (149,192) to (363,192)
+        ctx.lineTo(363, 373);                            // right pillar down
+        ctx.stroke();
+      },
+      /* Upper body — stacked upward chevrons. Double-up · top half. */
+      UPPER: (ctx) => {
+        ctx.beginPath();
+        ctx.moveTo(149, 181); ctx.lineTo(256, 96);  ctx.lineTo(363, 181);
+        ctx.moveTo(149, 309); ctx.lineTo(256, 224); ctx.lineTo(363, 309);
+        ctx.stroke();
+      },
+      /* Lower body — stacked downward chevrons. Double-down · base half. */
+      LOWER: (ctx) => {
+        ctx.beginPath();
+        ctx.moveTo(149, 203); ctx.lineTo(256, 288); ctx.lineTo(363, 203);
+        ctx.moveTo(149, 331); ctx.lineTo(256, 416); ctx.lineTo(363, 331);
+        ctx.stroke();
+      },
+    };
+
+    /* ──────────────────────────────────────────────────────────────
+       Mount cards. The card's .gem-stage is just an empty div — the
+       shared canvas draws into a viewport matching its rect.
+       ────────────────────────────────────────────────────────────── */
+    function mountCard(parent, { shape, glyph, label, sub, behavior }) {
+      const card = document.createElement('div');
+      card.className = 'gem-card';
+      const stage = document.createElement('div');
+      stage.className = 'gem-stage' + (behavior && behavior.halo ? ' halo' : '');
+      const meta = document.createElement('div');
+      meta.className = 'gem-meta';
+      const lbl = document.createElement('span'); lbl.className = 'gem-label'; lbl.textContent = label;
+      const sb  = document.createElement('span'); sb.className  = 'gem-sub';   sb.textContent  = sub;
+      meta.appendChild(lbl); meta.appendChild(sb);
+      card.appendChild(stage); card.appendChild(meta);
+      parent.appendChild(card);
+      createCrystal(stage, { shape, drawGlyph: GLYPHS[glyph], behavior });
+    }
+
+    /* ── Hero ─────────────────────────────────────────────────── */
+    mountCard(document.getElementById('grid-hero'),
+      { shape: 'icosahedron', glyph: 'V', label: 'Vitality', sub: 'Icosa · V' });
+
+    /* ── Behavior archetypes — same engine, different personality.
+       Each pairs a glyph from the new tech-minimal set with timing,
+       motion, and atmosphere effects so the gem reads as a distinct
+       module persona. */
+    const BEHAVIORS = [
+      { label: 'Pulsar',     sub: 'sonar · long hold',     shape: 'icosahedron',  glyph: 'PULSE',
+        behavior: {
+          rotationSpeed: 0.04, wobbleAmplitude: 0.06,
+          fadeInDur: 1.8, holdDur: 6.5, fadeOutDur: 0.9,
+          pulse: { amp: 0.7, period: 2.6 },
+          particles: { mode: 'pulse' },
+          halo: true,
+        }
+      },
+      { label: 'Streak',     sub: 'fast · ascend',          shape: 'dodecahedron', glyph: 'ASCEND',
+        behavior: {
+          rotationSpeed: 0.14, wobbleAmplitude: 0.08,
+          fadeInDur: 0.6, holdDur: 1.8, fadeOutDur: 0.25,
+        }
+      },
+      { label: 'Sleeper',    sub: 'still · breathing',      shape: 'sphere',       glyph: 'CRESCENT',
+        behavior: {
+          rotationSpeed: 0.005, wobbleAmplitude: 0.02,
+          fadeInDur: 3.0, holdDur: 5.0, fadeOutDur: 3.0,
+          breathe: { amp: 0.022, period: 5.2 },
+          halo: true,
+        }
+      },
+      { label: 'Hyper',      sub: 'fast · rapid flicker',   shape: 'octahedron',   glyph: 'BOLT',
+        behavior: {
+          rotationSpeed: 0.20, wobbleAmplitude: 0.22,
+          fadeInDur: 0.25, holdDur: 0.8, fadeOutDur: 0.2,
+          pulse: { amp: 0.3, period: 1.4 },
+        }
+      },
+      { label: 'Aurora',     sub: 'orbital ring · halo',    shape: 'dodecahedron', glyph: 'HEX',
+        behavior: {
+          rotationSpeed: 0.04, wobbleAmplitude: 0.04,
+          fadeInDur: 1.6, holdDur: 5.2, fadeOutDur: 0.8,
+          particles: { mode: 'ring' },
+          halo: true,
+          wireframePulse: true,
+        }
+      },
+      { label: 'Solitaire',  sub: 'locked · persistent',    shape: 'icosahedron',  glyph: 'V',
+        behavior: {
+          rotationSpeed: 0, wobbleAmplitude: 0,
+          persistentGlyph: true,
+          breathe: { amp: 0.025, period: 4.0 },
+          pulse: { amp: 0.25, period: 3.4 },
+          halo: true,
+        }
+      },
+      { label: 'Compass',    sub: 'orbit · 6 dots',         shape: 'tetrahedron',  glyph: 'CHEVRON',
+        behavior: {
+          rotationSpeed: 0.10, wobbleAmplitude: 0.10,
+          fadeInDur: 0.8, holdDur: 2.5, fadeOutDur: 0.4,
+          particles: { mode: 'orbit', count: 6 },
+        }
+      },
+      { label: 'Calm V',     sub: 'slow · persistent',      shape: 'icosahedron',  glyph: 'V',
+        behavior: {
+          rotationSpeed: 0.02, wobbleAmplitude: 0.04,
+          persistentGlyph: true,
+          breathe: { amp: 0.015, period: 5.0 },
+          tintShift: { amp: 0.18, period: 8.0 },
+          halo: true,
+        }
+      },
+    ];
+    BEHAVIORS.forEach((b) => mountCard(document.getElementById('grid-behaviors'), b));
+
+    /* ── Module variants — tech-minimal glyphs per module ────── */
+    const MODULES = [
+      { shape: 'icosahedron',  glyph: 'BAR',     label: 'Fitness',    sub: 'Icosa · bar' },
+      { shape: 'dodecahedron', glyph: 'CHECK',   label: 'Good work',  sub: 'Dodeca · check' },
+      { shape: 'octahedron',   glyph: 'BOLT',    label: 'Peak',       sub: 'Octa · bolt' },
+      { shape: 'sphere',       glyph: 'DROP',    label: 'Water',      sub: 'Sphere · drop' },
+      { shape: 'icosahedron',  glyph: 'PULSE',   label: 'Recovery',   sub: 'Icosa · pulse' },
+      { shape: 'dodecahedron', glyph: 'ASCEND',  label: 'Streak',     sub: 'Dodeca · ascend' },
+      { shape: 'tetrahedron',  glyph: 'PLUS',    label: 'Add',        sub: 'Tetra · plus' },
+      { shape: 'sphere',       glyph: 'ZZZ',     label: 'Sleep',      sub: 'Sphere · zzz' },
+      { shape: 'icosahedron',  glyph: 'SINE',    label: 'Wearables',  sub: 'Icosa · sine' },
+      { shape: 'dodecahedron', glyph: 'HEX',     label: 'Foundation', sub: 'Dodeca · hex' },
+      { shape: 'icosahedron',  glyph: 'RINGS',   label: 'Focus',      sub: 'Icosa · rings' },
+      { shape: 'octahedron',   glyph: 'CHEVRON', label: 'Momentum',   sub: 'Octa · chevron' },
+      { shape: 'sphere',       glyph: 'DOT',     label: 'Now',        sub: 'Sphere · dot' },
+    ];
+    MODULES.forEach((m) => mountCard(document.getElementById('grid-modules'), m));
+
+    /* ── Shape sampler — same V across the full solid set ──── */
+    const SHAPES = [
+      { shape: 'icosahedron',  glyph: 'V', label: 'Icosahedron',  sub: '20 faces' },
+      { shape: 'dodecahedron', glyph: 'V', label: 'Dodecahedron', sub: '12 faces' },
+      { shape: 'octahedron',   glyph: 'V', label: 'Octahedron',   sub: '8 faces' },
+      { shape: 'tetrahedron',  glyph: 'V', label: 'Tetrahedron',  sub: '4 faces' },
+      { shape: 'sphere',       glyph: 'V', label: 'Sphere',       sub: '∞ faces' },
+    ];
+    SHAPES.forEach((s) => mountCard(document.getElementById('grid-shapes'), s));
+
+    /* ── Icon reference — flat glyph previews + meanings ───────
+       Renders each glyph on its own 2D canvas (no 3D, no shared
+       renderer) so the marks read as pure typography. Same 5-layer
+       glow stack as the gems, so the visual language is identical. */
+
+    /* ── Vitality line-icon set (the VitalityIcon.tsx library) ──────
+       These marks are authored as 24-grid SVG paths in the app
+       (components/VitalityIcon.tsx). To render them here with the SAME
+       neon stack as the gem glyphs, we map the path data into 512²
+       space with a single matrix — no redraw, so they stay pixel-faithful
+       to what ships. Stroke width is left to renderFlatGlyph's passes
+       (the matrix scales geometry only, never the line width). */
+    const ICON_S = 12, ICON_OFF = 256 - 12 * ICON_S;
+    const ICON_MATRIX = new DOMMatrix([ICON_S, 0, 0, ICON_S, ICON_OFF, ICON_OFF]);
+    const mkIcon = ({ paths = [], circles = [], rects = [] }) => (ctx) => {
+      const P = new Path2D();
+      for (const d of paths) P.addPath(new Path2D(d), ICON_MATRIX);
+      for (const [cx, cy, r] of circles) {
+        const c = new Path2D(); c.arc(cx, cy, r, 0, Math.PI * 2);
+        P.addPath(c, ICON_MATRIX);
+      }
+      for (const [x, y, w, h, r] of rects) {
+        const c = new Path2D(); c.roundRect(x, y, w, h, r);
+        P.addPath(c, ICON_MATRIX);
+      }
+      ctx.stroke(P);
+    };
+    const FUEL_ICONS = {
+      KCAL:      { paths: ['M12.6 2.8 C 12.4 6 10.6 7.4 9.4 9.6 C 8.5 11.2 7.2 12.6 7.2 14.8 a4.8 4.8 0 0 0 9.6 0 c 0 -2.5 -1.2 -4.3 -2.8 -5.9 c -0.3 1.4 -1 2 -1.9 2.2 c 0.9 -2.9 0.5 -5.8 0.5 -8.1 Z', 'M12 18 a2.2 2.2 0 0 1 -1 -4.2 c 0.4 1.2 1.5 1.1 1.5 2.4 a2.1 2.1 0 0 1 -0.5 1.8'] },
+      PROTEIN:   { paths: ['M15 12 C 12 8.5 6.5 8.5 4 12 C 6.5 15.5 12 15.5 15 12 Z', 'M15 12 L 18.6 9.5 L 18.6 14.5 Z', 'M6.6 10.9 h0.01'] },
+      CARB:      { paths: ['M12 20.5 V 9', 'M12 8 c 0 -1.6 0.7 -2.6 0 -3.8 c -0.7 1.2 0 2.2 0 3.8 Z', 'M12 11.2 c -1.6 -0.3 -2.5 -1.1 -2.6 -2.8 c 1.6 0.2 2.4 1 2.6 2.8 Z', 'M12 11.2 c 1.6 -0.3 2.5 -1.1 2.6 -2.8 c -1.6 0.2 -2.4 1 -2.6 2.8 Z', 'M12 15 c -1.6 -0.3 -2.5 -1.1 -2.6 -2.8 c 1.6 0.2 2.4 1 2.6 2.8 Z', 'M12 15 c 1.6 -0.3 2.5 -1.1 2.6 -2.8 c -1.6 0.2 -2.4 1 -2.6 2.8 Z'] },
+      FAT:       { paths: ['M12 3.8 C 14.2 4 15.1 6.6 15.1 8.8 C 15.1 10.5 16.6 11.5 16.6 13.6 A4.6 4.6 0 0 1 7.4 13.6 C 7.4 11.5 8.9 10.5 8.9 8.8 C 8.9 6.6 9.8 4 12 3.8 Z'], circles: [[12, 13.8, 2.3]] },
+      EATEN:     { paths: ['M8.2 3.6 V 7.8', 'M10.3 3.6 V 7.8', 'M12.4 3.6 V 7.8', 'M8.2 7.8 c 0 1.5 2.1 1.5 2.1 3 V 20.4', 'M12.4 7.8 c 0 1.5 -2.1 1.5 -2.1 3', 'M16.4 20.4 V 12 c -2 -0.8 -2 -6.8 0 -8 c 2 1.2 2 7.2 0 8'] },
+      GOAL:      { paths: ['M7.2 20.5 V 3.6', 'M7.2 4.2 L 17 6.5 L 7.2 8.8 Z'] },
+      FOODATE:   { circles: [[12, 12, 7.6], [12, 12, 4.3]] },
+      SNACK:     { circles: [[12, 12, 7.5]], paths: ['M9.4 9.6 h0.01', 'M14.4 9.2 h0.01', 'M13.4 13.4 h0.01', 'M9.7 14.2 h0.01', 'M15.1 13 h0.01'] },
+      BREAKFAST: { paths: ['M4 18.4 H 20', 'M7.7 18.4 a4.3 4.3 0 0 1 8.6 0', 'M12 7.6 V 9.6', 'M5.6 12.8 L 7.1 13.9', 'M18.4 12.8 L 16.9 13.9'] },
+      LUNCH:     { circles: [[12, 12, 3.3]], paths: ['M12 4.2 V 6.2', 'M12 17.8 V 19.8', 'M4.2 12 H 6.2', 'M17.8 12 H 19.8', 'M6.5 6.5 L 7.9 7.9', 'M16.1 16.1 L 17.5 17.5', 'M17.5 6.5 L 16.1 7.9', 'M7.9 16.1 L 6.5 17.5'] },
+      DINNER:    { paths: ['M16 16 A6.8 6.8 0 1 1 12.4 4.2 A5.2 5.2 0 0 0 16 16 Z', 'M18 4.6 C 18.3 6 18.4 6.1 19.8 6.4 C 18.4 6.7 18.3 6.8 18 8.2 C 17.7 6.8 17.6 6.7 16.2 6.4 C 17.6 6.1 17.7 6 18 4.6 Z'] },
+      WEEK:      { rects: [[5, 6, 14, 14, 2.4]], paths: ['M9 4.2 V 7.4', 'M15 4.2 V 7.4', 'M5 10 H 19', 'M8.6 13.2 h0.01', 'M12 13.2 h0.01', 'M15.4 13.2 h0.01', 'M8.6 16.6 h0.01', 'M12 16.6 h0.01', 'M15.4 16.6 h0.01'] },
+      DAY:       { paths: ['M7.5 4.5 H15 A2 2 0 0 1 17 6.5 V13.5 L12.5 19.5 H6.5 A2 2 0 0 1 4.5 17.5 V6.5 A2 2 0 0 1 6.5 4.5 Z', 'M17 13.5 H12.5 V19.5', 'M4.5 8.6 H17'] },
+      CUT:       { paths: ['M4 8 L 9.3 11 L 13.4 9.6 L 19.5 15.6', 'M16.1 15.6 L 19.5 15.6 L 19.5 12.2'] },
+      MAINTAIN:  { paths: ['M4 12 L 9.3 11 L 13.4 13 L 18 12', 'M14.9 8.7 L 18 12 L 14.9 15.3'] },
+      BULK:      { paths: ['M4 16 L 9.3 13 L 13.4 14.4 L 19.5 8.4', 'M16.1 8.4 L 19.5 8.4 L 19.5 11.8'] },
+      CAMERA:    { rects: [[3.5, 7, 17, 12.5, 2.6]], paths: ['M9 7l1.2-2.2h3.6L15 7'], circles: [[12, 13.2, 3.1]] },
+      BARCODE:   { paths: ['M4 5v14M6.4 5v14M8 5v14M11 5v14M13.4 5v14M15 5v14M18 5v14M20 5v14'] },
+      EGG:       { paths: ['M12 4c3.3 0 5.6 4.4 5.6 8.2a5.6 6.6 0 1 1-11.2 0C6.4 8.4 8.7 4 12 4Z'] },
+      APPLE:     { paths: ['M12 8.2c-1-1.4-2.9-1.9-4.3-1C6.1 8 5.6 10 6.1 12.4c.5 2.3 2 4.8 3.5 5.3 1 .3 1.6-.3 2.4-.3s1.4.6 2.4.3c1.5-.5 3-3 3.5-5.3.5-2.4 0-4.4-1.6-5.2-1.4-.9-3.3-.4-4.3 1Z', 'M12 8.2c-.1-1.6.6-3.1 2.4-3.7'] },
+      SCALE:     { rects: [[4, 4, 16, 16, 3.2]], paths: ['M8.6 13a3.4 3.4 0 0 1 6.8 0', 'M12 13l1.8-2.2'] },
+      SEARCH:    { circles: [[11, 11, 6]], paths: ['M19.5 19.5 15.3 15.3'] },
+      GEAR:      { paths: ['M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z'], circles: [[12, 12, 3]] },
+      CALENDAR:  { rects: [[4, 5.5, 16, 14.5, 2.4]], paths: ['M4 10h16M8.5 3v4.5M15.5 3v4.5', 'M8 14h.01M12 14h.01M16 14h.01M8 17h.01M12 17h.01'] },
+      CLOCK:     { circles: [[12, 12, 8]], paths: ['M12 7.5V12l3.2 1.9'] },
+      TARGET:    { circles: [[12, 12, 8], [12, 12, 3.8], [12, 12, 0.9]] },
+      BELL:      { paths: ['M6 16.5h12l-1.5-2.4V10a4.5 4.5 0 0 0-9 0v4.1L6 16.5Z', 'M10 19.5a2 2 0 0 0 4 0'] },
+      STAR:      { paths: ['M12 3.6l2.5 5.2 5.6.8-4.1 4 1 5.6L12 16.6 6.9 19.2l1-5.6-4.1-4 5.6-.8L12 3.6Z'] },
+      TRASH:     { paths: ['M5 7h14M9 7V5h6v2M6.5 7l1 13h9l1-13M10 11v5.5M14 11v5.5'] },
+      ARROW:     { paths: ['M4 12h15M13 6l6 6-6 6'] },
+      HEART:     { paths: ['M12 20.3 4.6 12.9a4.6 4.6 0 0 1 6.5-6.5l.9.9.9-.9a4.6 4.6 0 0 1 6.5 6.5L12 20.3Z'] },
+      SUN:       { circles: [[12, 12, 4]], paths: ['M12 2.5v2.4M12 19.1v2.4M21.5 12h-2.4M4.9 12H2.5M18.7 5.3l-1.7 1.7M7 17l-1.7 1.7M18.7 18.7 17 17M7 7 5.3 5.3'] },
+      CHAT:      { paths: ['M5 5.5h14a2.2 2.2 0 0 1 2.2 2.2v6.4a2.2 2.2 0 0 1-2.2 2.2h-7.2L7 19.5v-3.2H5A2.2 2.2 0 0 1 2.8 14.1V7.7A2.2 2.2 0 0 1 5 5.5Z'] },
+      SPARKLES:  { paths: ['M11 4l1.5 3.9L16.4 9.4 12.5 11 11 14.9 9.5 11 5.6 9.4 9.5 7.9 11 4Z', 'M18 14.5l.8 1.9 1.9.8-1.9.8-.8 1.9-.8-1.9-1.9-.8 1.9-.8.8-1.9Z'] },
+      DROP:      { paths: ['M12 3.2c3.6 4.6 5.8 7.6 5.8 10.6a5.8 5.8 0 0 1-11.6 0c0-3 2.2-6 5.8-10.6Z'] },
+      PILL:      { paths: ['M10.5 20.5 20.5 10.5a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z', 'M8.5 8.5 15.5 15.5'] },
+      BED:       { paths: ['M3 8v9M3 13h18v4M21 13v-2a2 2 0 0 0-2-2h-7v4', 'M7 11.5a1.4 1.4 0 1 0 .01 0'] },
+      PLUS:      { paths: ['M12 5v14M5 12h14'] },
+      DUMBBELL:  { paths: ['M9 12h6', 'M6.6 9.4v5.2M9 8.2v7.6', 'M17.4 9.4v5.2M15 8.2v7.6'] },
+      COFFEE:    { paths: ['M5 8.5h11v4.5a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4V8.5Z', 'M16 9.5h2.3a2.2 2.2 0 0 1 0 4.4H16', 'M8.2 3.6c-.5 1 .5 1.5 0 2.6M11.4 3.6c-.5 1 .5 1.5 0 2.6'] },
+    };
+    Object.entries(FUEL_ICONS).forEach(([k, v]) => { GLYPHS[k] = mkIcon(v); });
+    const FUEL_DOCS = [
+      { glyph: 'KCAL',      name: 'KCAL',      desc: 'Calories · flame' },
+      { glyph: 'PROTEIN',   name: 'PROTEIN',   desc: 'Protein · fish' },
+      { glyph: 'CARB',      name: 'CARB',      desc: 'Carbs · wheat stalk' },
+      { glyph: 'FAT',       name: 'FAT',       desc: 'Fat · avocado half' },
+      { glyph: 'EATEN',     name: 'EATEN',     desc: 'Eaten · fork & knife' },
+      { glyph: 'GOAL',      name: 'GOAL',      desc: 'Goal · pennant flag' },
+      { glyph: 'FOODATE',   name: 'FOOD ATE',  desc: 'Plate · two rings' },
+      { glyph: 'SNACK',     name: 'SNACK',     desc: 'Snack · cookie' },
+      { glyph: 'BREAKFAST', name: 'BREAKFAST', desc: 'Breakfast · sunrise' },
+      { glyph: 'LUNCH',     name: 'LUNCH',     desc: 'Lunch · noon sun' },
+      { glyph: 'DINNER',    name: 'DINNER',    desc: 'Dinner · moon & star' },
+      { glyph: 'WEEK',      name: 'WEEK',      desc: 'Week · day grid' },
+      { glyph: 'DAY',       name: 'DAY',       desc: 'Day · dog-eared page' },
+      { glyph: 'CUT',       name: 'CUT',       desc: 'Cut · trend down' },
+      { glyph: 'MAINTAIN',  name: 'MAINTAIN',  desc: 'Maintain · trend flat' },
+      { glyph: 'BULK',      name: 'BULK',      desc: 'Bulk · trend up' },
+      { glyph: 'CAMERA',    name: 'CAMERA',    desc: 'Snap a meal' },
+      { glyph: 'BARCODE',   name: 'BARCODE',   desc: 'Scan' },
+      { glyph: 'EGG',       name: 'EGG',       desc: 'Whole food' },
+      { glyph: 'APPLE',     name: 'APPLE',     desc: 'Fruit · whole' },
+      { glyph: 'SCALE',     name: 'SCALE',     desc: 'Bodyweight' },
+      { glyph: 'SEARCH',    name: 'SEARCH',    desc: 'Find food' },
+      { glyph: 'GEAR',      name: 'GEAR',      desc: 'Settings' },
+      { glyph: 'CALENDAR',  name: 'CALENDAR',  desc: 'Schedule · date' },
+      { glyph: 'CLOCK',     name: 'CLOCK',     desc: 'Time · now' },
+      { glyph: 'TARGET',    name: 'TARGET',    desc: 'Goal · aim' },
+      { glyph: 'BELL',      name: 'BELL',      desc: 'Reminder' },
+      { glyph: 'STAR',      name: 'STAR',      desc: 'Favorite' },
+      { glyph: 'TRASH',     name: 'TRASH',     desc: 'Delete' },
+      { glyph: 'ARROW',     name: 'ARROW',     desc: 'Navigate' },
+      { glyph: 'HEART',     name: 'HEART',     desc: 'Recovery · health' },
+      { glyph: 'SUN',       name: 'SUN',       desc: 'Morning · energy' },
+      { glyph: 'CHAT',      name: 'CHAT',      desc: 'Mentor · mind' },
+      { glyph: 'SPARKLES',  name: 'SPARKLES',  desc: 'Celebration' },
+      { glyph: 'DROP',      name: 'DROP',      desc: 'Water · hydration' },
+      { glyph: 'PILL',      name: 'PILL',      desc: 'Supplement · capsule' },
+      { glyph: 'BED',       name: 'BED',       desc: 'Before bed · sleep' },
+      { glyph: 'PLUS',      name: 'PLUS',      desc: 'Add' },
+      { glyph: 'DUMBBELL',  name: 'DUMBBELL',  desc: 'Training' },
+      { glyph: 'COFFEE',    name: 'COFFEE',    desc: 'Pairs with caffeine' },
+    ];
+
+    const ICON_DOCS = [
+      { glyph: 'V',        name: 'V',        desc: 'Brand mark · Vitality' },
+      { glyph: 'CHECK',    name: 'CHECK',    desc: 'Done · Confirmation' },
+      { glyph: 'PLUS',     name: 'PLUS',     desc: 'Add · Extend · New' },
+      { glyph: 'HEX',      name: 'HEX',      desc: 'Foundation · Structure' },
+      { glyph: 'PULSE',    name: 'PULSE',    desc: 'Recovery · Vitals · Heart rate' },
+      { glyph: 'ASCEND',   name: 'ASCEND',   desc: 'Streak · Progression · Growth' },
+      { glyph: 'ARROW_UP', name: 'ARROW UP', desc: 'Encourage · Lift · Keep going' },
+      { glyph: 'BALANCE',  name: 'BALANCE',  desc: 'Consider · Weigh it up · Decide' },
+      { glyph: 'FLAG',     name: 'FLAG',     desc: 'Flag · Goal · Milestone' },
+      { glyph: 'ROCKET',   name: 'ROCKET',   desc: "Let's go · Launch (variant)" },
+      { glyph: 'CHEVRONS', name: 'CHEVRONS', desc: "Let's go · Momentum (variant)" },
+      { glyph: 'PLANE',    name: 'PLANE',    desc: "Let's go · Off we go (variant)" },
+      { glyph: 'STEPS',    name: 'STEPS',    desc: 'Level up · Climb (variant)' },
+      { glyph: 'TIERS',    name: 'TIERS',    desc: 'Level up · Stats rise (variant)' },
+      { glyph: 'BREAKTHROUGH', name: 'BREAK THROUGH', desc: 'Level up · Past the ceiling (variant)' },
+      { glyph: 'LISTEN',   name: 'LISTEN',   desc: 'Listening · Hearing you out' },
+      { glyph: 'GIFT',     name: 'GIFT',     desc: 'Celebrate · Reward unlocked' },
+      { glyph: 'RAYS',     name: 'RAYS',     desc: 'Cheer · You got this' },
+      { glyph: 'TROPHY',   name: 'TROPHY',   desc: 'Win · Achievement' },
+      { glyph: 'STAR',     name: 'STAR',     desc: 'Twinkle · Favorite · Reward' },
+      { glyph: 'MUSIC',    name: 'MUSIC',    desc: 'Groove · Come alive' },
+      { glyph: 'BOLT',     name: 'BOLT',     desc: 'Peak · Energy · Intensity' },
+      { glyph: 'BAR',      name: 'BAR',      desc: 'Fitness · Strength · Training' },
+      { glyph: 'DROP',     name: 'DROP',     desc: 'Water · Hydration' },
+      { glyph: 'ZZZ',      name: 'ZZZ',      desc: 'Sleep · Rest' },
+      { glyph: 'CRESCENT', name: 'CRESCENT', desc: 'Night · Calm · Wind down' },
+      { glyph: 'SINE',     name: 'SINE',     desc: 'Wearables · Signal · Data' },
+      { glyph: 'RINGS',    name: 'RINGS',    desc: 'Focus · Precision · Aim' },
+      { glyph: 'CHEVRON',  name: 'CHEVRON',  desc: 'Momentum · Direction' },
+      { glyph: 'DOT',      name: 'DOT',      desc: 'Now · Presence · Current' },
+      { glyph: 'PUSH',     name: 'PUSH',     desc: 'Push day · Chevron above bar' },
+      { glyph: 'PULL',     name: 'PULL',     desc: 'Pull day · Bar above chevron' },
+      { glyph: 'LEGS',     name: 'LEGS',     desc: 'Legs day · Arched gateway' },
+      { glyph: 'UPPER',    name: 'UPPER',    desc: 'Upper body · Stacked up-chevrons' },
+      { glyph: 'LOWER',    name: 'LOWER',    desc: 'Lower body · Stacked down-chevrons' },
+    ];
+
+    function renderFlatGlyph(parent, { glyph, name, desc }) {
+      const card = document.createElement('div');
+      card.className = 'icon-card';
+      const cv = document.createElement('canvas');
+      /* Native 512² so glyph coordinates map 1:1; CSS scales it down
+         to 120px for display. Browser downsampling gives crisp edges. */
+      cv.width = 512; cv.height = 512;
+      const ctx = cv.getContext('2d');
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      const drawLayer = (color, lineWidth, blur) => {
+        ctx.shadowColor = '#6EE7B7';
+        ctx.shadowBlur = blur;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lineWidth;
+        GLYPHS[glyph](ctx);
+      };
+      drawLayer('rgba(110, 231, 183, 0.10)', 18, 90);
+      drawLayer('rgba(110, 231, 183, 0.22)', 13, 52);
+      drawLayer('rgba(167, 243, 208, 0.50)',  7, 26);
+      drawLayer('rgba(196, 250, 220, 0.85)',  4, 12);
+      drawLayer('rgba(240, 255, 245, 1.00)', 1.8, 4);
+      card.appendChild(cv);
+      const nm = document.createElement('div'); nm.className = 'icon-name'; nm.textContent = name;
+      const ds = document.createElement('div'); ds.className = 'icon-desc'; ds.textContent = desc;
+      card.appendChild(nm); card.appendChild(ds);
+      parent.appendChild(card);
+    }
+    const iconGrid = document.getElementById('grid-icons');
+    ICON_DOCS.forEach((d) => renderFlatGlyph(iconGrid, d));
+    const fuelGrid = document.getElementById('grid-icons-fuel');
+    FUEL_DOCS.forEach((d) => renderFlatGlyph(fuelGrid, d));
+
+    /* ── Solo mode ────────────────────────────────────────────────
+       ?solo=V (or any GLYPHS key) renders ONE full-bleed gem so a
+       single signature gem can be embedded via <iframe>. The demo
+       grid is pushed off-screen, so the shared render loop's
+       off-screen check (above) cleanly skips every demo gem — only
+       the solo gem draws. Additive + inert without the param. */
+    {
+      const SOLO = new URLSearchParams(location.search).get('solo');
+      if (SOLO) {
+        const wrap = document.querySelector('.wrap');
+        if (wrap) wrap.style.cssText += ';position:fixed;left:-99999px;top:0;';
+        document.body.style.padding = '0';
+        document.body.style.background = 'transparent';
+        document.documentElement.style.background = 'transparent';
+        const stage = document.createElement('div');
+        stage.style.cssText = 'position:fixed;inset:0;z-index:2;pointer-events:none;';
+        document.body.appendChild(stage);
+        createCrystal(stage, {
+          shape: new URLSearchParams(location.search).get('shape') || 'dodecahedron',
+          drawGlyph: GLYPHS[SOLO] || GLYPHS['V'],
+          behavior: {
+            rotationSpeed: 0.035, wobbleAmplitude: 0.05,
+            persistentGlyph: true,
+            breathe: { amp: 0.022, period: 5.0 },
+            pulse: { amp: 0.32, period: 3.2 },
+            particles: { mode: 'ring' },
+            halo: true,
+            wireframePulse: true,
+          },
+        });
+      }
+    }
+  </script>
+</body>
+</html>

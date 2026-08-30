@@ -1,0 +1,609 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Vee dashboard · assembled</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@500&family=Hanken+Grotesk:wght@500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --mint:#6EE7B7; --mint-hi:#A7F3D0; --gold:#e8c878; --iris:#b9a3ff; --amber:#E8964A;
+    --fg:#fff; --muted:rgba(255,255,255,.5); --border:rgba(255,255,255,.08);
+    --serif:'Instrument Serif','Times New Roman',Georgia,serif;
+    --mono:'JetBrains Mono',ui-monospace,monospace;
+    --ease:cubic-bezier(.16,1,.3,1);
+    --spring:cubic-bezier(.34,1.56,.64,1);
+    --beat:42s;   /* one calm lap — a single light glides in ~every 7s, never overlapping */
+  }
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;background:#04060a;color:var(--fg);
+    font-family:'Hanken Grotesk',system-ui,-apple-system,sans-serif;padding:54px 44px 90px}
+  .greet{display:flex;align-items:baseline;gap:14px;margin:0 0 18px 2px}
+  .greet .hi{font-family:var(--serif);font-style:italic;font-size:30px;line-height:1}
+  .greet .hi b{color:var(--mint);font-style:italic;font-weight:400}
+  .greet .date{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+
+  .grid{width:882px;display:grid;gap:14px;
+    grid-template-columns:repeat(4,210px);grid-template-rows:repeat(4,118px);
+    grid-template-areas:
+      "train  train  train   fuel"
+      "vitals vee    vee     fuel"
+      "brand  vee    vee     peak"
+      "brand  finance finance peak"}
+
+  .tile{position:relative;overflow:hidden;border-radius:20px;border:1px solid var(--border);
+    background:#060a09;isolation:isolate;transition:border-color .4s var(--ease)}
+  .tile:hover{border-color:rgba(110,231,183,.28)}
+  .aurora{position:absolute;inset:0;z-index:1;pointer-events:none;
+    background:radial-gradient(ellipse 85% 75% at 58% 38%, rgba(110,231,183,.05), transparent 64%),
+      linear-gradient(135deg,#0a110c 0%,#050807 100%)}
+  .art{position:absolute;inset:0;width:100%;height:100%;z-index:2}
+  .index{position:absolute;top:15px;left:20px;z-index:6;font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:rgba(255,255,255,.38)}
+  .glyph{position:absolute;top:13px;right:16px;z-index:6;width:20px;height:20px;color:var(--mint);opacity:.4}
+  .glyph svg{width:100%;height:100%;display:block}
+  .label{position:absolute;left:20px;bottom:16px;z-index:6;font-family:var(--serif);font-style:italic;font-size:22px;color:var(--fg)}
+  .arrow{position:absolute;right:18px;bottom:17px;z-index:6;color:var(--fg);opacity:.4;font-size:14px}
+  /* live stat — one glanceable metric per tile */
+  .stat{position:absolute;left:20px;bottom:46px;z-index:6;font-family:var(--mono);font-size:16px;font-weight:500;letter-spacing:.01em;color:var(--mint)}
+  .stat i{font-style:normal;font-size:10px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-left:4px}
+  .fin .stat{color:var(--gold)}
+  /* title + metric stack, bottom-left. Default: metric sits BELOW the title. */
+  .cap{position:absolute;left:20px;bottom:16px;z-index:6;display:flex;flex-direction:column;gap:3px;align-items:flex-start}
+  .cap .label,.cap .stat{position:static}
+  /* graph tiles: metric sits just to the right of the title, on the same baseline */
+  .tile.live .cap{flex-direction:row;align-items:baseline;gap:12px}
+
+  .mot{fill:none;stroke:rgba(110,231,183,.2);stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+  .motd{fill:none;stroke:rgba(110,231,183,.1);stroke-width:1.2;stroke-linecap:round}
+  /* trend endpoint = a luminous gem-sprite point (soft halo + bright core), not a hard ring */
+  .node{fill:#eafff5;filter:drop-shadow(0 0 3px rgba(167,243,208,.95)) drop-shadow(0 0 7px rgba(110,231,183,.5))}
+  .glow{fill:url(#endpt);opacity:.9;animation:breathe 5s var(--ease) infinite;transform-origin:center;transform-box:fill-box}
+  .fin .node{fill:#ffeede;filter:drop-shadow(0 0 3px rgba(232,150,74,.95)) drop-shadow(0 0 7px rgba(232,150,74,.5))}
+  .fin .glow{fill:url(#endptA)}
+  @keyframes breathe{0%,100%{opacity:.45;transform:scale(.92)}50%{opacity:.95;transform:scale(1.08)}}
+  .fin .mot{stroke:rgba(232,150,74,.4)}
+  .candle{fill:rgba(232,150,74,.08);stroke:rgba(232,150,74,.5);stroke-width:1.2}
+
+  /* ── mini pulse-bursts ── small gem-library bursts a ball fires off, rarely.
+     Sized for a ball, not a gem. Position set per-spawn via transform-origin. Transform/opacity only. */
+  .burst{pointer-events:none}
+  .burst *{vector-effect:non-scaling-stroke}
+  .burst.pop   {animation:b-pop    var(--d) cubic-bezier(.2,.7,.3,1) forwards}
+  .burst.tw    {animation:b-tw     var(--d) ease-out forwards}
+  .burst.orbit {animation:b-orbit  var(--d) cubic-bezier(.35,0,.4,1) forwards}
+  .burst.spiral{animation:b-spiral var(--d) cubic-bezier(.3,0,.3,1) forwards}
+  .burst.conf  {animation:b-conf   var(--d) cubic-bezier(.2,.7,.3,1) forwards}
+  .burst.ponder{animation:b-ponder var(--d) ease-out forwards}
+  @keyframes b-pop   {from{transform:scale(var(--s0));opacity:var(--o0)}to{transform:scale(var(--s1));opacity:0}}
+  @keyframes b-tw    {0%{transform:scale(.6);opacity:0}40%{opacity:1}100%{transform:scale(1.35);opacity:0}}
+  @keyframes b-orbit {0%{transform:rotate(0);opacity:0}20%{opacity:1}100%{transform:rotate(360deg);opacity:0}}
+  @keyframes b-spiral{0%{transform:rotate(0) scale(.4);opacity:0}30%{opacity:1}100%{transform:rotate(220deg) scale(1.3);opacity:0}}
+  @keyframes b-conf  {0%{transform:scale(.3) rotate(0);opacity:1}100%{transform:scale(1.45) rotate(50deg);opacity:0}}
+  @keyframes b-ponder{0%{transform:translateY(0) scale(.5);opacity:0}40%{opacity:1}100%{transform:translateY(-12px) scale(1);opacity:0}}
+
+  /* ── Vee centre ── */
+  .vee{background:#060a09;grid-area:vee}
+  .vee .disc{position:absolute;left:50%;top:45%;width:320px;height:320px;transform:translate(-50%,-50%);z-index:1;pointer-events:none;
+    background:radial-gradient(circle,rgba(110,231,183,.11) 0%,rgba(110,231,183,.05) 42%,transparent 66%);
+    animation:disc 9s var(--ease) infinite}
+  @keyframes disc{0%,100%{opacity:.75;transform:translate(-50%,-50%) scale(.97)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.03)}}
+  .vee .scrim{position:absolute;inset:0;z-index:4;pointer-events:none;background:linear-gradient(105deg,rgba(4,6,10,.78) 0%,rgba(4,6,10,.18) 36%,transparent 54%)}
+  .vee .label{bottom:44px;font-size:32px}
+  .vee .kicker{position:absolute;left:22px;bottom:24px;z-index:6;font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.18em;text-transform:uppercase;color:var(--mint);opacity:.9}
+  .chip{fill:rgba(110,231,183,.035);stroke:rgba(167,243,208,.4);stroke-width:1.6}
+  .wire{fill:none;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+
+  /* wire lights — JS-driven: random colour + random speed, one at a time, no effect on the V */
+  .feed{fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:5 195;opacity:0;will-change:stroke-dashoffset,opacity}
+
+  /* the ring colour-pulses (~1s) in the arriving light's colour — JS-driven, off by default */
+  .ringgrp{opacity:0;will-change:opacity}
+  .ring-soft,.ring-line{fill:none;stroke-linejoin:round;stroke:var(--mint-hi)}
+  .ring-soft{stroke-width:6;opacity:.38}
+  .ring-line{stroke-width:2.2;opacity:1}
+
+
+
+  /* the V — on each feed absorb it FLICKERS OFF then slowly warms back on, in that feed's colour */
+  .v-base{fill:none;stroke:var(--mint);stroke-width:3;stroke-linecap:round;stroke-linejoin:round;opacity:.5;
+    filter:drop-shadow(0 0 6px rgba(167,243,208,.4))}
+  /* the V stays its own mint colour always — only the ring carries the feed colour.
+     opacity flicker is JS-driven per arrival (synced to each wire's speed). */
+  .vm{fill:none;stroke:var(--mint);stroke-width:2.7;stroke-linecap:round;stroke-linejoin:round;will-change:opacity;
+    filter:drop-shadow(0 0 2px rgba(240,255,245,.9))}
+
+  /* feeders fade out while the day's score reveals (so no lights come in over it) */
+  .feedgrp{transition:opacity .5s ease}
+  .feedgrp.hide{opacity:0}
+
+  /* the day's Vitality score, revealed in the chip (JS-driven, randomized flicker) */
+  .vscore .vnum{font-family:'Hanken Grotesk',system-ui,-apple-system,sans-serif;font-weight:600;letter-spacing:-1px;
+    fill:var(--mint);font-size:44px;opacity:0;transform-box:fill-box;transform-origin:center;will-change:opacity,transform;
+    filter:drop-shadow(0 0 2px rgba(240,255,245,.9)) drop-shadow(0 0 9px rgba(110,231,183,.55)) drop-shadow(0 0 20px rgba(110,231,183,.28))}
+  .vscore .vgh{font-family:'Hanken Grotesk',system-ui,-apple-system,sans-serif;font-weight:600;letter-spacing:-1px;font-size:44px;
+    opacity:0;transform-box:fill-box;transform-origin:center;will-change:opacity,transform}
+  .vscore .vgi{fill:#b9a3ff;filter:drop-shadow(0 0 6px rgba(185,163,255,.5))}
+  .vscore .vgg{fill:#e8c878;filter:drop-shadow(0 0 6px rgba(232,200,120,.5))}
+
+</style>
+</head>
+<body>
+  <!-- shared gem-sprite endpoint gradients (document-scoped, used by tile markers) -->
+  <svg width="0" height="0" aria-hidden="true" style="position:absolute"><defs>
+    <radialGradient id="endpt"><stop offset="0%" stop-color="#dcffeb" stop-opacity=".95"/><stop offset="40%" stop-color="#a7f3d0" stop-opacity=".4"/><stop offset="100%" stop-color="#6EE7B7" stop-opacity="0"/></radialGradient>
+    <radialGradient id="endptA"><stop offset="0%" stop-color="#ffe9cf" stop-opacity=".95"/><stop offset="40%" stop-color="#e8964a" stop-opacity=".4"/><stop offset="100%" stop-color="#e8964a" stop-opacity="0"/></radialGradient>
+  </defs></svg>
+
+  <div class="greet"><span class="hi">Good afternoon, <b>Alex</b></span><span class="date">Thu · June 12</span></div>
+
+  <div class="grid">
+
+    <!-- TRAIN -->
+    <div class="tile live" data-orb="wander" style="grid-area:train">
+      <div class="aurora"></div>
+      <svg class="art" viewBox="0 0 658 118">
+        <path class="mot" d="M44 66 L180 54 L300 60 L440 37 L530 45 L616 27"/>
+        <g class="orb"><circle class="glow" r="10"/><circle class="node" r="3.4"/></g>
+      </svg>
+      <span class="index">01</span>
+      <span class="glyph"><svg viewBox="-12 -12 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="-10" y="-3" width="2.8" height="6" rx="0.6" stroke-width="1.3"/><rect x="7.2" y="-3" width="2.8" height="6" rx="0.6" stroke-width="1.3"/><line x1="-7.2" y1="0" x2="7.2" y2="0" stroke-width="1.3"/></svg></span>
+      <div class="cap"><span class="label">Train</span><span class="stat">Push<i>day</i></span></div><span class="arrow">→</span>
+    </div>
+
+    <!-- FUEL -->
+    <div class="tile" data-orb="wander" style="grid-area:fuel">
+      <div class="aurora"></div>
+      <svg class="art" viewBox="0 0 210 250">
+        <path class="mot" d="M46 110 Q82 94 106 110 T168 110"/>
+        <path class="motd" d="M46 132 Q82 116 106 132 T168 132"/>
+        <g class="orb"><circle class="glow" r="10"/><circle class="node" r="3.4"/></g>
+      </svg>
+      <span class="index">02</span>
+      <span class="glyph"><svg viewBox="-12 -12 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><path d="M0 -10 C0 -10 -7 -2 -7 3 a7 7 0 0 0 14 0 C7 -2 0 -10 0 -10 Z"/></svg></span>
+      <div class="cap"><span class="label">Fuel</span><span class="stat">1,840<i>kcal</i></span></div><span class="arrow">→</span>
+    </div>
+
+    <!-- VITALS -->
+    <div class="tile live" data-orb="wander" style="grid-area:vitals">
+      <div class="aurora"></div>
+      <svg class="art" viewBox="0 0 210 118">
+        <path class="mot" d="M38 47 L74 47 L89 27 L104 70 L119 47 L172 47"/>
+        <g class="orb"><circle class="glow" r="8"/><circle class="node" r="3.2"/></g>
+      </svg>
+      <span class="index">04</span>
+      <span class="glyph"><svg viewBox="-12 -12 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"><path d="M-10 0 L-5 0 L-2 -7 L2 7 L5 0 L10 0"/></svg></span>
+      <div class="cap"><span class="label">Vitals</span><span class="stat">62<i>HRV</i></span></div><span class="arrow">→</span>
+    </div>
+
+    <!-- VEE -->
+    <div class="tile vee">
+      <div class="aurora"></div><div class="disc"></div>
+      <svg class="art" viewBox="0 0 434 250">
+        <defs>
+          <radialGradient id="nova"><stop offset="0%" stop-color="rgba(255,255,255,.85)"/><stop offset="45%" stop-color="rgba(220,255,240,.35)"/><stop offset="100%" stop-color="rgba(255,255,255,0)"/></radialGradient>
+        </defs>
+
+        <!-- wires, each tinted its feed colour -->
+        <path class="wire" style="stroke:rgba(167,243,208,.2)" d="M216 66 V2"/>
+        <path class="wire" style="stroke:rgba(185,163,255,.2)" d="M262 96 H300 V40 H432"/>
+        <path class="wire" style="stroke:rgba(232,200,120,.2)" d="M262 140 H320 V192 H432"/>
+        <path class="wire" style="stroke:rgba(167,243,208,.2)" d="M190 158 V248"/>
+        <path class="wire" style="stroke:rgba(185,163,255,.2)" d="M170 140 H114 V192 H2"/>
+        <path class="wire" style="stroke:rgba(232,200,120,.2)" d="M170 96 H134 V56 H2"/>
+
+        <!-- wire lights: JS sets a random colour + speed on each; grouped so they fade for the score -->
+        <g class="feedgrp">
+        <path class="feed" pathLength="100" d="M216 2 V66"/>
+        <path class="feed" pathLength="100" d="M432 40 H300 V96 H262"/>
+        <path class="feed" pathLength="100" d="M432 192 H320 V140 H262"/>
+        <path class="feed" pathLength="100" d="M190 248 V158"/>
+        <path class="feed" pathLength="100" d="M2 192 H114 V140 H170"/>
+        <path class="feed" pathLength="100" d="M2 56 H134 V96 H170"/>
+        </g>
+
+        <!-- chip -->
+        <rect class="chip" x="170" y="66" width="92" height="92" rx="24"/>
+        <g class="ringgrp">
+          <rect class="ring-soft" x="170" y="66" width="92" height="92" rx="24"/>
+          <rect class="ring-line" x="170" y="66" width="92" height="92" rx="24"/>
+        </g>
+        <g class="vgrp">
+          <path class="v-base" d="M201 96 L216 129 L231 96"/>
+          <path class="vm"     d="M201 96 L216 129 L231 96"/>
+        </g>
+        <!-- the day's score reveal (number only — no burst circle), shown periodically -->
+        <g class="vscore">
+          <text class="vgh vgi" x="216" y="128" text-anchor="middle">87</text>
+          <text class="vgh vgg" x="216" y="128" text-anchor="middle">87</text>
+          <text class="vnum" x="216" y="128" text-anchor="middle">87</text>
+        </g>
+      </svg>
+      <div class="scrim"></div>
+      <span class="index">06</span><span class="kicker">Your AI mentor</span><span class="label">Vee</span><span class="arrow">→</span>
+    </div>
+
+    <!-- PEAK -->
+    <div class="tile" data-orb="still" data-roam="ring" data-pt="105,125" style="grid-area:peak">
+      <div class="aurora"></div>
+      <svg class="art" viewBox="0 0 210 250">
+        <circle class="mot" cx="105" cy="125" r="40"/>
+        <g class="orb"><circle class="glow" r="12"/><circle class="node" r="3.4"/></g>
+      </svg>
+      <span class="index">03</span>
+      <span class="glyph"><svg viewBox="-12 -12 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><path d="M2 -10 L-5 1 L0 1 L-2 10 L5 -1 L0 -1 L2 -10 Z"/></svg></span>
+      <div class="cap"><span class="label">Peak</span><span class="stat">Wk 3<i>peak</i></span></div><span class="arrow">→</span>
+    </div>
+
+    <!-- BRAND -->
+    <div class="tile" data-orb="still" data-roam="spoke" data-pt="105,112" style="grid-area:brand">
+      <div class="aurora"></div>
+      <svg class="art" viewBox="0 0 210 250">
+        <g style="opacity:.65">
+          <line class="motd" x1="105" y1="112" x2="105" y2="68"/><line class="motd" x1="105" y1="112" x2="145" y2="90"/>
+          <line class="motd" x1="105" y1="112" x2="145" y2="134"/><line class="motd" x1="105" y1="112" x2="65" y2="134"/>
+          <line class="motd" x1="105" y1="112" x2="65" y2="90"/>
+        </g>
+        <g class="orb"><circle class="glow" r="10"/><circle class="node" r="3.4"/></g>
+      </svg>
+      <span class="index">05</span>
+      <span class="glyph"><svg viewBox="-12 -12 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M-8 -5 L0 9 L8 -5"/></svg></span>
+      <div class="cap"><span class="label">Brand</span><span class="stat">12.4k<i>reach</i></span></div><span class="arrow">→</span>
+    </div>
+
+    <!-- FINANCE -->
+    <div class="tile fin" data-orb="hop" style="grid-area:finance">
+      <div class="aurora"></div>
+      <svg class="art" viewBox="0 0 434 118">
+        <g style="opacity:.8">
+          <line class="mot" x1="190" y1="50" x2="190" y2="88"/><rect class="candle" x="184" y="58" width="12" height="20" rx="2"/>
+          <line class="mot" x1="252" y1="44" x2="252" y2="84"/><rect class="candle" x="246" y="51" width="12" height="23" rx="2"/>
+          <line class="mot" x1="314" y1="36" x2="314" y2="78"/><rect class="candle" x="308" y="43" width="12" height="25" rx="2"/>
+          <line class="mot" x1="376" y1="26" x2="376" y2="70"/><rect class="candle" x="370" y="33" width="12" height="27" rx="2"/>
+        </g>
+        <g class="orb"><circle class="glow" r="9"/><circle class="node" r="3.4"/></g>
+      </svg>
+      <span class="index">07</span>
+      <span class="glyph"><svg viewBox="-12 -12 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><path d="M-9 6 L-3 0 L2 5 L9 -4"/><path d="M4 -4 L9 -4 L9 1"/></svg></span>
+      <div class="cap"><span class="label">Finance</span><span class="stat">+2.4%<i>today</i></span></div><span class="arrow">→</span>
+    </div>
+
+  </div>
+
+  <script>
+  /* ── Vee tile ──
+     · wire lights: random colour + random speed, one at a time. They do NOTHING to the V —
+       on arrival they just make the ring colour-pulse (~1s) in that light's colour.
+     · the V independently reveals the day's score every so often via a RANDOM intro:
+       flicker, count, or glitch. */
+  (function(){
+    const vgrp=document.querySelector('.vgrp');
+    const feedgrp=document.querySelector('.feedgrp');
+    const feeds=[...document.querySelectorAll('.feed')];
+    const ringgrp=document.querySelector('.ringgrp');
+    const ringEls=[...document.querySelectorAll('.ring-soft,.ring-line')];
+    const vnum=document.querySelector('.vnum');
+    const vgi=document.querySelector('.vgi'), vgg=document.querySelector('.vgg');
+    if(!vgrp) return;
+    const rnd=(a,b)=>a+Math.random()*(b-a);
+    const pick=a=>a[Math.floor(Math.random()*a.length)];
+    const COLORS=['#6EE7B7','#A7F3D0','#b9a3ff','#e8c878','#E8964A','#7fd5e8'];
+
+    let ringAnim=null, lastWire=-1, vAnim=null, vnumRAF=0, sAnims=[], mode='idle', idleTimer=null, nfTimer=null;
+
+    /* ── wire lights → ring colour pulse; the V / score tints to the same colour for the same
+       little beat, then snaps right back to mint — exactly like the ring ── */
+    const MINT='#6EE7B7';
+    const vpaths=[...vgrp.querySelectorAll('path')];
+    let tintAnims=[];
+    function ringPulse(color){
+      ringEls.forEach(e=>e.style.stroke=color);
+      if(ringAnim){ try{ringAnim.cancel();}catch(e){} }
+      ringAnim=ringgrp.animate([{opacity:0},{opacity:1,offset:.22},{opacity:.8,offset:.42},{opacity:0}],{duration:1000,easing:'ease-out',fill:'forwards'});
+      tintAnims.forEach(a=>{try{a.cancel();}catch(e){}}); tintAnims=[];
+      vpaths.forEach(p=>tintAnims.push(p.animate([{stroke:color},{stroke:color,offset:.5},{stroke:MINT}],{duration:1000,easing:'ease-out',fill:'forwards'})));
+      tintAnims.push(vnum.animate([{fill:color},{fill:color,offset:.5},{fill:MINT}],{duration:1000,easing:'ease-out',fill:'forwards'}));
+    }
+    function sendLight(){
+      let w; do{ w=Math.floor(Math.random()*feeds.length); }while(w===lastWire&&feeds.length>1); lastWire=w;
+      const color=pick(COLORS), speed=Math.round(rnd(2000,3600));
+      const light=feeds[w]; light.style.stroke=color;
+      light.animate([
+        {strokeDashoffset:0,opacity:0,offset:0},
+        {opacity:1,offset:0.12},
+        {strokeDashoffset:-95,opacity:1,offset:0.85},
+        {strokeDashoffset:-100,opacity:0,offset:1},
+      ],{duration:speed,easing:'linear',fill:'forwards'});
+      setTimeout(()=>ringPulse(color), Math.round(speed*0.85));      // ONLY the ring lights up
+      setTimeout(sendLight, Math.round(speed*0.85)+Math.round(rnd(2600,4600)));
+    }
+    setTimeout(sendLight, 1200);
+
+    function vAnimate(kf,opt){ if(vAnim){try{vAnim.cancel();}catch(e){}} vAnim=vgrp.animate(kf,opt); return vAnim; }
+
+    /* ── V idle: stays ON with assorted little flickers — different TYPES each time
+       (single dip, double stutter, slow pulse, rapid micro-strobe, brief near-off blink),
+       each with its own speed + duration. never fully off, never from the lights. ── */
+    function idleFlicker(){
+      const type=Math.floor(rnd(0,5)); let k, dur;
+      if(type===0){          // quick single dip
+        k=[{opacity:1},{opacity:+rnd(.4,.65).toFixed(2),offset:.4},{opacity:1}]; dur=rnd(170,300);
+      } else if(type===1){   // double stutter
+        k=[{opacity:1},{opacity:+rnd(.3,.55).toFixed(2),offset:.22},{opacity:+rnd(.9,1).toFixed(2),offset:.4},{opacity:+rnd(.4,.6).toFixed(2),offset:.62},{opacity:1}]; dur=rnd(380,560);
+      } else if(type===2){   // slow gentle pulse
+        k=[{opacity:1,easing:'ease-in-out'},{opacity:+rnd(.5,.72).toFixed(2),offset:.5,easing:'ease-in-out'},{opacity:1}]; dur=rnd(620,920);
+      } else if(type===3){   // rapid micro-strobe
+        k=[{opacity:1},{opacity:+rnd(.2,.4).toFixed(2),offset:.15},{opacity:+rnd(.7,.9).toFixed(2),offset:.3},{opacity:+rnd(.25,.45).toFixed(2),offset:.45},{opacity:+rnd(.8,1).toFixed(2),offset:.6},{opacity:1}]; dur=rnd(300,470);
+      } else {               // brief near-off blink
+        k=[{opacity:1},{opacity:+rnd(.08,.2).toFixed(2),offset:.35},{opacity:+rnd(.6,.85).toFixed(2),offset:.55},{opacity:1}]; dur=rnd(240,420);
+      }
+      vAnimate(k,{duration:Math.round(dur),easing:'linear',fill:'forwards'});
+    }
+    function idleLoop(){ if(mode!=='idle') return; idleFlicker(); idleTimer=setTimeout(idleLoop, Math.round(rnd(900,2600))); }
+
+    /* ── the three score intros, on the tile number ── */
+    function buildFlickerIn(){
+      const k=[{opacity:0,offset:0}];
+      const n1=4+Math.floor(rnd(0,3));
+      for(let i=1;i<=n1;i++){ const off=(i/(n1+1))*0.5, base=0.03+(i/n1)*0.28;
+        k.push({offset:+off.toFixed(3),opacity:+Math.max(0.02,base*rnd(0.5,1.05)).toFixed(3)});
+        if(Math.random()<0.5) k.push({offset:+(off+0.02).toFixed(3),opacity:+rnd(0.02,0.1).toFixed(3)}); }
+      k.push({offset:0.56,opacity:+rnd(0.2,0.45).toFixed(3)});
+      k.push({offset:0.70,opacity:+rnd(0.85,1).toFixed(3)});
+      k.push({offset:0.78,opacity:+rnd(0.6,0.85).toFixed(3)});
+      k.push({offset:1,opacity:1});
+      for(let i=1;i<k.length;i++) if(k[i].offset<=k[i-1].offset) k[i].offset=Math.min(1,k[i-1].offset+0.001);
+      return k;
+    }
+    function buildGlitchMain(){
+      const k=[{offset:0,opacity:0,transform:'translateX(0px)'}];
+      for(let i=0;i<6;i++){ const o=0.03+i*0.03; k.push({offset:+o.toFixed(3),opacity:+(Math.random()<.5?rnd(.05,.3):rnd(.6,1)).toFixed(2),transform:`translateX(${rnd(-3,3).toFixed(1)}px)`}); }
+      k.push({offset:0.24,opacity:1,transform:'translateX(0px)'});
+      k.push({offset:1,opacity:1,transform:'translateX(0px)'});
+      return k;
+    }
+    function buildGhost(sign){
+      return [
+        {offset:0,opacity:0,transform:`translateX(${sign*4}px)`},
+        {offset:.05,opacity:.5,transform:`translateX(${sign*4}px)`},
+        {offset:.12,opacity:.25,transform:`translateX(${sign*-2}px)`},
+        {offset:.20,opacity:.4,transform:`translateX(${sign*2}px)`},
+        {offset:.26,opacity:0,transform:'translateX(0px)'},
+        {offset:1,opacity:0,transform:'translateX(0px)'},
+      ];
+    }
+    function revealNumber(intro){
+      vnum.textContent='87';
+      if(intro==='glitch'){
+        sAnims.push(vnum.animate(buildGlitchMain(),{duration:800,fill:'forwards'}));
+        sAnims.push(vgi.animate(buildGhost(-1),{duration:800,fill:'forwards'}));
+        sAnims.push(vgg.animate(buildGhost(1),{duration:800,fill:'forwards'}));
+      } else if(intro==='count'){
+        sAnims.push(vnum.animate([{opacity:0},{opacity:.4,offset:.06},{opacity:.15,offset:.12},{opacity:1,offset:.26},{opacity:1}],{duration:820,fill:'forwards'}));
+        const peak=92,dur=560,start=performance.now();
+        const tick=now=>{ const p=Math.min(1,(now-start)/dur); let v;
+          if(p<0.72)v=Math.round((p/0.72)*peak); else { const q=(p-0.72)/0.28; v=Math.round(peak+(87-peak)*q); }
+          vnum.textContent=v; if(p<1) vnumRAF=requestAnimationFrame(tick); else vnum.textContent='87'; };
+        vnumRAF=requestAnimationFrame(tick);
+      } else { // flicker
+        sAnims.push(vnum.animate(buildFlickerIn(),{duration:850,fill:'forwards'}));
+      }
+    }
+    function numberLittleFlicker(){
+      if(mode!=='score') return;
+      sAnims.push(vnum.animate([{opacity:1},{opacity:+rnd(.45,.78).toFixed(2),offset:.35},{opacity:1,offset:.6},{opacity:1}],{duration:Math.round(rnd(180,340)),fill:'forwards'}));
+      nfTimer=setTimeout(numberLittleFlicker, Math.round(rnd(650,1500)));   // more flickers while it holds
+    }
+
+    /* ── the score choreography: V strobes off (gem way) → intro flickers in → holds with
+       little flickers (~5-10s) → number fully flickers off → dark → the V flickers back in ── */
+    function runScore(){
+      mode='score';
+      clearTimeout(idleTimer);
+      // quick strobe fully off (gem way)
+      vAnimate([
+        {opacity:1,offset:0},
+        {opacity:.4,offset:.16},{opacity:.88,offset:.28},
+        {opacity:.14,offset:.46},{opacity:.55,offset:.58},
+        {opacity:.06,offset:.74},{opacity:0,offset:.88},{opacity:0,offset:1},
+      ],{duration:520,easing:'linear',fill:'forwards'});
+      setTimeout(()=>revealNumber(pick(['flicker','count','glitch'])), 540);   // tiny gap, then the number
+      const holdMs=Math.round(rnd(3600,5600));
+      nfTimer=setTimeout(numberLittleFlicker, 540+950);
+      setTimeout(()=>{
+        clearTimeout(nfTimer);
+        if(vnumRAF){ cancelAnimationFrame(vnumRAF); vnumRAF=0; }
+        sAnims.push(vnum.animate([{opacity:1,offset:0},{opacity:.3,offset:.18},{opacity:.7,offset:.3},{opacity:.1,offset:.5},{opacity:0,offset:.7},{opacity:0,offset:1}],{duration:420,fill:'forwards'}));
+        setTimeout(()=>{
+          sAnims.forEach(a=>{try{a.cancel();}catch(e){}}); sAnims=[]; vnum.textContent='87';
+          vAnimate([{opacity:0,offset:0},{opacity:.35,offset:.2},{opacity:.12,offset:.3},{opacity:.75,offset:.55},{opacity:.45,offset:.66},{opacity:1,offset:1}],{duration:640,easing:'linear',fill:'forwards'});
+          mode='idle';
+          setTimeout(idleLoop, 700);
+          setTimeout(runScore, Math.round(rnd(7000,12000)));    // V↔score switches quicker / more often
+        }, Math.round(rnd(450,850)));                            // short dark pause (still there)
+      }, 540+950+holdMs);
+    }
+
+    idleLoop();
+    setTimeout(runScore, 8000);
+  })();
+
+  /* ── living orbs + mini pulse-bursts ──
+     Every tile's endpoint ball quietly lives: Train/Vitals/Fuel wander their line,
+     Finance glitch-hops between candle tops with a little bounce, Peak/Brand idle.
+     Each ball also fires a SMALL, RARE gem-library burst (ring / ripple / bloom / rays /
+     particles / sparkle / orbit / spiral / confetti / ponder), ball-sized. Transform+opacity only. */
+  (function(){
+    const R=Math.random, rnd=(a,b)=>a+R()*(b-a), pick=a=>a[(R()*a.length)|0], TWO=Math.PI*2;
+    const NS='http://www.w3.org/2000/svg';
+
+    // burst registry — shapes drawn in absolute viewBox coords around (x,y); group animates around that point
+    const ring=(x,y)=>({cls:'pop',d:rnd(640,760),v:'--s0:.35;--s1:2.6;--o0:.9',
+      svg:`<circle cx="${x}" cy="${y}" r="4" fill="none" stroke="currentColor" stroke-width="1.4"/>`});
+    const ripple=(x,y)=>({cls:'pop',d:rnd(780,920),v:'--s0:.4;--s1:2.3;--o0:.8',
+      svg:`<circle cx="${x}" cy="${y}" r="3" fill="none" stroke="currentColor" stroke-width="1"/><circle cx="${x}" cy="${y}" r="6.5" fill="none" stroke="currentColor" stroke-width=".7"/>`});
+    const bloom=(x,y)=>({cls:'pop',d:rnd(620,760),v:'--s0:.3;--s1:2.0;--o0:.5',
+      svg:`<circle cx="${x}" cy="${y}" r="5" fill="currentColor"/>`});
+    const rays=(x,y)=>{let s='';for(let i=0;i<8;i++){const a=i/8*TWO,c=Math.cos(a),si=Math.sin(a);
+      s+=`<line x1="${(x+c*5).toFixed(1)}" y1="${(y+si*5).toFixed(1)}" x2="${(x+c*10).toFixed(1)}" y2="${(y+si*10).toFixed(1)}" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>`;}
+      return{cls:'pop',d:rnd(560,680),v:'--s0:.4;--s1:1.5;--o0:1',svg:s};};
+    const particles=(x,y)=>{let s='';const n=7;for(let i=0;i<n;i++){const a=i/n*TWO+rnd(-.2,.2),r=rnd(7,10);
+      s+=`<circle cx="${(x+Math.cos(a)*r).toFixed(1)}" cy="${(y+Math.sin(a)*r).toFixed(1)}" r="1.3" fill="currentColor"/>`;}
+      return{cls:'pop',d:rnd(640,780),v:'--s0:.2;--s1:1.5;--o0:1',svg:s};};
+    const sparkles=(x,y)=>{let s='';for(let i=0;i<4;i++){const a=rnd(0,TWO),r=rnd(4,9),px=x+Math.cos(a)*r,py=y+Math.sin(a)*r,d=1.6;
+      s+=`<line x1="${(px-d).toFixed(1)}" y1="${py.toFixed(1)}" x2="${(px+d).toFixed(1)}" y2="${py.toFixed(1)}" stroke="currentColor" stroke-width="1" stroke-linecap="round"/><line x1="${px.toFixed(1)}" y1="${(py-d).toFixed(1)}" x2="${px.toFixed(1)}" y2="${(py+d).toFixed(1)}" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>`;}
+      return{cls:'tw',d:rnd(560,700),v:'',svg:s};};
+    const orbit=(x,y)=>({cls:'orbit',d:rnd(820,1000),v:'',
+      svg:`<circle cx="${(x+8).toFixed(1)}" cy="${y}" r="1.7" fill="currentColor"/>`});
+    const spiral=(x,y)=>{let s='';const n=6;for(let i=0;i<n;i++){const t=i/n,a=t*TWO,r=2+t*8;
+      s+=`<circle cx="${(x+Math.cos(a)*r).toFixed(1)}" cy="${(y+Math.sin(a)*r).toFixed(1)}" r="${(1.5-t).toFixed(2)}" fill="currentColor"/>`;}
+      return{cls:'spiral',d:rnd(760,900),v:'',svg:s};};
+    const confetti=(x,y)=>{let s='';const n=6;for(let i=0;i<n;i++){const a=i/n*TWO,r=rnd(6,9),px=x+Math.cos(a)*r,py=y+Math.sin(a)*r,rot=(R()*90)|0;
+      s+=`<rect x="${(px-1).toFixed(1)}" y="${(py-1.6).toFixed(1)}" width="2" height="3.2" rx=".5" fill="currentColor" transform="rotate(${rot} ${px.toFixed(1)} ${py.toFixed(1)})"/>`;}
+      return{cls:'conf',d:rnd(660,800),v:'',svg:s};};
+    const ponder=(x,y)=>({cls:'ponder',d:rnd(820,980),v:'',
+      svg:`<circle cx="${x}" cy="${y}" r="2" fill="currentColor"/>`});
+    const flare=(x,y)=>{let s='';const L=[11,7,11,7,11,7,11,7];for(let i=0;i<8;i++){const a=i/8*TWO,c=Math.cos(a),si=Math.sin(a);
+      s+=`<line x1="${(x+c*3).toFixed(1)}" y1="${(y+si*3).toFixed(1)}" x2="${(x+c*L[i]).toFixed(1)}" y2="${(y+si*L[i]).toFixed(1)}" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>`;}
+      return{cls:'pop',d:rnd(560,700),v:'--s0:.4;--s1:1.45;--o0:1',svg:s};};
+    const dust=(x,y)=>{let s='';for(let i=0;i<11;i++){const a=R()*TWO,r=rnd(5,13);
+      s+=`<circle cx="${(x+Math.cos(a)*r).toFixed(1)}" cy="${(y+Math.sin(a)*r).toFixed(1)}" r="${rnd(.6,1.1).toFixed(2)}" fill="currentColor"/>`;}
+      return{cls:'pop',d:rnd(780,980),v:'--s0:.25;--s1:1.4;--o0:.85',svg:s};};
+    const shoot=(x,y)=>{const a=R()*TWO,c=Math.cos(a),si=Math.sin(a);
+      return{cls:'pop',d:rnd(420,560),v:'--s0:.4;--s1:2.2;--o0:1',
+      svg:`<line x1="${(x+c*2).toFixed(1)}" y1="${(y+si*2).toFixed(1)}" x2="${(x+c*9).toFixed(1)}" y2="${(y+si*9).toFixed(1)}" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>`};};
+    const petals=(x,y)=>{let s='';const n=5;for(let i=0;i<n;i++){const a=i/n*TWO,r=6,px=x+Math.cos(a)*r,py=y+Math.sin(a)*r,rot=(a*180/Math.PI).toFixed(0);
+      s+=`<ellipse cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" rx="1.4" ry="3" fill="currentColor" transform="rotate(${rot} ${px.toFixed(1)} ${py.toFixed(1)})"/>`;}
+      return{cls:'pop',d:rnd(640,800),v:'--s0:.3;--s1:1.5;--o0:.9',svg:s};};
+    const cross=(x,y)=>({cls:'tw',d:rnd(520,660),v:'',
+      svg:`<line x1="${(x-5).toFixed(1)}" y1="${y}" x2="${(x+5).toFixed(1)}" y2="${y}" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><line x1="${x}" y1="${(y-5).toFixed(1)}" x2="${x}" y2="${(y+5).toFixed(1)}" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><circle cx="${x}" cy="${y}" r="1.3" fill="currentColor"/>`});
+    const halo=(x,y)=>({cls:'pop',d:rnd(720,880),v:'--s0:.6;--s1:2.4;--o0:.7',
+      svg:`<circle cx="${x}" cy="${y}" r="5" fill="none" stroke="currentColor" stroke-width=".6"/>`});
+    const BURSTS=[ring,ripple,bloom,rays,particles,sparkles,orbit,spiral,confetti,ponder,flare,dust,shoot,petals,cross,halo];
+
+    function fire(svg,x,y,color){
+      const b=pick(BURSTS)(x,y);
+      const g=document.createElementNS(NS,'g');
+      g.setAttribute('class','burst '+b.cls);
+      g.style.cssText=`color:${color};transform-box:view-box;transform-origin:${x.toFixed(1)}px ${y.toFixed(1)}px;--d:${Math.round(b.d)}ms;${b.v}`;
+      g.innerHTML=b.svg;
+      svg.appendChild(g);
+      setTimeout(()=>g.remove(), b.d+80);
+    }
+
+    const ease=x=>x<.5?2*x*x:1-Math.pow(-2*x+2,2)/2;          // easeInOutQuad
+    const outBack=x=>{const c=1.9;return 1+(c+1)*Math.pow(x-1,3)+c*Math.pow(x-1,2);};
+    const place=(o,x,y,sc)=>o.g.setAttribute('transform',`translate(${x.toFixed(2)} ${y.toFixed(2)}) scale(${sc.toFixed(3)})`);
+
+    const orbs=[];
+    document.querySelectorAll('.tile[data-orb]').forEach(tile=>{
+      const svg=tile.querySelector('.art'), g=tile.querySelector('.orb'), node=tile.querySelector('.node');
+      if(!svg||!g) return;
+      const color=tile.classList.contains('fin')?'rgba(236,184,124,.95)':'rgba(178,245,214,.95)';
+      const o={svg,g,node,color,mode:tile.dataset.orb,pulse:0,burstNext:rnd(3000,16000),
+               vis:1,mDim:1,flState:'on',flT:rnd(4000,15000),flP:0,flDur:0};
+      if(o.mode==='wander'){
+        o.paths=[...tile.querySelectorAll('.mot, .motd')]; o.pi=0; o.path=o.paths[0]; o.len=o.path.getTotalLength();
+        o.s=R()*o.len; o.from=o.s; o.to=o.s; o.t=1; o.dur=1; o.hold=rnd(800,3000); o.energy=false;
+        o.swapping=false; o.swapNext=o.paths.length>1?rnd(6000,13000):Infinity;
+        const p=o.path.getPointAtLength(o.s); place(o,p.x,p.y,1);
+      } else if(o.mode==='hop'){
+        o.pts=[[190,50],[252,44],[314,36],[376,26]]; o.i=(R()*4)|0; o.phase='idle';
+        o.dwell=rnd(1200,3200); o.q=0; o.x=o.pts[o.i][0]; o.y=o.pts[o.i][1]; place(o,o.x,o.y,1);
+      } else {
+        const p=(tile.dataset.pt||'0,0').split(',').map(Number); o.x=p[0]; o.y=p[1]; o.hx=p[0]; o.hy=p[1];
+        o.roam=tile.dataset.roam||null; o.rs='rest'; o.rT=rnd(7000,16000); o.q=0; o.legDur=0; o.glitch=0;
+        if(o.roam==='spoke'){ o.tips=[...tile.querySelectorAll('.motd')].map(l=>[+l.getAttribute('x2'),+l.getAttribute('y2')]); o.legs=0; o.tip=p; }
+        else if(o.roam==='ring'){ const c=tile.querySelector('.mot'); o.cx=+c.getAttribute('cx'); o.cy=+c.getAttribute('cy'); o.cr=+c.getAttribute('r'); }
+        place(o,o.x,o.y,1);
+      }
+      orbs.push(o);
+    });
+    if(!orbs.length) return;
+
+    let last=null;
+    function frame(now){
+      if(last==null) last=now;
+      const dt=Math.min(now-last,48); last=now;
+      for(const o of orbs){
+        o.mDim=1;                                  // motion dimming (hop/swap), reset each frame
+        // rare burst per ball — only when fully present
+        o.burstNext-=dt;
+        if(o.burstNext<=0){
+          o.burstNext=rnd(9000,20000);
+          if(o.flState==='on'){
+            let cx,cy;
+            if(o.mode==='wander'){const p=o.path.getPointAtLength(o.s);cx=p.x;cy=p.y;} else {cx=o.x;cy=o.y;}
+            fire(o.svg,cx,cy,o.color); o.pulse=1;
+          }
+        }
+        if(o.pulse>0) o.pulse=Math.max(0,o.pulse-dt/520);
+        const pb=o.pulse*o.pulse*(3-2*o.pulse), sc=1+pb*0.28;
+
+        if(o.mode==='wander'){
+          if(o.swapping){                                    // Fuel: slow glitch-teleport to the other wave
+            o.swapQ+=dt/260;
+            if(o.swapQ>=0.5 && !o.swapped){ o.pi=(o.pi+1)%o.paths.length; const ratio=o.s/o.len; o.path=o.paths[o.pi]; o.len=o.path.getTotalLength(); o.s=ratio*o.len; o.from=o.s; o.to=o.s; o.t=1; o.hold=rnd(900,2400); o.swapped=true; }
+            if(o.swapQ<1) o.mDim=(Math.floor(o.swapQ*6)%2?0.2:0.85);
+            else o.swapping=false;
+            const p=o.path.getPointAtLength(o.s); place(o,p.x,p.y,sc);
+          } else {
+            if(o.swapNext!==Infinity){ o.swapNext-=dt; if(o.swapNext<=0){ o.swapNext=rnd(8000,16000); o.swapping=true; o.swapped=false; o.swapQ=0; } }
+            if(o.hold>0) o.hold-=dt;
+            else if(o.t<1){ o.t=Math.min(1,o.t+dt/o.dur); o.s=o.from+(o.to-o.from)*ease(o.t); if(o.t>=1) o.hold=o.energy?rnd(800,2000):(R()<0.25?rnd(5000,9000):rnd(1800,5500)); }
+            else {                                            // mostly tiny curious nudges; a burst of energy glides anywhere on the line (so it roams the WHOLE path over time)
+              o.from=o.s; const energy=R()<0.30; let nt;
+              if(energy){ nt=R()*o.len; }
+              else { let delta=rnd(8,30); if(delta>o.len*0.8) delta=o.len*0.8; if(R()<0.5) delta=-delta; nt=o.s+delta; if(nt<0) nt=-nt; if(nt>o.len) nt=2*o.len-nt; nt=Math.max(0,Math.min(o.len,nt)); }
+              o.to=nt; o.energy=energy; const dist=Math.abs(nt-o.from);
+              o.dur=energy?(650+dist*3.2):(1200+dist*12+rnd(500,1700)); o.t=0;
+            }
+            const p=o.path.getPointAtLength(o.s); place(o,p.x,p.y,sc);
+          }
+        } else if(o.mode==='hop'){
+          if(o.phase==='idle'){
+            o.dwell-=dt; if(o.dwell<=0){o.phase='out';o.q=0;}
+            place(o,o.x,o.y,sc);
+          } else if(o.phase==='out'){            // glitch flicker, then teleport
+            o.q+=dt/150;
+            if(o.q>=1){ let ni;do{ni=(R()*o.pts.length)|0;}while(ni===o.i); o.i=ni; o.x=o.pts[ni][0]; o.y=o.pts[ni][1]; o.phase='in'; o.q=0; }
+            else { o.mDim=(Math.floor(o.q*5)%2?0.15:0.85); place(o,o.x,o.y,1-o.q*0.55); }
+          } else {                               // bounce-settle into the new bar
+            o.q+=dt/340;
+            if(o.q>=1){ o.phase='idle'; o.dwell=rnd(1300,3600); place(o,o.x,o.y,sc); }
+            else { const yb=-Math.abs(Math.sin(o.q*Math.PI*2))*(1-o.q)*5; place(o,o.x,o.y+yb,0.45+outBack(o.q)*0.65); }
+          }
+        } else {                                   // still — chill at home most of the time, with rare excursions
+          if(o.roam==='spoke'){                     // Brand: glide out along a spoke to its tip, back to centre, maybe another, then rest
+            if(o.rs==='rest'){ o.rT-=dt; o.x=o.hx; o.y=o.hy; if(o.rT<=0){ o.legs=R()<0.35?2:1; o.tip=o.tips[(R()*o.tips.length)|0]; o.rs='out'; o.q=0; o.legDur=rnd(700,1100); } }
+            else if(o.rs==='out'){ o.q+=dt/o.legDur; const e=ease(Math.min(1,o.q)); o.x=o.hx+(o.tip[0]-o.hx)*e; o.y=o.hy+(o.tip[1]-o.hy)*e; if(o.q>=1){ o.rs='tip'; o.rT=rnd(180,560); } }
+            else if(o.rs==='tip'){ o.rT-=dt; o.x=o.tip[0]; o.y=o.tip[1]; if(o.rT<=0){ o.rs='back'; o.q=0; o.legDur=rnd(700,1100); } }
+            else { o.q+=dt/o.legDur; const e=ease(Math.min(1,o.q)); o.x=o.tip[0]+(o.hx-o.tip[0])*e; o.y=o.tip[1]+(o.hy-o.tip[1])*e; if(o.q>=1){ o.x=o.hx; o.y=o.hy; o.legs--; if(o.legs>0){ o.tip=o.tips[(R()*o.tips.length)|0]; o.rs='out'; o.q=0; o.legDur=rnd(700,1100); } else { o.rs='rest'; o.rT=rnd(18000,34000); } } }
+          } else if(o.roam==='ring'){               // Peak: teleport onto the ring, orbit a while, teleport back to the dot, stay still
+            if(o.rs==='rest'){ o.rT-=dt; o.x=o.hx; o.y=o.hy; if(o.rT<=0){ o.a0=R()*TWO; o.a1=o.a0+(R()<0.5?-1:1)*rnd(Math.PI*0.8,Math.PI*2.2); o.rs='orbit'; o.q=0; o.legDur=rnd(1700,3400); o.glitch=rnd(140,220); } }
+            else { o.q+=dt/o.legDur; const a=o.a0+(o.a1-o.a0)*ease(Math.min(1,o.q)); o.x=o.cx+Math.cos(a)*o.cr; o.y=o.cy+Math.sin(a)*o.cr; if(o.q>=1){ o.rs='rest'; o.rT=rnd(14000,28000); o.x=o.hx; o.y=o.hy; o.glitch=rnd(140,220); } }
+            if(o.glitch>0){ o.glitch-=dt; o.mDim=Math.min(o.mDim, (Math.floor(o.glitch/45)%2?0.2:0.85)); }
+          }
+          place(o,o.x,o.y,sc);
+        }
+
+        // ── mysterious flicker: gem-style strobe OUT, vanish 2–15s, strobe back IN ──
+        o.flT-=dt;
+        if(o.flState==='on'){ o.vis=1; if(o.flT<=0){ o.flState='out'; o.flP=0; o.flDur=rnd(420,680); } }
+        else if(o.flState==='out'){ o.flP+=dt/o.flDur; o.vis=o.flP>=1?0:Math.max(0,1-o.flP)*(R()<0.5?1:0.22);
+          if(o.flP>=1){ o.flState='off'; o.vis=0; o.flT=rnd(2000,15000);
+            if(o.mode==='wander'){ o.s=R()*o.len; o.from=o.s; o.to=o.s; o.t=1; o.hold=rnd(400,1400); } } }   // while unseen, slip to a new spot → reappears elsewhere, roams the whole line
+        else if(o.flState==='off'){ o.vis=0; if(o.flT<=0){ o.flState='in'; o.flP=0; o.flDur=rnd(420,680); } }
+        else { o.flP+=dt/o.flDur; o.vis=o.flP>=1?1:Math.min(1,o.flP)*(R()<0.5?1:0.32); if(o.flP>=1){ o.flState='on'; o.vis=1; o.flT=rnd(6000,18000); } }
+
+        o.g.style.opacity=(o.vis*o.mDim).toFixed(3);
+        if(o.node) o.node.style.opacity=(0.85+pb*0.15).toFixed(3);
+      }
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  })();
+  </script>
+</body>
+</html>

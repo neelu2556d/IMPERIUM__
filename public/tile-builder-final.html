@@ -1,0 +1,2084 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Tile Builder · Vitality</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+/* ================================================================
+   VITALITY · TILE BUILDER · THE DEFINITIVE CUT
+   Act I   The Opening   ·  one calm question, one beautiful input
+   Act II  The Birth     ·  the tile assembles itself on the bench
+   Act III The Crafting  ·  Vee finishes it with you, live
+   ================================================================ */
+
+@property --acc {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #6EE7B7;
+}
+@property --acc-ink {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #042a1c;
+}
+
+:root{
+  --bg:#04060a;
+  --mint:#6EE7B7;
+  --mint-hover:#5dd6a6;
+  --mint-deep:#1f4d3d;
+  --mint-ink:#042a1c;
+  --iris:#A5B4FC;
+  --amber:#F59E0B;
+
+  --line:rgba(167,243,208,.16);
+  --line-soft:rgba(167,243,208,.09);
+  --tx:#f2f6f4;
+  --tx-dim:rgba(255,255,255,.62);
+  --tx-faint:rgba(255,255,255,.36);
+  --ease:cubic-bezier(.16,1,.3,1);
+  --serif:'Instrument Serif',serif;
+  --mono:'JetBrains Mono',monospace;
+  --sans:'Inter',system-ui,sans-serif;
+}
+
+body{
+  --acc:#6EE7B7;
+  --acc-ink:#042a1c;
+  transition: --acc .6s var(--ease), --acc-ink .6s var(--ease);
+}
+
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{color-scheme:dark}
+body{
+  background:var(--bg);
+  color:var(--tx);
+  font-family:var(--sans);
+  font-size:15px;
+  line-height:1.5;
+  overflow-x:hidden;
+  min-height:100vh;
+  min-height:100svh;
+  -webkit-font-smoothing:antialiased;
+}
+::selection{background:rgba(110,231,183,.28);color:#eafff6}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+input{font:inherit;color:inherit}
+svg{display:block}
+[hidden]{display:none !important}
+button:focus-visible,input:focus-visible{outline:1.5px solid var(--mint);outline-offset:3px;border-radius:8px}
+
+/* ---------------------------------------------- signature world */
+.bg-atmo{
+  position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(60% 50% at 50% 30%, rgba(110,231,183,.16), transparent 70%),
+    radial-gradient(28% 22% at 50% 38%, rgba(255,226,181,.07), transparent 70%),
+    radial-gradient(120% 80% at 50% 100%, rgba(14,38,30,.55), rgba(4,6,10,.96) 75%),
+    #04060a;
+}
+.bg-mountains{position:fixed;left:0;right:0;bottom:0;z-index:1;pointer-events:none;height:44vh}
+.bg-mountains svg{position:absolute;left:0;bottom:0;width:100%}
+.bg-mountains .far{height:38vh}
+.bg-mountains .near{height:28vh}
+
+#particles{position:fixed;inset:0;z-index:2;pointer-events:none;overflow:hidden}
+#particles i{
+  position:absolute;border-radius:50%;
+  background:#9df0cd;
+  box-shadow:0 0 6px 1.5px rgba(110,231,183,.4);
+  opacity:0;
+  animation:drift linear infinite;
+}
+@keyframes drift{
+  0%{transform:translate(0,0);opacity:0}
+  7%{opacity:var(--po,.4)}
+  85%{opacity:var(--po,.4)}
+  100%{transform:translate(var(--wx,0px),-108vh);opacity:0}
+}
+#particles i.burst{
+  background:#c9f7e2;
+  box-shadow:0 0 10px 2.5px rgba(110,231,183,.55);
+  animation:burstUp var(--bd,1.8s) cubic-bezier(.2,.7,.3,1) forwards;
+}
+@keyframes burstUp{
+  0%{transform:translate(0,0) scale(.6);opacity:0}
+  12%{opacity:.9}
+  100%{transform:translate(var(--wx,0px),-46vh) scale(1);opacity:0}
+}
+
+.bg-grain{
+  position:fixed;inset:0;z-index:3;pointer-events:none;opacity:.05;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* birth glow: the world reacts once, softly */
+#birthGlow{
+  position:fixed;inset:0;z-index:4;pointer-events:none;
+  display:flex;align-items:center;justify-content:center;
+}
+#birthGlow .orb{
+  width:min(620px,120vw);height:min(620px,120vw);border-radius:50%;
+  background:radial-gradient(circle, rgba(110,231,183,.20), rgba(110,231,183,.06) 42%, transparent 68%);
+  opacity:0;transform:scale(.9);
+}
+#birthGlow.go .orb{animation:birthPulse 1.6s var(--ease) both}
+@keyframes birthPulse{
+  0%{opacity:0;transform:scale(.9)}
+  30%{opacity:.9;transform:scale(1.02)}
+  100%{opacity:0;transform:scale(1.08)}
+}
+
+/* ---------------------------------------------- layout */
+main{
+  position:relative;z-index:5;
+  min-height:100vh;min-height:100svh;
+  display:flex;flex-direction:column;
+  padding:calc(18px + env(safe-area-inset-top)) 16px calc(30px + env(safe-area-inset-bottom));
+}
+.act{margin:auto;display:flex;flex-direction:column;gap:18px}
+.act.leave{opacity:0;transform:translateY(-14px);transition:opacity .38s var(--ease),transform .38s var(--ease)}
+
+@keyframes riseIn{
+  from{opacity:0;transform:translateY(18px)}
+  to{opacity:1;transform:translateY(0)}
+}
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(10px)}
+  to{opacity:1;transform:translateY(0)}
+}
+@keyframes pop{0%{transform:scale(1)}35%{transform:scale(1.09)}100%{transform:scale(1)}}
+@keyframes nudge{0%,100%{transform:translateX(0)}30%{transform:translateX(3px)}60%{transform:translateX(-3px)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+/* ================================================================
+   ACT I · THE OPENING
+   ================================================================ */
+.act-open{width:min(640px,92vw);align-items:center;text-align:center;gap:0}
+.act-open .o-eyebrow{
+  display:flex;align-items:center;gap:9px;
+  font-family:var(--mono);font-size:10px;font-weight:500;
+  letter-spacing:.26em;color:var(--mint);
+}
+.o-eyebrow svg{width:12px;height:12px;fill:var(--mint);animation:sparkGlow 3.4s var(--ease) infinite}
+@keyframes sparkGlow{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(.86)}}
+.act-open h1{
+  font-family:var(--serif);font-weight:400;
+  font-size:clamp(38px,7.4vw,62px);
+  line-height:1.06;letter-spacing:-.01em;
+  margin:22px 0 10px;
+}
+.act-open h1 em{font-style:italic;color:var(--mint)}
+.o-lede{color:var(--tx-dim);font-size:15.5px;max-width:40ch;margin:0 auto}
+
+.open-bar{
+  position:relative;width:100%;max-width:560px;
+  display:flex;align-items:center;gap:12px;
+  height:64px;border-radius:20px;
+  padding:0 9px 0 20px;
+  margin:38px auto 0;
+  background:rgba(9,13,12,.72);
+  border:1px solid var(--line);
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+  transition:border-color .35s,box-shadow .35s;
+}
+.open-bar:focus-within{
+  border-color:rgba(167,243,208,.34);
+  box-shadow:0 0 54px rgba(110,231,183,.09);
+}
+.open-bar.nudge{animation:nudge .35s ease}
+.open-bar .o-spark{width:18px;height:18px;fill:var(--mint);opacity:.9;flex-shrink:0}
+.open-bar input{
+  flex:1;min-width:0;height:100%;background:transparent;border:none;outline:none;
+  font-size:16px;color:var(--tx);caret-color:var(--mint);
+  position:relative;z-index:2;
+}
+.open-ghost{
+  position:absolute;left:50px;right:72px;top:50%;
+  transform:translateY(-50%);
+  font-family:var(--serif);font-style:italic;font-size:19px;
+  color:rgba(255,255,255,.36);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  text-align:left;pointer-events:none;z-index:1;
+  transition:opacity .38s ease,transform .38s ease;
+}
+.open-bar.has-text .open-ghost{opacity:0 !important}
+.go-btn{
+  position:relative;flex-shrink:0;
+  width:46px;height:46px;border-radius:50%;
+  background:var(--mint);color:var(--mint-ink);
+  display:flex;align-items:center;justify-content:center;
+  transition:background .3s,transform .25s var(--ease);
+  animation:invite 1.6s ease-in-out infinite;
+}
+.go-btn:active{transform:scale(.92)}
+.go-btn svg{width:18px;height:18px;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;fill:none}
+@keyframes invite{0%,100%{box-shadow:0 0 0 0 rgba(110,231,183,.22)}50%{box-shadow:0 0 0 10px rgba(110,231,183,0)}}
+
+.o-quiet{
+  font-family:var(--mono);font-size:9.5px;font-weight:400;
+  letter-spacing:.2em;color:var(--tx-faint);
+  margin-top:16px;
+}
+.seeds{
+  display:flex;flex-wrap:wrap;justify-content:center;gap:10px;
+  margin-top:34px;max-width:520px;
+}
+.seed{
+  display:flex;align-items:center;gap:8px;
+  border:1px solid rgba(255,255,255,.10);border-radius:999px;
+  background:rgba(255,255,255,.02);
+  padding:9px 16px 9px 13px;
+  font-size:13px;color:var(--tx-dim);
+  transition:border-color .3s,color .3s,transform .3s var(--ease),opacity .3s;
+}
+.seed svg{width:12px;height:12px;fill:var(--mint);opacity:.9;flex-shrink:0}
+.seed[disabled]{opacity:.4;pointer-events:none}
+
+/* staged entrance of the opening */
+.act-open.in .o-eyebrow{animation:riseIn .8s var(--ease) .05s both}
+.act-open.in h1{animation:riseIn .9s var(--ease) .14s both}
+.act-open.in .o-lede{animation:riseIn .9s var(--ease) .22s both}
+.act-open.in .open-bar{animation:riseIn .9s var(--ease) .32s both}
+.act-open.in .o-quiet{animation:riseIn .9s var(--ease) .42s both}
+.act-open.in .seeds{animation:riseIn .9s var(--ease) .5s both}
+
+/* ================================================================
+   THE BEAT · Vee takes the sentence
+   ================================================================ */
+#beat{
+  position:fixed;inset:0;z-index:6;pointer-events:none;
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;transition:opacity .3s var(--ease);
+}
+#beat.show{opacity:1}
+.beat-inner{display:flex;flex-direction:column;align-items:center;gap:14px}
+.beat-inner .b-spark{width:22px;height:22px;fill:var(--mint);animation:sparkGlow 1.4s var(--ease) infinite}
+.beat-dots{display:flex;gap:6px}
+.beat-dots i{
+  width:5px;height:5px;border-radius:50%;background:var(--mint);
+  animation:think 1s var(--ease) infinite;
+}
+.beat-dots i:nth-child(2){animation-delay:.15s}
+.beat-dots i:nth-child(3){animation-delay:.3s}
+@keyframes think{0%,100%{opacity:.25;transform:translateY(0)}40%{opacity:1;transform:translateY(-4px)}}
+.beat-text{
+  font-family:var(--mono);font-size:9.5px;font-weight:500;
+  letter-spacing:.26em;color:var(--tx-dim);
+}
+
+/* ================================================================
+   ACT III · THE CRAFTING  (the born piece + Vee)
+   ================================================================ */
+.act-craft{width:min(560px,92vw)}
+
+/* -------- top bar */
+.top{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px}
+.back{
+  justify-self:start;
+  width:38px;height:38px;border-radius:50%;
+  border:1px solid rgba(255,255,255,.10);
+  display:flex;align-items:center;justify-content:center;
+  color:var(--tx-dim);
+  transition:border-color .3s,color .3s,transform .3s var(--ease);
+}
+.back svg{width:15px;height:15px;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;fill:none}
+.brand{text-align:center;display:flex;flex-direction:column;gap:3px}
+.eyebrow{
+  font-family:var(--mono);font-size:9.5px;font-weight:500;
+  letter-spacing:.22em;color:var(--acc);opacity:.85;
+}
+.head-serif{
+  font-family:var(--serif);font-size:21px;color:var(--tx-dim);line-height:1.15;
+}
+.head-serif em{font-style:italic;color:var(--acc)}
+.draft{
+  justify-self:end;
+  font-family:var(--mono);font-size:9px;letter-spacing:.16em;
+  color:var(--tx-faint);
+  border:1px solid rgba(255,255,255,.08);border-radius:999px;
+  padding:6px 11px;white-space:nowrap;
+}
+@media (max-width:479px){ .draft{display:none} }
+
+/* -------- the piece: tile + dock, one physical object */
+.piece{
+  position:relative;
+  display:flex;flex-direction:column;
+  background:
+    radial-gradient(120% 60% at 50% 0%, color-mix(in srgb, var(--acc) 5%, transparent), transparent 60%),
+    #05080a;
+  border:1px solid var(--line);
+  border-radius:22px;
+  box-shadow:
+    0 36px 90px -28px rgba(0,0,0,.85),
+    0 0 120px color-mix(in srgb, var(--acc) 5%, transparent);
+  overflow:hidden;
+}
+/* soft flash when Vee applies a change */
+.piece::after{
+  content:'';
+  position:absolute;inset:0;border-radius:inherit;
+  background:radial-gradient(80% 60% at 50% 38%, color-mix(in srgb, var(--acc) 12%, transparent), transparent 75%);
+  opacity:0;pointer-events:none;
+  transition:opacity .55s var(--ease);
+}
+.piece.flash::after{opacity:1;transition:opacity .12s var(--ease)}
+
+.tile{
+  position:relative;
+  flex:1;min-height:0;
+  padding:24px 28px 20px;
+  display:flex;flex-direction:column;gap:16px;
+}
+.tile-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.tile-kicker{
+  display:flex;align-items:center;gap:6px;
+  font-family:var(--mono);font-size:9.5px;font-weight:500;
+  letter-spacing:.2em;color:var(--tx-faint);
+}
+.tile-kicker svg{width:11px;height:11px;fill:var(--acc);opacity:.85;flex-shrink:0}
+.tile-name{
+  font-family:var(--serif);font-weight:400;font-size:32px;
+  line-height:1.05;margin-top:6px;color:var(--tx);
+}
+.tile-name.pop{animation:pop .55s var(--ease)}
+.pill{
+  display:flex;align-items:center;gap:7px;flex-shrink:0;margin-top:2px;
+  background:color-mix(in srgb, var(--acc) 10%, transparent);
+  border-radius:999px;padding:7px 13px;
+  font-family:var(--mono);font-size:9px;font-weight:500;
+  letter-spacing:.16em;color:var(--acc);
+  transition:background .5s,color .5s;
+}
+.pill .dot{
+  width:5px;height:5px;border-radius:50%;background:var(--acc);
+  animation:pulse 2.6s ease-in-out infinite;
+}
+.pill.warn{background:rgba(245,158,11,.10);color:var(--amber)}
+.pill.warn .dot{background:var(--amber)}
+
+/* -------- ring: circular radial glow + traveling tip dot */
+.ring-wrap{position:relative;width:222px;height:222px;margin:0 auto;flex-shrink:0}
+.ring-glow{
+  position:absolute;left:50%;top:50%;width:256px;height:256px;
+  transform:translate(-50%,-50%);
+  border-radius:50%;
+  background:radial-gradient(circle, color-mix(in srgb, var(--acc) 20%, transparent), transparent 65%);
+  z-index:0;
+}
+.ring{position:relative;z-index:1;width:222px;height:222px}
+.ring-track{fill:none;stroke:rgba(255,255,255,.08);stroke-width:10}
+.ring-arc{
+  fill:none;stroke:var(--acc);stroke-width:10;stroke-linecap:round;
+  transition:stroke-dashoffset 1.05s var(--ease);
+}
+.ring-rot{
+  position:absolute;inset:0;z-index:2;pointer-events:none;
+  transform:rotate(0deg);
+  transition:transform 1.05s var(--ease);
+}
+.ring-rot .tip{
+  position:absolute;left:50%;top:23px;width:9px;height:9px;
+  transform:translate(-50%,-50%);
+  border-radius:50%;background:var(--acc);
+  box-shadow:0 0 10px 2px color-mix(in srgb, var(--acc) 22%, transparent);
+}
+.ring-center{
+  position:absolute;inset:0;z-index:3;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  pointer-events:none;
+}
+.ring-num{font-family:var(--serif);font-size:60px;line-height:1;color:var(--tx);letter-spacing:-.01em}
+.ring-unit{
+  font-family:var(--mono);font-size:9.5px;font-weight:500;
+  letter-spacing:.22em;color:var(--tx-faint);
+}
+.ring-center.pop{animation:pop .55s var(--ease)}
+@media (max-width:374px){
+  .ring-wrap{transform:scale(.86);margin:-14px auto}
+}
+
+/* -------- 7 day chart */
+.chart{display:flex;flex-direction:column;gap:9px}
+.chart-head{
+  display:flex;justify-content:space-between;
+  font-family:var(--mono);font-size:9px;font-weight:500;
+  letter-spacing:.2em;color:var(--tx-faint);
+}
+.bars{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;height:54px;align-items:end}
+.bar{height:100%;display:flex;align-items:flex-end}
+.bar i{
+  display:block;width:100%;height:0;border-radius:5px;
+  background:rgba(255,255,255,.10);
+  transition:height .7s var(--ease),background .5s;
+}
+.bar.today i{
+  background:var(--acc);
+  box-shadow:0 0 14px color-mix(in srgb, var(--acc) 22%, transparent);
+}
+.bar.over i{background:rgba(245,158,11,.45)}
+.bar.today.over i{background:var(--amber);box-shadow:0 0 14px rgba(245,158,11,.25)}
+.days{
+  display:grid;grid-template-columns:repeat(7,1fr);gap:8px;
+  font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;
+  color:var(--tx-faint);text-align:center;
+}
+.days .today{color:var(--acc)}
+
+/* -------- tile foot */
+.tile-foot{display:flex;flex-direction:column;gap:13px}
+.streak{
+  align-self:flex-start;
+  display:flex;align-items:center;gap:7px;
+  border:1px solid rgba(255,255,255,.10);border-radius:999px;
+  padding:7px 13px;
+  font-family:var(--mono);font-size:9px;font-weight:500;
+  letter-spacing:.16em;color:var(--tx-dim);
+}
+.streak svg{width:11px;height:11px;fill:var(--acc)}
+.insight{
+  font-family:var(--serif);font-style:italic;font-size:15.5px;
+  line-height:1.45;color:rgba(255,255,255,.66);
+  border-left:2px solid color-mix(in srgb, var(--acc) 55%, transparent);
+  padding-left:13px;
+}
+.insight em{font-style:italic;color:var(--acc)}
+
+/* -------- the dock: instruments fused to the base */
+.dock{
+  flex-shrink:0;
+  border-top:1px solid var(--line-soft);
+  background:linear-gradient(180deg, rgba(167,243,208,.045), rgba(167,243,208,.015));
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+  border-radius:0 0 21px 21px;
+  display:grid;
+  grid-template-columns:max-content 1fr max-content;
+  align-items:stretch;
+}
+.cell{
+  padding:15px 20px 16px;
+  display:flex;flex-direction:column;gap:9px;justify-content:center;
+  min-width:0;
+}
+.cell + .cell{border-left:1px solid var(--line-soft)}
+.cell label{
+  font-family:var(--mono);font-size:8.5px;font-weight:500;
+  letter-spacing:.2em;color:var(--tx-faint);
+}
+@media (max-width:479px){
+  .dock{grid-template-columns:1fr 1fr}
+  .cell-name{grid-column:1 / -1;border-left:none;border-bottom:1px solid var(--line-soft);order:-1}
+  .cell-goal{border-left:none}
+  .cell-accent{border-left:1px solid var(--line-soft)}
+}
+
+.stepper{display:flex;align-items:center;gap:13px}
+.step-btn{
+  width:31px;height:31px;border-radius:50%;
+  border:1px solid rgba(255,255,255,.13);
+  display:flex;align-items:center;justify-content:center;
+  color:var(--tx-dim);
+  transition:border-color .3s,color .3s,transform .25s var(--ease),opacity .3s;
+}
+.step-btn svg{width:13px;height:13px;stroke:currentColor;stroke-width:2;stroke-linecap:round;fill:none}
+.step-btn:active{transform:scale(.9)}
+.step-btn[disabled]{opacity:.28;pointer-events:none}
+.goal-num{
+  font-family:var(--serif);font-size:26px;line-height:1;
+  min-width:34px;text-align:center;color:var(--tx);white-space:nowrap;
+}
+.goal-num.pop{animation:pop .55s var(--ease)}
+
+.cell-name input{
+  width:100%;min-width:0;background:transparent;border:none;outline:none;
+  border-bottom:1px solid rgba(255,255,255,.13);
+  padding:4px 1px 6px;
+  font-size:16px;font-weight:500;color:var(--tx);
+  caret-color:var(--acc);
+  border-radius:0;
+  transition:border-color .35s;
+}
+.cell-name input:focus{border-bottom-color:var(--acc)}
+
+.swatches{display:flex;align-items:center;gap:13px;padding-top:3px}
+.swatch{
+  width:21px;height:21px;border-radius:50%;
+  transition:transform .3s var(--ease),box-shadow .3s;
+}
+.swatch:active{transform:scale(.88)}
+.sw-mint{background:#6EE7B7;color:#6EE7B7}
+.sw-iris{background:#A5B4FC;color:#A5B4FC}
+.swatch.selected{box-shadow:0 0 0 3px #070b0d, 0 0 0 4.5px currentColor}
+
+/* -------- refine: Vee, in your words */
+.refine{display:flex;flex-direction:column;gap:10px}
+.refine-head{display:flex;align-items:center;gap:10px;padding:0 4px}
+.refine-label{
+  display:flex;align-items:center;gap:8px;
+  font-family:var(--mono);font-size:9px;font-weight:500;
+  letter-spacing:.2em;color:var(--tx-faint);
+}
+.refine-label svg{width:11px;height:11px;fill:var(--acc);animation:sparkGlow 3.4s var(--ease) infinite}
+.refine-label b{color:var(--acc);font-weight:500}
+
+.refine-bar{
+  position:relative;
+  display:flex;align-items:center;gap:12px;
+  height:58px;border-radius:18px;
+  padding:0 8px 0 18px;
+  background:rgba(9,13,12,.72);
+  border:1px solid var(--line);
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+  transition:border-color .35s,box-shadow .35s;
+}
+.refine-bar:focus-within{
+  border-color:rgba(167,243,208,.32);
+  box-shadow:0 0 40px color-mix(in srgb, var(--acc) 7%, transparent);
+}
+.refine-bar.nudge{animation:nudge .35s ease}
+.refine-spark{width:17px;height:17px;fill:var(--acc);opacity:.9;flex-shrink:0}
+.refine-bar input{
+  flex:1;min-width:0;height:100%;background:transparent;border:none;outline:none;
+  font-size:16px;color:var(--tx);caret-color:var(--acc);
+  position:relative;z-index:2;
+}
+.ghost{
+  position:absolute;left:47px;right:66px;top:50%;
+  transform:translateY(-50%);
+  font-family:var(--serif);font-style:italic;font-size:16.5px;
+  color:rgba(255,255,255,.34);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  pointer-events:none;z-index:1;
+  transition:opacity .38s ease,transform .38s ease;
+}
+.refine-bar.has-text .ghost{opacity:0 !important}
+
+.send{
+  position:relative;flex-shrink:0;
+  width:42px;height:42px;border-radius:50%;
+  background:var(--acc);color:var(--acc-ink);
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .25s var(--ease);
+}
+.send:active{transform:scale(.92)}
+.send svg{position:absolute;width:17px;height:17px;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;fill:none}
+.send .i-arrow{opacity:1;transform:scale(1);transition:opacity .25s,transform .25s var(--ease)}
+.send .i-check path{stroke-dasharray:21;stroke-dashoffset:21}
+.send.sent .i-arrow{opacity:0;transform:scale(.5)}
+.send.sent .i-check path{stroke-dashoffset:0;transition:stroke-dashoffset .5s var(--ease) .1s}
+
+/* Vee confirmation: thinking dots, then a drawn check */
+.confirm{
+  display:flex;align-items:center;gap:9px;
+  min-height:26px;padding:0 4px;
+  opacity:0;transform:translateY(4px);
+  transition:opacity .4s var(--ease),transform .4s var(--ease);
+  pointer-events:none;
+}
+.confirm.show{opacity:1;transform:translateY(0)}
+.confirm .thinking{display:none;gap:5px;align-items:center;padding-left:3px}
+.confirm.busy .thinking{display:flex}
+.confirm.busy .done-wrap{display:none}
+.confirm .thinking i{
+  width:4px;height:4px;border-radius:50%;background:var(--acc);
+  animation:think 1s var(--ease) infinite;
+}
+.confirm .thinking i:nth-child(2){animation-delay:.15s}
+.confirm .thinking i:nth-child(3){animation-delay:.3s}
+.confirm .done-wrap{display:flex;align-items:center;gap:9px;min-width:0}
+.confirm .check-ring{
+  width:20px;height:20px;border-radius:50%;flex-shrink:0;
+  background:color-mix(in srgb, var(--acc) 12%, transparent);
+  display:flex;align-items:center;justify-content:center;
+}
+.confirm .check-ring svg{width:11px;height:11px;fill:none;stroke:var(--acc);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.confirm .check-ring path{stroke-dasharray:24;stroke-dashoffset:24}
+.confirm.show:not(.busy) .check-ring path{animation:drawCheck .5s var(--ease) .05s forwards}
+@keyframes drawCheck{to{stroke-dashoffset:0}}
+.confirm .msg{font-size:13px;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.confirm .msg-tag{
+  font-family:var(--mono);font-size:8.5px;letter-spacing:.18em;color:var(--acc);
+  margin-right:8px;
+}
+
+/* Vee idea lines: labelled, never bare chips */
+.ideas{display:flex;flex-direction:column;gap:2px;padding:0 2px}
+.idea{
+  display:flex;align-items:center;gap:9px;
+  padding:8px 10px;border-radius:12px;
+  text-align:left;font-size:13px;color:var(--tx-dim);
+  transition:background .3s var(--ease),color .3s var(--ease),opacity .3s;
+}
+.idea .spark{width:11px;height:11px;fill:var(--acc);flex-shrink:0}
+.idea b{color:var(--acc);font-weight:600;margin-right:2px}
+.idea .go{
+  margin-left:auto;flex-shrink:0;width:13px;height:13px;
+  stroke:var(--tx-faint);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;fill:none;
+  opacity:0;transform:translateX(-4px);
+  transition:opacity .3s var(--ease),transform .3s var(--ease),stroke .3s;
+}
+.idea.applied{pointer-events:none;color:var(--tx-faint)}
+.idea.applied .spark{fill:var(--tx-faint)}
+.idea.applied b{color:var(--tx-faint)}
+.idea.applied .go{opacity:1;transform:none;stroke:var(--acc)}
+.idea[disabled]{opacity:.45;pointer-events:none}
+
+/* -------- primary action */
+.ctaWrap{display:flex;flex-direction:column;align-items:center;gap:11px}
+.cta{
+  position:relative;width:100%;height:54px;border-radius:16px;
+  background:var(--mint);color:var(--mint-ink);
+  font-weight:600;font-size:15px;letter-spacing:.01em;
+  box-shadow:0 12px 34px -12px rgba(110,231,183,.45);
+  transition:background .3s,transform .25s var(--ease),box-shadow .3s;
+  overflow:hidden;
+}
+.cta:active{transform:scale(.985)}
+.cta-label,.cta-done{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:9px;
+  transition:opacity .35s,transform .45s var(--ease);
+}
+.cta-done{opacity:0;transform:translateY(10px)}
+.cta-done svg{width:16px;height:16px;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;fill:none}
+.cta-done svg path{stroke-dasharray:21;stroke-dashoffset:21}
+.cta.added{background:var(--mint-hover)}
+.cta.added .cta-label{opacity:0;transform:translateY(-10px)}
+.cta.added .cta-done{opacity:1;transform:translateY(0)}
+.cta.added .cta-done svg path{stroke-dashoffset:0;transition:stroke-dashoffset .5s var(--ease) .15s}
+.quiet{
+  font-family:var(--mono);font-size:9.5px;font-weight:400;
+  letter-spacing:.18em;color:var(--tx-faint);text-align:center;
+}
+.quiet .again{
+  font:inherit;letter-spacing:inherit;color:var(--mint);
+  border-bottom:1px solid rgba(110,231,183,.4);
+  padding-bottom:1px;
+  transition:color .3s,border-color .3s;
+}
+
+/* ================================================================
+   ACT II · THE BIRTH  (staged assembly, transform and opacity only)
+   ================================================================ */
+.act-craft .top,
+.act-craft .refine,
+.act-craft .board,
+.act-craft .ctaWrap{opacity:0}
+.act-craft .tile-kicker,.act-craft .tile-name,
+.act-craft .pill,.act-craft .chart-head,.act-craft .days,
+.act-craft .tile-foot,.act-craft .dock,
+.act-craft .ring-glow{opacity:0}
+
+.act-craft.born .piece{animation:pieceIn .85s var(--ease) both}
+@keyframes pieceIn{
+  from{opacity:0;transform:translateY(26px) scale(.965)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+.act-craft.born .tile-kicker{animation:fadeUp .6s var(--ease) .28s both}
+.act-craft.born .tile-name{animation:fadeUp .6s var(--ease) .34s both}
+.act-craft.born .ring-glow{animation:glowIn 1.1s var(--ease) .45s both}
+@keyframes glowIn{
+  from{opacity:0;transform:translate(-50%,-50%) scale(.85)}
+  to{opacity:1;transform:translate(-50%,-50%) scale(1)}
+}
+.act-craft.born .chart-head{animation:fadeUp .6s var(--ease) .6s both}
+.act-craft.born .days{animation:fadeUp .6s var(--ease) .68s both}
+.act-craft.born .pill{animation:fadeUp .55s var(--ease) 1.15s both}
+.act-craft.born .tile-foot{animation:fadeUp .65s var(--ease) 1.28s both}
+.act-craft.born .dock{animation:fadeUp .7s var(--ease) 1.45s both}
+.act-craft.born .top{animation:fadeUp .6s var(--ease) 1.58s both}
+.act-craft.born .refine{animation:fadeUp .7s var(--ease) 1.68s both}
+.act-craft.born .board{animation:fadeUp .7s var(--ease) 1.8s both}
+.act-craft.born .ctaWrap{animation:fadeUp .7s var(--ease) 1.94s both}
+
+/* ================================================================
+   DASHBOARD LIFE  ·  the compact poster + full-screen open
+   ================================================================ */
+.board{display:flex;flex-direction:column;gap:13px;align-items:center}
+.board-head{display:flex;align-items:center;gap:9px}
+.board-label{font-family:var(--mono);font-size:9px;font-weight:500;letter-spacing:.22em;color:var(--tx-faint)}
+.board-dot{width:3px;height:3px;border-radius:50%;background:var(--tx-faint)}
+.board-hint{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9px;font-weight:500;letter-spacing:.18em;color:var(--acc)}
+.board-hint svg{width:9px;height:9px;stroke:var(--acc);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.board-grid{display:flex;gap:14px;justify-content:center;align-items:center;width:100%}
+.ghost-tile{
+  flex:1;min-width:0;max-width:116px;height:164px;border-radius:18px;
+  border:1px solid rgba(255,255,255,.055);
+  background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.005));
+  opacity:.5;
+}
+@media (max-width:479px){ .ghost-tile{display:none} }
+
+.poster{
+  position:relative;flex:none;
+  width:164px;height:164px;border-radius:20px;
+  border:1px solid var(--line);
+  background:
+    radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--acc) 7%, transparent), transparent 60%),
+    #05080a;
+  box-shadow:0 24px 52px -22px rgba(0,0,0,.85);
+  padding:14px;
+  display:flex;flex-direction:column;gap:6px;
+  overflow:hidden;text-align:left;
+  transition:transform .3s var(--ease),box-shadow .3s var(--ease),border-color .3s;
+}
+.poster:active{transform:scale(.97)}
+.poster-top{display:flex;align-items:center;gap:6px;min-width:0}
+.poster-top svg{width:11px;height:11px;fill:var(--acc);flex-shrink:0}
+.poster-name{
+  font-family:var(--mono);font-size:9px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--tx-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.poster-body{flex:1;display:flex;align-items:center;justify-content:center}
+.poster-ring{position:relative;width:90px;height:90px}
+.poster-ring svg{width:100%;height:100%;display:block}
+.poster-ring .pr-track{fill:none;stroke:rgba(255,255,255,.08);stroke-width:8}
+.poster-ring .pr-arc{fill:none;stroke:var(--acc);stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset .7s var(--ease)}
+.poster-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:30px;line-height:1;color:var(--tx)}
+.poster-foot{text-align:center;font-family:var(--mono);font-size:8px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;color:var(--tx-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.poster-expand{
+  position:absolute;top:9px;right:9px;z-index:2;
+  width:20px;height:20px;border-radius:7px;
+  background:rgba(4,6,10,.55);border:1px solid rgba(255,255,255,.09);
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;transition:opacity .3s var(--ease);
+}
+.poster-expand svg{width:10px;height:10px;stroke:var(--acc);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+
+/* the piece is tappable: a faint open hint */
+.tile-art{cursor:pointer}
+.tile-hint{
+  position:absolute;top:12px;left:50%;z-index:4;
+  transform:translate(-50%,-6px);
+  display:flex;align-items:center;gap:6px;
+  font-family:var(--mono);font-size:8px;font-weight:500;letter-spacing:.2em;
+  color:var(--tx-dim);
+  background:rgba(4,6,10,.62);border:1px solid rgba(255,255,255,.08);
+  padding:5px 11px;border-radius:999px;
+  opacity:0;pointer-events:none;
+  transition:opacity .3s var(--ease),transform .3s var(--ease);
+}
+.tile-hint svg{width:9px;height:9px;stroke:var(--acc);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+
+/* full screen: tapping a tile opens it, exactly like on the dashboard */
+.fs{
+  position:fixed;inset:0;z-index:40;
+  display:flex;align-items:center;justify-content:center;
+  padding:calc(18px + env(safe-area-inset-top)) 16px calc(18px + env(safe-area-inset-bottom));
+}
+.fs-backdrop{
+  position:absolute;inset:0;
+  background:rgba(0,0,0,.72);
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+  opacity:0;transition:opacity .4s ease;
+}
+.fs.open .fs-backdrop{opacity:1}
+.fs-card{
+  position:relative;
+  width:min(640px,92vw);height:min(86vh,760px);
+  background:
+    radial-gradient(120% 55% at 50% 0%, color-mix(in srgb, var(--acc) 6%, transparent), transparent 60%),
+    #04070a;
+  border:1px solid rgba(167,243,208,.16);
+  border-radius:22px;
+  box-shadow:0 50px 130px -30px rgba(0,0,0,.9), 0 0 120px color-mix(in srgb, var(--acc) 5%, transparent);
+  overflow:hidden;
+  opacity:0;transform:translateY(26px) scale(.965);
+  transition:opacity .5s ease, transform .55s var(--ease);
+}
+.fs.open .fs-card{opacity:1;transform:translateY(0) scale(1)}
+.fs-close{
+  position:absolute;top:14px;right:14px;z-index:6;
+  width:34px;height:34px;border-radius:50%;
+  background:rgba(4,6,10,.6);border:1px solid rgba(255,255,255,.1);
+  display:flex;align-items:center;justify-content:center;
+  color:var(--tx-dim);
+  transition:color .3s,border-color .3s,transform .25s var(--ease);
+}
+.fs-close:active{transform:scale(.9)}
+.fs-close svg{width:14px;height:14px;stroke:currentColor;stroke-width:2;stroke-linecap:round;fill:none}
+.fs-tile{
+  height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding:34px 30px 28px;
+  display:flex;flex-direction:column;gap:20px;
+}
+.fs-tile .ring-wrap{margin-top:2px}
+
+/* ================================================================
+   RESPONSIVE  ·  mobile stacks (default) · desktop is a wide workbench
+   ================================================================ */
+/* mobile-first: the column wrappers dissolve so the five sections
+   stack in the loved order: piece, refine, poster, add */
+.left-col,.right-col{display:contents}
+.act-craft .piece{order:1}
+.act-craft .refine{order:2}
+.act-craft .board{order:3}
+.act-craft .ctaWrap{order:4}
+
+@media (min-width:1024px){
+  main{
+    padding:calc(30px + env(safe-area-inset-top)) clamp(36px,4vw,80px) calc(40px + env(safe-area-inset-bottom));
+  }
+
+  /* the opening: a large editorial hero, using the width */
+  .act-open{width:min(960px,90vw)}
+  .act-open h1{font-size:clamp(58px,6vw,86px);margin:26px 0 14px}
+  .act-open .o-lede{font-size:17px;max-width:48ch}
+  .open-bar{max-width:660px;height:70px}
+  .seeds{max-width:740px;margin-top:40px}
+
+  /* the workbench: two wide zones that fill the screen,
+     the world visible around and between them */
+  .act-craft{
+    width:min(1320px,94vw);
+    display:grid;
+    grid-template-columns:minmax(0,1.08fr) minmax(400px,460px);
+    grid-template-areas:"top top" "left right";
+    column-gap:clamp(48px,5vw,92px);
+    row-gap:30px;
+    align-items:start;
+  }
+  .left-col,.right-col{display:flex;flex-direction:column}
+  .act-craft .top{grid-area:top}
+  .left-col{
+    grid-area:left;gap:26px;
+    width:100%;max-width:640px;justify-self:center;
+  }
+  .right-col{
+    grid-area:right;gap:22px;
+    align-self:stretch;justify-content:center;min-width:0;
+  }
+  /* real columns now hold order themselves */
+  .act-craft .piece,.act-craft .refine,
+  .act-craft .board,.act-craft .ctaWrap{order:0}
+}
+
+/* ---------------------------------------------- hover, pointer devices */
+@media (hover:hover){
+  .back:hover{border-color:rgba(167,243,208,.35);color:var(--tx);transform:translateX(-1px)}
+  .step-btn:hover{border-color:var(--acc);color:var(--acc)}
+  .swatch:hover{transform:scale(1.12)}
+  .send:hover{transform:scale(1.04)}
+  .seed:hover{border-color:rgba(167,243,208,.35);color:var(--tx);transform:translateY(-1px)}
+  .go-btn:hover{background:var(--mint-hover)}
+  .idea:hover{background:color-mix(in srgb, var(--acc) 6%, transparent);color:var(--tx)}
+  .idea:hover .go{opacity:1;transform:translateX(0);stroke:var(--acc)}
+  .cta:hover{background:var(--mint-hover);transform:translateY(-1px);box-shadow:0 16px 40px -12px rgba(110,231,183,.55)}
+  .quiet .again:hover{color:var(--mint-hover);border-color:var(--mint-hover)}
+  .tile-art:hover .tile-hint{opacity:1;transform:translate(-50%,0)}
+  .poster:hover{transform:translateY(-2px);box-shadow:0 32px 62px -22px rgba(0,0,0,.9);border-color:rgba(167,243,208,.3)}
+  .poster:hover .poster-expand{opacity:1}
+  .fs-close:hover{color:var(--tx);border-color:rgba(167,243,208,.35)}
+}
+
+/* ---------------------------------------------- reduced motion */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.001s !important;
+    animation-iteration-count:1 !important;
+    transition-duration:.001s !important;
+  }
+  #particles i{animation:none;opacity:.3}
+  #particles i.burst{display:none}
+}
+</style>
+</head>
+<body>
+
+<!-- ============================ the world ============================ -->
+<div class="bg-atmo"></div>
+<div class="bg-mountains" aria-hidden="true">
+  <svg class="far" viewBox="0 0 1600 420" preserveAspectRatio="none">
+    <defs>
+      <linearGradient id="mtnFar" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#0d1a17" stop-opacity="0"/>
+        <stop offset=".45" stop-color="#0d1a17" stop-opacity=".55"/>
+        <stop offset="1" stop-color="#0d1a17" stop-opacity=".95"/>
+      </linearGradient>
+    </defs>
+    <path fill="url(#mtnFar)" d="M0,300 L120,230 L210,260 L320,180 L430,220 L560,150 L680,210 L820,170 L960,220 L1100,180 L1240,240 L1380,200 L1500,250 L1600,220 L1600,420 L0,420 Z"/>
+  </svg>
+  <svg class="near" viewBox="0 0 1600 420" preserveAspectRatio="none">
+    <defs>
+      <linearGradient id="mtnNear" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#050a09" stop-opacity=".4"/>
+        <stop offset=".5" stop-color="#050a09" stop-opacity=".95"/>
+        <stop offset="1" stop-color="#050a09" stop-opacity="1"/>
+      </linearGradient>
+    </defs>
+    <path fill="url(#mtnNear)" d="M0,360 L100,320 L220,340 L340,290 L460,330 L590,300 L720,340 L860,310 L1000,350 L1140,310 L1280,355 L1420,320 L1540,360 L1600,340 L1600,420 L0,420 Z"/>
+  </svg>
+</div>
+<div id="particles" aria-hidden="true"></div>
+<div class="bg-grain" aria-hidden="true"></div>
+<div id="birthGlow" aria-hidden="true"><div class="orb"></div></div>
+
+<!-- Vee takes the sentence -->
+<div id="beat" hidden aria-hidden="true">
+  <div class="beat-inner">
+    <svg class="b-spark" viewBox="0 0 24 24"><path d="M12 3c.6 3.9 2.4 6.9 9 9c-6.6 2.1-8.4 5.1-9 9c-.6-3.9-2.4-6.9-9-9c6.6-2.1 8.4-5.1 9-9Z"/></svg>
+    <span class="beat-dots"><i></i><i></i><i></i></span>
+    <span class="beat-text">VEE IS SHAPING IT</span>
+  </div>
+</div>
+
+<main>
+
+  <!-- ============================ ACT I · THE OPENING ============================ -->
+  <section class="act act-open" id="actOpen">
+    <div class="o-eyebrow">
+      <svg viewBox="0 0 24 24"><path d="M12 3c.6 3.9 2.4 6.9 9 9c-6.6 2.1-8.4 5.1-9 9c-.6-3.9-2.4-6.9-9-9c6.6-2.1 8.4-5.1 9-9Z"/></svg>
+      VITALITY · TILE BUILDER
+    </div>
+    <h1>What do you want<br>to <em>track</em>?</h1>
+    <p class="o-lede">Say it like you would to a friend. Vee builds the tile.</p>
+
+    <div class="open-bar" id="openBar">
+      <svg class="o-spark" viewBox="0 0 24 24"><path d="M12 3c.6 3.9 2.4 6.9 9 9c-6.6 2.1-8.4 5.1-9 9c-.6-3.9-2.4-6.9-9-9c6.6-2.1 8.4-5.1 9-9Z"/></svg>
+      <span class="open-ghost" id="openGhost">a glass of water, every day</span>
+      <input id="openInput" aria-label="What do you want to track" autocomplete="off" spellcheck="false" enterkeyhint="go" />
+      <button class="go-btn" id="goBtn" aria-label="Build my tile">
+        <svg viewBox="0 0 24 24"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></svg>
+      </button>
+    </div>
+    <p class="o-quiet">ONE SENTENCE IN · A LIVING TILE OUT</p>
+
+    <div class="seeds" id="seeds">
+      <button class="seed" data-seed="a glass of water, every day">
+        <svg viewBox="0 0 24 24"><path d="M12 2.7c3.2 4 6.3 7.6 6.3 11.3a6.3 6.3 0 1 1-12.6 0C5.7 10.3 8.8 6.7 12 2.7Z"/></svg>
+        Water
+      </button>
+      <button class="seed" data-seed="my gym streak">
+        <svg viewBox="0 0 24 24"><path d="M12.5 2c.8 3.2-.9 5-2.2 6.6C9 10.2 8 11.8 8 13.8a4.8 4.8 0 0 0 9.6 0c0-1.6-.6-3-1.6-4.3-.4 1.1-1.1 1.8-2 2.2.5-3-.1-6.7-1.5-9.7z"/></svg>
+        Gym streak
+      </button>
+      <button class="seed" data-seed="what I spend each day">
+        <svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm.9 4.3v.6c1.2.2 2.2.9 2.5 2l-1.6.5c-.2-.6-.8-1-1.8-1-.9 0-1.5.4-1.5 1 0 .5.4.8 1.9 1.1 1.9.4 3.2 1 3.2 2.6 0 1.3-1 2.2-2.7 2.5v.6h-1.8v-.6c-1.4-.2-2.5-1-2.8-2.2l1.6-.5c.2.7 1 1.2 2.1 1.2 1 0 1.7-.4 1.7-1.1 0-.6-.5-.9-2.1-1.2-1.8-.4-3-1-3-2.5 0-1.2 1-2.1 2.5-2.4v-.6h1.8Z"/></svg>
+        Daily spend
+      </button>
+      <button class="seed" data-seed="hours of sleep each night">
+        <svg viewBox="0 0 24 24"><path d="M20.6 14.2A8.6 8.6 0 0 1 9.8 3.4a8.6 8.6 0 1 0 10.8 10.8Z"/></svg>
+        Sleep
+      </button>
+      <button class="seed" data-seed="10,000 steps a day">
+        <svg viewBox="0 0 24 24"><path d="M9 3.5c1.6 0 2.6 1.4 2.4 3.3l-.5 4.2c-.1 1.2-1 2-2.2 2s-2.2-.9-2.3-2.1L6 6.8C5.8 4.9 7.3 3.5 9 3.5Zm.9 11.2c.9 0 1.6.7 1.6 1.6v.9a2.5 2.5 0 0 1-5 0v-.7c0-1 .8-1.8 1.7-1.8h1.7ZM15.5 8c1.7 0 3.2 1.4 3 3.3l-.4 3.2c-.1 1.2-1.1 2.1-2.3 2.1s-2.1-.8-2.2-2l-.5-3.3C12.9 9.4 13.9 8 15.5 8Zm.8 10.3c1 0 1.7.8 1.7 1.7v.5a2.5 2.5 0 0 1-5 0v-.6c0-.9.7-1.6 1.6-1.6h1.7Z"/></svg>
+        Steps
+      </button>
+    </div>
+  </section>
+
+  <!-- ============================ ACT III · THE CRAFTING ============================ -->
+  <section class="act act-craft" id="actCraft" hidden>
+
+    <header class="top">
+      <button class="back" id="startOver" aria-label="Start over">
+        <svg viewBox="0 0 24 24"><path d="M4 10a8 8 0 1 1 2.3 6.3M4 10V4.5M4 10h5.5"/></svg>
+      </button>
+      <div class="brand">
+        <span class="eyebrow">TILE BUILDER</span>
+        <span class="head-serif">Built by Vee. <em>Finished by you.</em></span>
+      </div>
+      <span class="draft" id="draftLabel">WATER · DRAFT</span>
+    </header>
+
+    <div class="left-col">
+
+    <!-- the piece: tile + dock, one object on the bench -->
+    <section class="piece" id="piece">
+
+      <div class="tile tile-art" id="tileArt" role="button" tabindex="0" aria-label="Open this tile full screen">
+
+        <div class="tile-hint" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M9 21H3v-6M15 3h6v6M21 3l-7 7M3 21l7-7"/></svg>
+          TAP TO OPEN
+        </div>
+
+        <div class="tile-head">
+          <div>
+            <div class="tile-kicker">
+              <svg viewBox="0 0 24 24"><path id="kickerIcon" d="M12 2.7c3.2 4 6.3 7.6 6.3 11.3a6.3 6.3 0 1 1-12.6 0C5.7 10.3 8.8 6.7 12 2.7Z"/></svg>
+              <span id="kickerText">HYDRATION · DAILY</span>
+            </div>
+            <h2 class="tile-name" id="tileName">Water</h2>
+          </div>
+          <div class="pill" id="pill">
+            <i class="dot"></i><span id="statusText">LOGGED TODAY</span>
+          </div>
+        </div>
+
+        <div class="ring-wrap">
+          <div class="ring-glow"></div>
+          <svg class="ring" viewBox="0 0 222 222">
+            <circle class="ring-track" cx="111" cy="111" r="88"/>
+            <circle class="ring-arc" id="arc" cx="111" cy="111" r="88"
+                    stroke-dasharray="553" stroke-dashoffset="553"
+                    transform="rotate(-90 111 111)"/>
+          </svg>
+          <div class="ring-rot" id="ringRot"><i class="tip"></i></div>
+          <div class="ring-center" id="ringCenter">
+            <div class="ring-num" id="ringNum">0</div>
+            <div class="ring-unit" id="ringUnit">OF 8 GLASSES</div>
+          </div>
+        </div>
+
+        <div class="chart">
+          <div class="chart-head"><span>LAST 7 DAYS</span><span id="avgText">AVG 5.6</span></div>
+          <div class="bars" id="bars">
+            <div class="bar"><i></i></div>
+            <div class="bar"><i></i></div>
+            <div class="bar"><i></i></div>
+            <div class="bar"><i></i></div>
+            <div class="bar"><i></i></div>
+            <div class="bar"><i></i></div>
+            <div class="bar today"><i></i></div>
+          </div>
+          <div class="days">
+            <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span class="today">S</span>
+          </div>
+        </div>
+
+        <div class="tile-foot">
+          <div class="streak">
+            <svg viewBox="0 0 24 24"><path d="M13 2 4.5 13.5h5L10 22l8.5-11.5h-5L13 2Z"/></svg>
+            <span id="streakText">4 DAY STREAK</span>
+          </div>
+          <p class="insight" id="insight"></p>
+        </div>
+
+      </div>
+
+      <!-- the instrument dock -->
+      <div class="dock">
+        <div class="cell cell-goal">
+          <label id="goalLabel">DAILY GOAL</label>
+          <div class="stepper">
+            <button class="step-btn" id="minus" aria-label="Lower goal">
+              <svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg>
+            </button>
+            <span class="goal-num" id="goalNum">8</span>
+            <button class="step-btn" id="plus" aria-label="Raise goal">
+              <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="cell cell-name">
+          <label for="nameInput">NAME</label>
+          <input id="nameInput" value="Water" autocomplete="off" spellcheck="false" maxlength="24"/>
+        </div>
+        <div class="cell cell-accent">
+          <label>ACCENT</label>
+          <div class="swatches">
+            <button class="swatch sw-mint selected" id="swMint" aria-label="Mint accent"></button>
+            <button class="swatch sw-iris" id="swIris" aria-label="Iris accent"></button>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- how it lives on the board -->
+    <section class="board">
+      <div class="board-head">
+        <span class="board-label">ON YOUR DASHBOARD</span>
+        <span class="board-dot"></span>
+        <span class="board-hint">
+          <svg viewBox="0 0 24 24"><path d="M9 21H3v-6M15 3h6v6M21 3l-7 7M3 21l7-7"/></svg>
+          TAP TO OPEN
+        </span>
+      </div>
+      <div class="board-grid">
+        <div class="ghost-tile" aria-hidden="true"></div>
+        <button class="poster" id="poster" aria-label="Open your tile full screen">
+          <span class="poster-expand">
+            <svg viewBox="0 0 24 24"><path d="M9 21H3v-6M15 3h6v6M21 3l-7 7M3 21l7-7"/></svg>
+          </span>
+          <div class="poster-top">
+            <svg viewBox="0 0 24 24"><path id="posterIcon" d="M12 2.7c3.2 4 6.3 7.6 6.3 11.3a6.3 6.3 0 1 1-12.6 0C5.7 10.3 8.8 6.7 12 2.7Z"/></svg>
+            <span class="poster-name" id="posterName">Water</span>
+          </div>
+          <div class="poster-body">
+            <div class="poster-ring">
+              <svg viewBox="0 0 100 100">
+                <circle class="pr-track" cx="50" cy="50" r="40"/>
+                <circle class="pr-arc" id="posterArc" cx="50" cy="50" r="40"
+                        stroke-dasharray="251.33" stroke-dashoffset="63"
+                        transform="rotate(-90 50 50)"/>
+              </svg>
+              <span class="poster-num" id="posterNum">6</span>
+            </div>
+          </div>
+          <div class="poster-foot" id="posterUnit">glasses</div>
+        </button>
+        <div class="ghost-tile" aria-hidden="true"></div>
+      </div>
+    </section>
+
+    </div><!-- /left-col -->
+
+    <div class="right-col">
+
+    <!-- Vee, in your words -->
+    <section class="refine">
+      <div class="refine-head">
+        <span class="refine-label">
+          <svg viewBox="0 0 24 24"><path d="M12 3c.6 3.9 2.4 6.9 9 9c-6.6 2.1-8.4 5.1-9 9c-.6-3.9-2.4-6.9-9-9c6.6-2.1 8.4-5.1 9-9Z"/></svg>
+          IN YOUR WORDS · <b>VEE IS LISTENING</b>
+        </span>
+      </div>
+      <div class="refine-bar" id="refineBar">
+        <svg class="refine-spark" viewBox="0 0 24 24"><path d="M12 3c.6 3.9 2.4 6.9 9 9c-6.6 2.1-8.4 5.1-9 9c-.6-3.9-2.4-6.9-9-9c6.6-2.1 8.4-5.1 9-9Z"/></svg>
+        <span class="ghost" id="ghost">&#8220;raise the goal to 10&#8221;</span>
+        <input id="refineInput" aria-label="Refine your tile in plain words" autocomplete="off" spellcheck="false" enterkeyhint="send"/>
+        <button class="send" id="send" aria-label="Send to Vee">
+          <svg class="i-arrow" viewBox="0 0 24 24"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></svg>
+          <svg class="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+        </button>
+      </div>
+
+      <div class="confirm" id="confirm" role="status">
+        <span class="thinking"><i></i><i></i><i></i></span>
+        <span class="done-wrap">
+          <span class="check-ring">
+            <svg viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5"/></svg>
+          </span>
+          <span class="msg"><span class="msg-tag">VEE</span><span id="confirmText"></span></span>
+        </span>
+      </div>
+
+      <div class="ideas" id="ideas"></div>
+    </section>
+
+    <!-- commit -->
+    <section class="ctaWrap">
+      <button class="cta" id="cta">
+        <span class="cta-label">Add to dashboard</span>
+        <span class="cta-done">
+          <svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+          Added to your dashboard
+        </span>
+      </button>
+      <p class="quiet" id="quiet">FREE · BUILT INSTANTLY · NO CLAUDE NEEDED</p>
+    </section>
+
+    </div><!-- /right-col -->
+
+  </section>
+
+</main>
+
+<!-- ============================ FULL SCREEN · the opened tile ============================ -->
+<div class="fs" id="fs" hidden>
+  <div class="fs-backdrop" id="fsBackdrop"></div>
+  <div class="fs-card" role="dialog" aria-modal="true" aria-label="Tile detail">
+    <button class="fs-close" id="fsClose" aria-label="Close">
+      <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+    <div class="fs-tile">
+
+      <div class="tile-head">
+        <div>
+          <div class="tile-kicker">
+            <svg viewBox="0 0 24 24"><path id="fsKickerIcon" d="M12 2.7c3.2 4 6.3 7.6 6.3 11.3a6.3 6.3 0 1 1-12.6 0C5.7 10.3 8.8 6.7 12 2.7Z"/></svg>
+            <span id="fsKickerText">HYDRATION · DAILY</span>
+          </div>
+          <h2 class="tile-name" id="fsName">Water</h2>
+        </div>
+        <div class="pill" id="fsPill">
+          <i class="dot"></i><span id="fsStatus">LOGGED TODAY</span>
+        </div>
+      </div>
+
+      <div class="ring-wrap">
+        <div class="ring-glow"></div>
+        <svg class="ring" viewBox="0 0 222 222">
+          <circle class="ring-track" cx="111" cy="111" r="88"/>
+          <circle class="ring-arc" id="fsArc" cx="111" cy="111" r="88"
+                  stroke-dasharray="553" stroke-dashoffset="553"
+                  transform="rotate(-90 111 111)"/>
+        </svg>
+        <div class="ring-rot" id="fsRot"><i class="tip"></i></div>
+        <div class="ring-center">
+          <div class="ring-num" id="fsNum">6</div>
+          <div class="ring-unit" id="fsUnit">OF 8 GLASSES</div>
+        </div>
+      </div>
+
+      <div class="chart">
+        <div class="chart-head"><span>LAST 7 DAYS</span><span id="fsAvg">AVG 5.6</span></div>
+        <div class="bars" id="fsBars">
+          <div class="bar"><i></i></div>
+          <div class="bar"><i></i></div>
+          <div class="bar"><i></i></div>
+          <div class="bar"><i></i></div>
+          <div class="bar"><i></i></div>
+          <div class="bar"><i></i></div>
+          <div class="bar today"><i></i></div>
+        </div>
+        <div class="days">
+          <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span class="today">S</span>
+        </div>
+      </div>
+
+      <div class="tile-foot">
+        <div class="streak">
+          <svg viewBox="0 0 24 24"><path d="M13 2 4.5 13.5h5L10 22l8.5-11.5h-5L13 2Z"/></svg>
+          <span id="fsStreak">4 DAY STREAK</span>
+        </div>
+        <p class="insight" id="fsInsight"></p>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var RM = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var C = 553; /* ring circumference, r 88 */
+  var MINT = "#6EE7B7", MINT_INK = "#042a1c";
+  var IRIS = "#A5B4FC", IRIS_INK = "#10163a";
+
+  /* ============================================================ blueprints */
+  var ICONS = {
+    drop:"M12 2.7c3.2 4 6.3 7.6 6.3 11.3a6.3 6.3 0 1 1-12.6 0C5.7 10.3 8.8 6.7 12 2.7Z",
+    flame:"M12.5 2c.8 3.2-.9 5-2.2 6.6C9 10.2 8 11.8 8 13.8a4.8 4.8 0 0 0 9.6 0c0-1.6-.6-3-1.6-4.3-.4 1.1-1.1 1.8-2 2.2.5-3-.1-6.7-1.5-9.7z",
+    coin:"M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm.9 4.3v.6c1.2.2 2.2.9 2.5 2l-1.6.5c-.2-.6-.8-1-1.8-1-.9 0-1.5.4-1.5 1 0 .5.4.8 1.9 1.1 1.9.4 3.2 1 3.2 2.6 0 1.3-1 2.2-2.7 2.5v.6h-1.8v-.6c-1.4-.2-2.5-1-2.8-2.2l1.6-.5c.2.7 1 1.2 2.1 1.2 1 0 1.7-.4 1.7-1.1 0-.6-.5-.9-2.1-1.2-1.8-.4-3-1-3-2.5 0-1.2 1-2.1 2.5-2.4v-.6h1.8Z",
+    moon:"M20.6 14.2A8.6 8.6 0 0 1 9.8 3.4a8.6 8.6 0 1 0 10.8 10.8Z",
+    foot:"M9 3.5c1.6 0 2.6 1.4 2.4 3.3l-.5 4.2c-.1 1.2-1 2-2.2 2s-2.2-.9-2.3-2.1L6 6.8C5.8 4.9 7.3 3.5 9 3.5Zm.9 11.2c.9 0 1.6.7 1.6 1.6v.9a2.5 2.5 0 0 1-5 0v-.7c0-1 .8-1.8 1.7-1.8h1.7ZM15.5 8c1.7 0 3.2 1.4 3 3.3l-.4 3.2c-.1 1.2-1.1 2.1-2.3 2.1s-2.1-.8-2.2-2l-.5-3.3C12.9 9.4 13.9 8 15.5 8Zm.8 10.3c1 0 1.7.8 1.7 1.7v.5a2.5 2.5 0 0 1-5 0v-.6c0-.9.7-1.6 1.6-1.6h1.7Z"
+  };
+
+  var BP = {
+    water:{
+      key:"water", name:"Water", kicker:"HYDRATION · DAILY", icon:"drop",
+      type:"fill", prefix:"",
+      unit:{label:"GLASSES", word:"glasses"},
+      alt:{label:"OUNCES", word:"ounces", factor:8},
+      goal:8, count:6, min:4, max:16, step:1,
+      values:[5,7,4,8,6,3,6],
+      streak:"4 DAY STREAK", goalLabel:"DAILY GOAL",
+      poem:"You pour strongest after <em>training</em>. Keep the first glass within reach.",
+      ideas:[
+        {say:"want the goal at 10?", intent:"raise the goal to 10"},
+        {say:"track it in ounces instead?", intent:"track it in ounces"}
+      ],
+      ghosts:["raise the goal to 10","track it in ounces","call it Morning Water","dress it in iris"]
+    },
+    gym:{
+      key:"gym", name:"Gym Streak", kicker:"TRAINING · WEEKLY", icon:"flame",
+      type:"fill", prefix:"",
+      unit:{label:"SESSIONS", word:"sessions"},
+      goal:5, count:3, min:2, max:7, step:1,
+      values:[4,5,3,5,4,2,3],
+      streak:"3 WEEK STREAK", goalLabel:"WEEKLY GOAL",
+      poem:"You never miss a <em>Monday</em>. Guard it like an appointment.",
+      ideas:[
+        {say:"want the goal at 6?", intent:"raise the goal to 6"},
+        {say:"call it Iron Week?", intent:"call it Iron Week"}
+      ],
+      ghosts:["raise the goal to 6","call it Iron Week","dress it in iris"]
+    },
+    spend:{
+      key:"spend", name:"Daily Spend", kicker:"MONEY · DAILY", icon:"coin",
+      type:"cap", prefix:"$", ringLabel:"BUDGET",
+      unit:{label:"DOLLARS", word:"dollars"},
+      goal:60, count:42, min:10, max:500, step:5,
+      values:[38,64,25,51,47,72,42],
+      streak:"6 DAY STREAK", goalLabel:"DAILY CAP",
+      poem:"Most of it goes before <em>noon</em>. Coffee counts.",
+      ideas:[
+        {say:"cap it at 50?", intent:"set the goal to 50"},
+        {say:"call it Pocket Watch?", intent:"call it Pocket Watch"}
+      ],
+      ghosts:["set the goal to 50","call it Pocket Watch","dress it in iris"]
+    },
+    sleep:{
+      key:"sleep", name:"Sleep", kicker:"RECOVERY · NIGHTLY", icon:"moon",
+      type:"fill", prefix:"",
+      unit:{label:"HOURS", word:"hours"},
+      goal:8, count:7, min:5, max:10, step:1,
+      values:[6,7,5,8,7,6,7],
+      streak:"5 NIGHT STREAK", goalLabel:"NIGHTLY GOAL",
+      poem:"Your best nights follow <em>screens off early</em>. Protect the last hour.",
+      ideas:[
+        {say:"want the goal at 9?", intent:"raise the goal to 9"},
+        {say:"call it Lights Out?", intent:"call it Lights Out"}
+      ],
+      ghosts:["raise the goal to 9","call it Lights Out","dress it in iris"]
+    },
+    steps:{
+      key:"steps", name:"Steps", kicker:"MOVEMENT · DAILY", icon:"foot",
+      type:"fill", prefix:"",
+      unit:{label:"STEPS", word:"steps"},
+      goal:10000, count:7432, min:2000, max:30000, step:500,
+      values:[8200,10400,6900,11200,9400,5300,7432],
+      streak:"9 DAY STREAK", goalLabel:"DAILY GOAL",
+      poem:"Evenings carry you. A short <em>morning loop</em> ends the day early.",
+      ideas:[
+        {say:"want the goal at 12,000?", intent:"raise the goal to 12,000"},
+        {say:"call it Daily Miles?", intent:"call it Daily Miles"}
+      ],
+      ghosts:["raise the goal to 12,000","call it Daily Miles","dress it in iris"]
+    }
+  };
+
+  /* ============================================================ elements */
+  var actOpen = document.getElementById("actOpen");
+  var actCraft = document.getElementById("actCraft");
+  var beat = document.getElementById("beat");
+  var birthGlow = document.getElementById("birthGlow");
+
+  var openBar = document.getElementById("openBar");
+  var openInput = document.getElementById("openInput");
+  var openGhost = document.getElementById("openGhost");
+  var goBtn = document.getElementById("goBtn");
+  var seedBtns = Array.prototype.slice.call(document.querySelectorAll(".seed"));
+
+  var piece = document.getElementById("piece");
+  var kickerIcon = document.getElementById("kickerIcon");
+  var kickerText = document.getElementById("kickerText");
+  var tileName = document.getElementById("tileName");
+  var pill = document.getElementById("pill");
+  var statusText = document.getElementById("statusText");
+  var arc = document.getElementById("arc");
+  var ringRot = document.getElementById("ringRot");
+  var ringNum = document.getElementById("ringNum");
+  var ringUnit = document.getElementById("ringUnit");
+  var ringCenter = document.getElementById("ringCenter");
+  var avgText = document.getElementById("avgText");
+  var barEls = Array.prototype.slice.call(document.querySelectorAll("#bars .bar"));
+  var streakText = document.getElementById("streakText");
+  var insight = document.getElementById("insight");
+  var draftLabel = document.getElementById("draftLabel");
+
+  var goalLabelEl = document.getElementById("goalLabel");
+  var goalNum = document.getElementById("goalNum");
+  var minus = document.getElementById("minus");
+  var plus = document.getElementById("plus");
+  var nameInput = document.getElementById("nameInput");
+  var swMint = document.getElementById("swMint");
+  var swIris = document.getElementById("swIris");
+
+  var refineBar = document.getElementById("refineBar");
+  var refineInput = document.getElementById("refineInput");
+  var ghost = document.getElementById("ghost");
+  var send = document.getElementById("send");
+  var confirmEl = document.getElementById("confirm");
+  var confirmText = document.getElementById("confirmText");
+  var ideasWrap = document.getElementById("ideas");
+
+  var cta = document.getElementById("cta");
+  var quiet = document.getElementById("quiet");
+  var startOverBtn = document.getElementById("startOver");
+
+  /* dashboard-life elements: the poster + the full-screen opener */
+  var PC = 251.33; /* mini ring circumference, r 40 */
+  var tileArt = document.getElementById("tileArt");
+  var poster = document.getElementById("poster");
+  var posterIcon = document.getElementById("posterIcon");
+  var posterName = document.getElementById("posterName");
+  var posterArc = document.getElementById("posterArc");
+  var posterNum = document.getElementById("posterNum");
+  var posterUnit = document.getElementById("posterUnit");
+
+  var fs = document.getElementById("fs");
+  var fsBackdrop = document.getElementById("fsBackdrop");
+  var fsClose = document.getElementById("fsClose");
+  var fsKickerIcon = document.getElementById("fsKickerIcon");
+  var fsKickerText = document.getElementById("fsKickerText");
+  var fsName = document.getElementById("fsName");
+  var fsPill = document.getElementById("fsPill");
+  var fsStatus = document.getElementById("fsStatus");
+  var fsArc = document.getElementById("fsArc");
+  var fsRot = document.getElementById("fsRot");
+  var fsNum = document.getElementById("fsNum");
+  var fsUnit = document.getElementById("fsUnit");
+  var fsAvg = document.getElementById("fsAvg");
+  var fsStreak = document.getElementById("fsStreak");
+  var fsInsight = document.getElementById("fsInsight");
+  var fsBarEls = Array.prototype.slice.call(document.querySelectorAll("#fsBars .bar"));
+
+  /* ============================================================ particles */
+  var holder = document.getElementById("particles");
+  for (var i = 0; i < 24; i++) {
+    var d = document.createElement("i");
+    var s = (1.2 + Math.random() * 1.2).toFixed(2);
+    d.style.left = (Math.random() * 100).toFixed(2) + "%";
+    d.style.bottom = (-4 + Math.random() * 46).toFixed(2) + "%";
+    d.style.width = s + "px";
+    d.style.height = s + "px";
+    d.style.setProperty("--wx", ((Math.random() * 120 - 60).toFixed(1)) + "px");
+    d.style.setProperty("--po", (0.22 + Math.random() * 0.42).toFixed(2));
+    if (!RM) {
+      d.style.animationDuration = (22 + Math.random() * 28).toFixed(1) + "s";
+      d.style.animationDelay = (-Math.random() * 40).toFixed(1) + "s";
+    }
+    holder.appendChild(d);
+  }
+  /* a brief swell of brighter particles when something is born */
+  function spawnBurst(n){
+    if (RM) return;
+    for (var j = 0; j < n; j++) {
+      var b = document.createElement("i");
+      b.className = "burst";
+      var bs = (1.8 + Math.random() * 1.7).toFixed(2);
+      b.style.left = (30 + Math.random() * 40).toFixed(2) + "%";
+      b.style.bottom = (18 + Math.random() * 34).toFixed(2) + "%";
+      b.style.width = bs + "px";
+      b.style.height = bs + "px";
+      b.style.setProperty("--wx", ((Math.random() * 160 - 80).toFixed(1)) + "px");
+      b.style.setProperty("--bd", (1.3 + Math.random() * 1.1).toFixed(2) + "s");
+      b.addEventListener("animationend", function(){ this.remove(); });
+      holder.appendChild(b);
+    }
+  }
+  function worldPulse(){
+    if (RM) return;
+    birthGlow.classList.remove("go");
+    void birthGlow.offsetWidth;
+    birthGlow.classList.add("go");
+  }
+
+  /* ============================================================ state */
+  var S = null;          /* {bp,name,goal,count,values,alt,dyn} */
+  var busy = false;
+  var birthTimers = [];
+
+  function fmt(n){ return Math.round(n).toLocaleString("en-US"); }
+  function pfx(){ return S.bp.prefix || ""; }
+  function factor(){ return (S.alt && S.bp.alt) ? S.bp.alt.factor : 1; }
+  function dv(n){ return n * factor(); }
+  function fmtV(n){ return pfx() + fmt(n); }
+  function unitWord(){ return (S.alt && S.bp.alt) ? S.bp.alt.word : S.bp.unit.word; }
+  function unitLabel(){ return (S.alt && S.bp.alt) ? S.bp.alt.label : S.bp.unit.label; }
+  function ringLabel(){
+    var lbl = (S.alt && S.bp.alt) ? S.bp.alt.label : (S.bp.ringLabel || S.bp.unit.label);
+    return "OF " + fmtV(dv(S.goal)) + " " + lbl;
+  }
+
+  function pop(el){
+    el.classList.remove("pop");
+    void el.offsetWidth;
+    el.classList.add("pop");
+  }
+  function flash(){
+    piece.classList.add("flash");
+    setTimeout(function(){ piece.classList.remove("flash"); }, 480);
+  }
+
+  /* ============================================================ render */
+  function renderRing(){
+    var p = Math.min(1, S.count / S.goal);
+    arc.style.strokeDashoffset = (C * (1 - p)).toFixed(1);
+    ringRot.style.transform = "rotate(" + (360 * p).toFixed(1) + "deg)";
+    ringNum.textContent = fmtV(dv(S.count));
+    ringUnit.textContent = ringLabel();
+    renderPill();
+    renderPoster();
+  }
+  function renderPill(){
+    if (S.bp.type === "cap") {
+      var over = S.count > S.goal;
+      pill.classList.toggle("warn", over);
+      statusText.textContent = over ? "OVER BUDGET" : "UNDER BUDGET";
+    } else {
+      pill.classList.remove("warn");
+      statusText.textContent = S.count >= S.goal ? "GOAL MET TODAY" : "LOGGED TODAY";
+    }
+  }
+  function renderBars(staged){
+    var isCap = S.bp.type === "cap";
+    barEls.forEach(function(bar, idx){
+      var v = S.values[idx];
+      var inner = bar.firstElementChild;
+      var h = Math.min(100, v / S.goal * 100).toFixed(1) + "%";
+      bar.classList.toggle("over", isCap && v > S.goal);
+      if (staged && !RM) {
+        birthTimers.push(setTimeout(function(){ inner.style.height = h; }, 700 + idx * 70));
+      } else {
+        inner.style.height = h;
+      }
+    });
+    var sum = S.values.reduce(function(a,b){ return a + b; }, 0);
+    var avg = dv(sum / S.values.length);
+    avgText.textContent = "AVG " + pfx() + (avg < 100 ? (Math.round(avg * 10) / 10) : fmt(avg));
+  }
+  function renderDyn(){
+    if (!S.dyn) { insight.innerHTML = S.bp.poem; return; }
+    if (S.bp.type === "cap") {
+      var diff = S.goal - S.count;
+      if (diff >= 0) insight.innerHTML = "<em>" + fmtV(diff) + " still in pocket</em> today. A calm day for the wallet.";
+      else insight.innerHTML = "<em>" + fmtV(-diff) + " over</em> today. Tomorrow resets the slate.";
+    } else {
+      var left = S.goal - S.count;
+      if (left <= 0) insight.innerHTML = "Goal met. Today is <em>already banked</em>.";
+      else insight.innerHTML = "<em>" + fmt(dv(left)) + " more " + unitWord() + "</em> and today joins the streak.";
+    }
+  }
+  function renderDock(){
+    goalLabelEl.textContent = S.bp.goalLabel;
+    goalNum.textContent = fmtV(dv(S.goal));
+    minus.disabled = S.goal <= S.bp.min;
+    plus.disabled = S.goal >= S.bp.max;
+  }
+  function renderIdentity(){
+    tileName.textContent = S.name;
+    draftLabel.textContent = S.name.toUpperCase() + " · DRAFT";
+    if (nameInput.value !== S.name) nameInput.value = S.name;
+    kickerIcon.setAttribute("d", ICONS[S.bp.icon]);
+    kickerText.textContent = S.bp.kicker;
+    streakText.textContent = S.bp.streak;
+    renderPoster();
+  }
+  function renderAll(){
+    renderIdentity();
+    renderRing();
+    renderBars(false);
+    renderDyn();
+    renderDock();
+  }
+
+  /* ============================================================ the compact poster (dashboard grid) */
+  function renderPoster(){
+    if (!S) return;
+    posterIcon.setAttribute("d", ICONS[S.bp.icon]);
+    posterName.textContent = S.name;
+    posterNum.textContent = fmtV(dv(S.count));
+    posterUnit.textContent = (S.bp.type === "cap") ? "of " + fmtV(dv(S.goal)) : unitWord();
+    var p = Math.min(1, S.count / S.goal);
+    posterArc.style.strokeDashoffset = (PC * (1 - p)).toFixed(1);
+  }
+
+  /* ============================================================ full screen: the opened tile */
+  function renderFull(){
+    if (!S) return;
+    fsKickerIcon.setAttribute("d", ICONS[S.bp.icon]);
+    fsKickerText.textContent = S.bp.kicker;
+    fsName.textContent = S.name;
+    fsStreak.textContent = S.bp.streak;
+    var over = S.bp.type === "cap" && S.count > S.goal;
+    fsPill.classList.toggle("warn", over);
+    if (S.bp.type === "cap") fsStatus.textContent = over ? "OVER BUDGET" : "UNDER BUDGET";
+    else fsStatus.textContent = S.count >= S.goal ? "GOAL MET TODAY" : "LOGGED TODAY";
+    fsNum.textContent = fmtV(dv(S.count));
+    fsUnit.textContent = ringLabel();
+    fsAvg.textContent = avgText.textContent;
+    fsInsight.innerHTML = insight.innerHTML;
+    var isCap = S.bp.type === "cap";
+    fsBarEls.forEach(function(bar, idx){
+      var v = S.values[idx];
+      bar.classList.toggle("over", isCap && v > S.goal);
+      bar.firstElementChild.style.height = Math.min(100, v / S.goal * 100).toFixed(1) + "%";
+    });
+    var p = Math.min(1, S.count / S.goal);
+    if (RM) {
+      fsArc.style.strokeDashoffset = (C * (1 - p)).toFixed(1);
+      fsRot.style.transform = "rotate(" + (360 * p).toFixed(1) + "deg)";
+    } else {
+      fsArc.style.transition = "none";
+      fsRot.style.transition = "none";
+      fsArc.style.strokeDashoffset = C;
+      fsRot.style.transform = "rotate(0deg)";
+      void fsArc.offsetWidth;
+      fsArc.style.transition = "";
+      fsRot.style.transition = "";
+      requestAnimationFrame(function(){
+        fsArc.style.strokeDashoffset = (C * (1 - p)).toFixed(1);
+        fsRot.style.transform = "rotate(" + (360 * p).toFixed(1) + "deg)";
+      });
+    }
+  }
+
+  var fsOpen = false;
+  function openFull(){
+    if (!S || fsOpen) return;
+    fsOpen = true;
+    renderFull();
+    fs.hidden = false;
+    document.documentElement.style.overflow = "hidden";
+    void fs.offsetWidth;
+    fs.classList.add("open");
+    document.addEventListener("keydown", onFsKey);
+  }
+  function closeFull(){
+    if (!fsOpen) return;
+    fsOpen = false;
+    fs.classList.remove("open");
+    document.removeEventListener("keydown", onFsKey);
+    document.documentElement.style.overflow = "";
+    if (RM) { fs.hidden = true; }
+    else setTimeout(function(){ if (!fsOpen) fs.hidden = true; }, 480);
+  }
+  function forceCloseFull(){
+    fsOpen = false;
+    fs.classList.remove("open");
+    fs.hidden = true;
+    document.removeEventListener("keydown", onFsKey);
+    document.documentElement.style.overflow = "";
+  }
+  function onFsKey(e){ if (e.key === "Escape") closeFull(); }
+
+  tileArt.addEventListener("click", openFull);
+  tileArt.addEventListener("keydown", function(e){
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openFull(); }
+  });
+  poster.addEventListener("click", openFull);
+  fsClose.addEventListener("click", closeFull);
+  fsBackdrop.addEventListener("click", closeFull);
+
+  /* ============================================================ mutations */
+  function setGoal(n){
+    S.goal = Math.max(S.bp.min, Math.min(S.bp.max, n));
+    S.dyn = true;
+    renderRing();
+    renderBars(false);
+    renderDyn();
+    renderDock();
+    pop(goalNum);
+    pop(ringCenter);
+  }
+  function setName(n){
+    S.name = (n || S.bp.name).trim().slice(0, 24) || S.bp.name;
+    renderIdentity();
+    pop(tileName);
+  }
+  function setAccent(which){
+    var iris = which === "iris";
+    document.body.style.setProperty("--acc", iris ? IRIS : MINT);
+    document.body.style.setProperty("--acc-ink", iris ? IRIS_INK : MINT_INK);
+    swMint.classList.toggle("selected", !iris);
+    swIris.classList.toggle("selected", iris);
+    S.accent = which;
+  }
+  function setUnitAlt(alt){
+    S.alt = alt;
+    S.dyn = true;
+    renderRing();
+    renderBars(false);
+    renderDyn();
+    renderDock();
+    pop(ringCenter);
+  }
+
+  /* ============================================================ dock wiring */
+  minus.addEventListener("click", function(){ if (S) setGoal(S.goal - S.bp.step); });
+  plus.addEventListener("click", function(){ if (S) setGoal(S.goal + S.bp.step); });
+  nameInput.addEventListener("input", function(){
+    if (!S) return;
+    S.name = (nameInput.value || S.bp.name).trim() || S.bp.name;
+    tileName.textContent = S.name;
+    draftLabel.textContent = S.name.toUpperCase() + " · DRAFT";
+  });
+  swMint.addEventListener("click", function(){ if (S) setAccent("mint"); });
+  swIris.addEventListener("click", function(){ if (S) setAccent("iris"); });
+
+  /* ============================================================ ghost cyclers */
+  function makeCycler(el, getPhrases, isBlocked, quoted){
+    var idx = 0;
+    if (RM) return { reset:function(){ idx = 0; } };
+    setInterval(function(){
+      if (document.hidden || isBlocked()) return;
+      var phrases = getPhrases();
+      if (!phrases || phrases.length < 2) return;
+      el.style.opacity = "0";
+      el.style.transform = "translateY(calc(-50% - 7px))";
+      setTimeout(function(){
+        idx = (idx + 1) % phrases.length;
+        el.textContent = quoted ? "“" + phrases[idx] + "”" : phrases[idx];
+        el.style.transition = "none";
+        el.style.transform = "translateY(calc(-50% + 7px))";
+        void el.offsetWidth;
+        el.style.transition = "";
+        el.style.opacity = "";
+        el.style.transform = "translateY(-50%)";
+      }, 390);
+    }, 3400);
+    return { reset:function(){ idx = 0; } };
+  }
+
+  var OPEN_PHRASES = [
+    "a glass of water, every day",
+    "my gym streak",
+    "what I spend each day",
+    "hours of sleep",
+    "10,000 steps a day"
+  ];
+  makeCycler(openGhost, function(){ return OPEN_PHRASES; },
+    function(){ return openInput.value.length > 0; }, false);
+
+  var refineCycler = makeCycler(ghost, function(){ return S ? S.bp.ghosts : null; },
+    function(){ return refineInput.value.length > 0; }, true);
+
+  openInput.addEventListener("input", function(){
+    openBar.classList.toggle("has-text", openInput.value.length > 0);
+  });
+  refineInput.addEventListener("input", function(){
+    refineBar.classList.toggle("has-text", refineInput.value.length > 0);
+  });
+
+  /* ============================================================ Vee confirm: think, then a drawn check */
+  var confirmTimer = null;
+  function veeSay(msg, apply){
+    if (confirmTimer) { clearTimeout(confirmTimer); confirmTimer = null; }
+    confirmEl.classList.add("show", "busy");
+    var delay = RM ? 0 : 650;
+    confirmTimer = setTimeout(function(){
+      if (apply) apply();
+      confirmEl.classList.remove("busy");
+      confirmText.textContent = msg;
+      confirmTimer = setTimeout(function(){
+        confirmEl.classList.remove("show");
+      }, 4200);
+    }, delay);
+  }
+
+  /* ============================================================ intent parser */
+  function handleIntent(raw){
+    var t = raw.toLowerCase();
+
+    /* rename: call it X, name it X, rename to X */
+    var callMatch = raw.match(/(?:call|name|rename)(?:\s+(?:it|this|the tile))?(?:\s+to)?\s+(.+)/i);
+    if (callMatch) {
+      var nm = callMatch[1].replace(/^["'“‘]+|["'”’.!]+$/g, "").trim();
+      if (nm) {
+        veeSay("It answers to " + nm + " now.", function(){ setName(nm); flash(); });
+        return;
+      }
+    }
+
+    /* accent */
+    if (/iris|purple|violet|indigo/.test(t)) {
+      veeSay("Dressed in iris. It suits the evening.", function(){ setAccent("iris"); flash(); });
+      return;
+    }
+    if (/mint|green/.test(t)) {
+      veeSay("Back to mint. Home colors.", function(){ setAccent("mint"); flash(); });
+      return;
+    }
+
+    /* units */
+    if (/\boz\b|ounce/.test(t)) {
+      if (S.bp.alt) {
+        veeSay("Ounces it is. The ring kept your progress.", function(){ setUnitAlt(true); flash(); });
+      } else {
+        veeSay("Ounces fit water best. This one stays in " + unitWord() + ".");
+      }
+      return;
+    }
+    if (/glass/.test(t) && S.bp.alt) {
+      veeSay("Back to glasses.", function(){ setUnitAlt(false); flash(); });
+      return;
+    }
+
+    /* goal number, commas welcome */
+    var numMatch = t.replace(/,/g, "").match(/(\d+)/);
+    if (numMatch) {
+      var n = parseInt(numMatch[1], 10);
+      if (S.alt && S.bp.alt) n = Math.round(n / S.bp.alt.factor);
+      var clamped = Math.max(S.bp.min, Math.min(S.bp.max, n));
+      var msg;
+      if (n > S.bp.max) {
+        msg = "That is mighty. The ceiling here is " + fmt(dv(S.bp.max)) + " " + unitWord() + ", so there it rests.";
+      } else if (n < S.bp.min) {
+        msg = "Let us keep it honest. The floor is " + fmt(dv(S.bp.min)) + " " + unitWord() + ".";
+      } else {
+        msg = "Goal is now " + fmtV(dv(clamped)) + " " + unitWord() + ".";
+      }
+      veeSay(msg, function(){ setGoal(clamped); flash(); });
+      return;
+    }
+
+    veeSay("Noted. Vee will weave that in.");
+  }
+
+  /* ============================================================ refine send */
+  function doSend(){
+    if (!S) return;
+    var raw = refineInput.value.trim();
+    if (!raw) {
+      refineBar.classList.remove("nudge");
+      void refineBar.offsetWidth;
+      refineBar.classList.add("nudge");
+      refineInput.focus();
+      return;
+    }
+    handleIntent(raw);
+
+    send.classList.add("sent");
+    setTimeout(function(){ send.classList.remove("sent"); }, 1500);
+
+    /* dim a matching Vee idea */
+    Array.prototype.forEach.call(ideasWrap.querySelectorAll(".idea"), function(row){
+      if (row.getAttribute("data-intent") === raw) row.classList.add("applied");
+    });
+
+    refineInput.value = "";
+    refineBar.classList.remove("has-text");
+  }
+  send.addEventListener("click", doSend);
+  refineInput.addEventListener("keydown", function(e){
+    if (e.key === "Enter") doSend();
+  });
+
+  /* ============================================================ type-in helper */
+  function typeInto(input, bar, text, done){
+    if (RM) {
+      input.value = text;
+      bar.classList.add("has-text");
+      done();
+      return;
+    }
+    input.focus();
+    input.value = "";
+    bar.classList.add("has-text");
+    var ci = 0;
+    var typer = setInterval(function(){
+      ci++;
+      input.value = text.slice(0, ci);
+      if (ci >= text.length) {
+        clearInterval(typer);
+        setTimeout(done, 420);
+      }
+    }, 24);
+  }
+
+  /* ============================================================ Vee ideas */
+  var SPARK = '<svg class="spark" viewBox="0 0 24 24"><path d="M12 3c.6 3.9 2.4 6.9 9 9c-6.6 2.1-8.4 5.1-9 9c-.6-3.9-2.4-6.9-9-9c6.6-2.1 8.4-5.1 9-9Z"/></svg>';
+  var GO = '<svg class="go" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>';
+  function buildIdeas(){
+    ideasWrap.innerHTML = "";
+    S.bp.ideas.forEach(function(idea){
+      var row = document.createElement("button");
+      row.className = "idea";
+      row.setAttribute("data-intent", idea.intent);
+      row.innerHTML = SPARK + "<span><b>Vee</b> " + idea.say + "</span>" + GO;
+      row.addEventListener("click", function(){
+        var rows = ideasWrap.querySelectorAll(".idea");
+        Array.prototype.forEach.call(rows, function(r){ r.disabled = true; });
+        typeInto(refineInput, refineBar, idea.intent, function(){
+          doSend();
+          Array.prototype.forEach.call(rows, function(r){ r.disabled = false; });
+        });
+      });
+      ideasWrap.appendChild(row);
+    });
+  }
+
+  /* ============================================================ opening: parse a sentence into a blueprint */
+  function pickBlueprint(text){
+    var t = text.toLowerCase();
+    if (/water|hydrat|drink|glass/.test(t)) return "water";
+    if (/gym|work\s?out|train|lift|exercis/.test(t)) return "gym";
+    if (/spend|money|budget|dollar|cash/.test(t)) return "spend";
+    if (/sleep|bed|rest/.test(t)) return "sleep";
+    if (/step|walk|run/.test(t)) return "steps";
+    return "water";
+  }
+  function buildState(text){
+    var key = pickBlueprint(text);
+    var bp = BP[key];
+    S = {
+      bp: bp,
+      name: bp.name,
+      goal: bp.goal,
+      count: bp.count,
+      values: bp.values.slice(),
+      alt: false,
+      dyn: false,
+      accent: "mint"
+    };
+    /* a number in the opening sentence becomes the goal */
+    var nm = text.replace(/,/g, "").match(/(\d+)/);
+    if (nm) {
+      var n = parseInt(nm[1], 10);
+      if (n >= bp.min && n <= bp.max) S.goal = n;
+    }
+  }
+
+  /* ============================================================ the birth */
+  function clearBirthTimers(){
+    birthTimers.forEach(clearTimeout);
+    birthTimers = [];
+  }
+  function countUp(target, text){
+    if (RM) { ringNum.textContent = text; return; }
+    var t0 = null, dur = 950;
+    function frame(ts){
+      if (!t0) t0 = ts;
+      var p = Math.min(1, (ts - t0) / dur);
+      var eased = 1 - Math.pow(1 - p, 3);
+      ringNum.textContent = pfx() + fmt(target * eased);
+      if (p < 1) requestAnimationFrame(frame);
+      else ringNum.textContent = text;
+    }
+    requestAnimationFrame(frame);
+  }
+  function birth(){
+    /* prepare the piece in its unborn pose */
+    renderIdentity();
+    renderDyn();
+    renderDock();
+    buildIdeas();
+    refineCycler.reset();
+    ghost.textContent = "“" + S.bp.ghosts[0] + "”";
+
+    arc.style.transition = "none";
+    ringRot.style.transition = "none";
+    arc.style.strokeDashoffset = C;
+    ringRot.style.transform = "rotate(0deg)";
+    ringNum.textContent = pfx() + "0";
+    ringUnit.textContent = ringLabel();
+    renderPill();
+    barEls.forEach(function(b){ b.firstElementChild.style.height = "0"; });
+
+    actCraft.hidden = false;
+    actCraft.classList.remove("leave", "born");
+    void actCraft.offsetWidth;
+    arc.style.transition = "";
+    ringRot.style.transition = "";
+    actCraft.classList.add("born");
+    window.scrollTo(0, 0);
+
+    worldPulse();
+    spawnBurst(16);
+
+    if (RM) {
+      renderAll();
+      busy = false;
+      return;
+    }
+    birthTimers.push(setTimeout(function(){
+      var p = Math.min(1, S.count / S.goal);
+      arc.style.strokeDashoffset = (C * (1 - p)).toFixed(1);
+      ringRot.style.transform = "rotate(" + (360 * p).toFixed(1) + "deg)";
+      countUp(dv(S.count), fmtV(dv(S.count)));
+    }, 450));
+    renderBars(true);
+    birthTimers.push(setTimeout(function(){ busy = false; }, 1900));
+  }
+
+  /* ============================================================ act transitions */
+  function submitOpening(){
+    if (busy) return;
+    var text = openInput.value.trim();
+    if (!text) {
+      openBar.classList.remove("nudge");
+      void openBar.offsetWidth;
+      openBar.classList.add("nudge");
+      openInput.focus();
+      return;
+    }
+    busy = true;
+    openInput.blur();
+    buildState(text);
+
+    if (RM) {
+      actOpen.hidden = true;
+      birth();
+      return;
+    }
+    actOpen.classList.add("leave");
+    setTimeout(function(){
+      actOpen.hidden = true;
+      actOpen.classList.remove("leave");
+      beat.hidden = false;
+      void beat.offsetWidth;
+      beat.classList.add("show");
+      setTimeout(function(){
+        beat.classList.remove("show");
+        setTimeout(function(){ beat.hidden = true; }, 300);
+        birth();
+      }, 820);
+    }, 380);
+  }
+  goBtn.addEventListener("click", submitOpening);
+  openInput.addEventListener("keydown", function(e){
+    if (e.key === "Enter") submitOpening();
+  });
+
+  seedBtns.forEach(function(seed){
+    seed.addEventListener("click", function(){
+      if (busy) return;
+      var text = seed.getAttribute("data-seed");
+      seedBtns.forEach(function(x){ x.disabled = true; });
+      typeInto(openInput, openBar, text, function(){
+        seedBtns.forEach(function(x){ x.disabled = false; });
+        submitOpening();
+      });
+    });
+  });
+
+  function startOver(){
+    if (busy) return;
+    busy = true;
+    clearBirthTimers();
+    forceCloseFull();
+    if (confirmTimer) { clearTimeout(confirmTimer); confirmTimer = null; }
+    confirmEl.classList.remove("show", "busy");
+    actCraft.classList.add("leave");
+    setTimeout(function(){
+      actCraft.hidden = true;
+      actCraft.classList.remove("leave", "born");
+      /* reset the bench */
+      S = null;
+      setAccentRaw("mint");
+      refineInput.value = "";
+      refineBar.classList.remove("has-text");
+      cta.classList.remove("added");
+      ctaBusy = false;
+      quiet.innerHTML = "FREE · BUILT INSTANTLY · NO CLAUDE NEEDED";
+      openInput.value = "";
+      openBar.classList.remove("has-text");
+      /* re-enter the opening */
+      actOpen.hidden = false;
+      actOpen.classList.remove("in");
+      void actOpen.offsetWidth;
+      actOpen.classList.add("in");
+      window.scrollTo(0, 0);
+      busy = false;
+    }, RM ? 0 : 380);
+  }
+  function setAccentRaw(which){
+    var iris = which === "iris";
+    document.body.style.setProperty("--acc", iris ? IRIS : MINT);
+    document.body.style.setProperty("--acc-ink", iris ? IRIS_INK : MINT_INK);
+    swMint.classList.toggle("selected", !iris);
+    swIris.classList.toggle("selected", iris);
+  }
+  startOverBtn.addEventListener("click", startOver);
+
+  /* ============================================================ add to dashboard */
+  var ctaBusy = false;
+  cta.addEventListener("click", function(){
+    if (ctaBusy || !S) return;
+    ctaBusy = true;
+    cta.classList.add("added");
+    pop(ringCenter);
+    flash();
+    spawnBurst(10);
+    quiet.innerHTML = "ON YOUR DASHBOARD · <button class=\"again\" id=\"again\">BUILD ANOTHER</button>";
+    document.getElementById("again").addEventListener("click", function(){
+      ctaBusy = false;
+      startOver();
+    });
+    setTimeout(function(){
+      cta.classList.remove("added");
+      ctaBusy = false;
+    }, 2600);
+  });
+
+  /* ============================================================ curtain up */
+  requestAnimationFrame(function(){
+    actOpen.classList.add("in");
+  });
+})();
+</script>
+</body>
+</html>

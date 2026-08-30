@@ -1,0 +1,6 @@
+{
+  "crons": [
+    { "path": "/api/cron/sync-wearables", "schedule": "0 11 * * *" },
+    { "path": "/api/cron/sync-connectors", "schedule": "0 10 * * *" }
+  ]
+}

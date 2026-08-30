@@ -1,0 +1,893 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Vee Remodel Preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+<style>
+  /* ======================================================================
+     VEE · REMODEL PREVIEW
+     The gold-standard /app/create recipe, reproduced as one self-contained
+     screen. Tokens, riseIn, the one easing, and the /welcome atmosphere.
+     ====================================================================== */
+  :root {
+    --bg: #04060a;
+    --mint: #6ee7b7;
+    --mint-hover: #5dd6a6;
+    --mint-ink: #042a1c;
+    --amber: #f59e0b;
+    --tx: #f2f6f4;
+    --tx-dim: rgba(255, 255, 255, 0.62);
+    --tx-faint: rgba(255, 255, 255, 0.36);
+    --line: rgba(167, 243, 208, 0.16);
+    --line-soft: rgba(167, 243, 208, 0.09);
+    --hair: rgba(255, 255, 255, 0.1);
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+    --serif: 'Instrument Serif', 'Iowan Old Style', Georgia, serif;
+    --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    --body: 'Inter', system-ui, sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body { background: var(--bg); }
+
+  body {
+    font-family: var(--body);
+    color: var(--tx);
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+
+  ::selection { background: rgba(110, 231, 183, 0.25); color: #fff; }
+
+  button, input {
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  input { cursor: text; }
+  svg { display: block; }
+  a { color: inherit; text-decoration: none; }
+
+  :focus-visible {
+    outline: 1.5px solid var(--mint);
+    outline-offset: 3px;
+    border-radius: 8px;
+  }
+
+  /* ---------------------------------------------------- the world / atmosphere */
+  .atmosphere {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-image:
+      radial-gradient(60% 50% at 50% 30%,
+        color-mix(in srgb, #6ee7b7 16%, transparent) 0%,
+        color-mix(in srgb, #6ee7b7 6%, transparent) 32%,
+        transparent 65%),
+      radial-gradient(28% 22% at 50% 38%, rgba(255, 226, 181, 0.07) 0%, rgba(255, 226, 181, 0) 70%),
+      radial-gradient(120% 80% at 50% 100%, rgba(14, 38, 30, 0.5) 0%, rgba(4, 6, 10, 0.95) 75%);
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+  }
+  .mountains {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1;
+    height: 34vh;
+    min-height: 200px;
+    pointer-events: none;
+    opacity: 0.8;
+  }
+  .mountains svg { width: 100%; height: 100%; display: block; }
+  .particles {
+    position: fixed;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .particles span {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(233, 239, 233, 0.72);
+    box-shadow: 0 0 6px color-mix(in srgb, #a7f3d0 55%, transparent);
+    animation: drift linear infinite;
+  }
+  @keyframes drift {
+    0%   { transform: translate3d(0, 0, 0); opacity: 0; }
+    10%  { opacity: 0.7; }
+    90%  { opacity: 0.55; }
+    100% { transform: translate3d(var(--dx, 12px), var(--dy, -100vh), 0); opacity: 0; }
+  }
+  .grain {
+    position: fixed;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+    opacity: 0.05;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* ---------------------------------------------------- shared motion */
+  @keyframes riseIn {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes sparkGlow {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: 0.6; transform: scale(0.86); }
+  }
+  @keyframes invite {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(110, 231, 183, 0.22); }
+    50%      { box-shadow: 0 0 0 10px rgba(110, 231, 183, 0); }
+  }
+  /* the one signature moment: the noticed card's soft mint bloom */
+  @keyframes bloom {
+    0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+    36%  { opacity: 0.95; transform: translate(-50%, -50%) scale(1.02); }
+    100% { opacity: 0.16; transform: translate(-50%, -50%) scale(1.1); }
+  }
+  /* the gift beat: the finding's em word brightens at the bloom's 36% peak, then still */
+  @keyframes emReceipt {
+    0%, 30% { color: var(--mint); text-shadow: 0 0 0 rgba(110, 231, 183, 0); }
+    36%     { color: #c4f7de; text-shadow: 0 0 22px rgba(110, 231, 183, 0.7); }
+    64%     { color: var(--mint); text-shadow: 0 0 0 rgba(110, 231, 183, 0); }
+    100%    { color: var(--mint); text-shadow: 0 0 0 rgba(110, 231, 183, 0); }
+  }
+
+  /* ---------------------------------------------------- layout */
+  .page {
+    position: relative;
+    z-index: 5;
+    width: min(600px, 92vw);
+    margin: 0 auto;
+    padding: calc(20px + env(safe-area-inset-top)) 0 calc(46px + env(safe-area-inset-bottom));
+    display: flex;
+    flex-direction: column;
+    gap: 26px;
+  }
+
+  /* ================================================================
+     1 · SLIM HEADER
+     ================================================================ */
+  .head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    animation: riseIn 0.85s var(--ease) 0.05s both;
+  }
+  .back {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    border: 1px solid var(--hair);
+    border-radius: 999px;
+    background: rgba(8, 12, 10, 0.55);
+    padding: 8px 14px 8px 11px;
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    color: var(--tx-dim);
+    transition: border-color 0.3s, color 0.3s, transform 0.3s var(--ease);
+  }
+  .back svg {
+    width: 11px; height: 11px;
+    fill: none; stroke: var(--mint);
+    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  }
+  .greetWrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .greetText { text-align: right; display: flex; flex-direction: column; gap: 2px; }
+  .greetLabel {
+    font-family: var(--mono);
+    font-size: 8.5px;
+    font-weight: 500;
+    letter-spacing: 0.24em;
+    color: var(--mint);
+    opacity: 0.85;
+  }
+  .greetLine {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 23px;
+    line-height: 1.1;
+    color: rgba(255, 255, 255, 0.88);
+  }
+  .mark {
+    flex: none;
+    width: 40px; height: 40px;
+    border-radius: 13px;
+    border: 1px solid var(--line);
+    background: radial-gradient(120% 100% at 50% 0%, rgba(110, 231, 183, 0.14), transparent 70%), rgba(255, 255, 255, 0.02);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 24px;
+    color: var(--mint);
+    line-height: 1;
+  }
+
+  /* ================================================================
+     2 · THE ONE "VITALITY NOTICED" CARD · the loud element
+     ================================================================ */
+  .noticed {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(110, 231, 183, 0.5);
+    border-radius: 20px;
+    background:
+      radial-gradient(120% 70% at 50% 0%, rgba(110, 231, 183, 0.05), transparent 60%),
+      rgba(255, 255, 255, 0.02);
+    box-shadow: 0 26px 70px -30px rgba(0, 0, 0, 0.85), 0 0 60px rgba(110, 231, 183, 0.06);
+    padding: 22px 22px 18px;
+    animation: riseIn 0.9s var(--ease) 0.16s both;
+  }
+  .bloom {
+    position: absolute;
+    left: 50%; top: 34%;
+    width: 130%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(110, 231, 183, 0.28), rgba(110, 231, 183, 0.07) 44%, transparent 68%);
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.16;
+    transform: translate(-50%, -50%);
+    animation: bloom 1.9s var(--ease) 0.3s both;
+  }
+  .noticed > *:not(.bloom) { position: relative; z-index: 1; }
+  .noticedLabel {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.24em;
+    color: var(--mint);
+  }
+  .noticedLabel svg {
+    width: 12px; height: 12px;
+    fill: var(--mint);
+    animation: sparkGlow 3.4s var(--ease) infinite;   /* idle motion #2: the one spark breathe */
+  }
+  .finding {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(27px, 5.6vw, 34px);
+    line-height: 1.14;
+    letter-spacing: -0.01em;
+    color: var(--tx);
+    margin: 14px 0 0;
+  }
+  .finding em {
+    font-style: italic;
+    color: var(--mint);
+    animation: emReceipt 1.9s var(--ease) 0.3s both;   /* synced to the bloom's 36% peak */
+  }
+
+  .receipts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 18px;
+  }
+  .receipt {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--hair);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.02);
+    padding: 7px 13px 7px 11px;
+    font-family: var(--mono);
+    font-size: 9.5px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    color: var(--tx-dim);
+    animation: fadeUp 0.6s var(--ease) both;
+  }
+  .receipt .dot { width: 5px; height: 5px; border-radius: 50%; flex: none; }
+  .receipt .day { color: var(--tx-faint); letter-spacing: 0.14em; }
+  .receipt .good .dot, .dot.good { background: var(--mint); box-shadow: 0 0 6px rgba(110, 231, 183, 0.6); }
+  .dot.warn { background: var(--amber); box-shadow: 0 0 6px rgba(245, 158, 11, 0.55); }
+
+  .impact {
+    margin-top: 16px;
+    padding-left: 12px;
+    border-left: 2px solid var(--line);
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--tx-dim);
+  }
+  .noticedFoot {
+    margin-top: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .another {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--tx-faint);
+    border-bottom: 1px solid var(--hair);
+    padding-bottom: 2px;
+    transition: color 0.3s, border-color 0.3s;
+  }
+  .deepLink {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12.5px;
+    color: var(--mint);
+    transition: color 0.3s, transform 0.3s var(--ease);
+  }
+  .deepLink svg {
+    width: 12px; height: 12px;
+    fill: none; stroke: currentColor;
+    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+    transition: transform 0.3s var(--ease);
+  }
+
+  /* ================================================================
+     3 · CHAT · promoted to the visual center
+     ================================================================ */
+  .chat {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    animation: riseIn 0.9s var(--ease) 0.28s both;
+  }
+  .chatHead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 0 2px 2px;
+  }
+  .chatIntro {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(21px, 4.4vw, 25px);
+    line-height: 1.14;
+    letter-spacing: -0.01em;
+    color: var(--tx);
+  }
+  .claudeCorner {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid var(--hair);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.02);
+    padding: 6px 11px 6px 10px;
+    font-family: var(--mono);
+    font-size: 8.5px;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    color: var(--tx-faint);
+    transition: border-color 0.3s, color 0.3s, transform 0.3s var(--ease);
+  }
+  .claudeCorner svg {
+    width: 11px; height: 11px;
+    fill: none; stroke: var(--mint);
+    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  }
+
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--hair);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.02);
+    padding: 8px 15px 8px 12px;
+    font-size: 12.5px;
+    color: var(--tx-dim);
+    transition: border-color 0.3s, color 0.3s, transform 0.3s var(--ease);
+    animation: fadeUp 0.55s var(--ease) both;
+  }
+  .chip svg { width: 11px; height: 11px; fill: var(--mint); opacity: 0.85; flex: none; }
+
+  .composer {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    height: 60px;
+    border-radius: 18px;
+    padding: 0 8px 0 18px;
+    background: rgba(9, 13, 12, 0.72);
+    border: 1px solid var(--line);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    transition: border-color 0.35s, box-shadow 0.35s;
+  }
+  .composer:focus-within {
+    border-color: rgba(167, 243, 208, 0.34);
+    box-shadow: 0 0 44px rgba(110, 231, 183, 0.09);
+  }
+  .composerSpark { width: 17px; height: 17px; fill: var(--mint); opacity: 0.9; flex: none; }
+  .composer input {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-size: 15.5px;
+    color: var(--tx);
+    caret-color: var(--mint);
+  }
+  .composer input::placeholder { color: var(--tx-faint); }
+  .send {
+    flex: none;
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: var(--mint);
+    color: var(--mint-ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.3s, transform 0.25s var(--ease);
+    animation: invite 1.6s ease-in-out infinite;   /* idle motion #3: the one invite pulse */
+  }
+  .send:active { transform: scale(0.92); }
+  .send svg {
+    width: 18px; height: 18px;
+    fill: none; stroke: currentColor;
+    stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round;
+  }
+
+  /* ================================================================
+     4 · THE VOID · a single collapsed capture input
+     ================================================================ */
+  .void {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    animation: riseIn 0.9s var(--ease) 0.42s both;
+  }
+  .voidBar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    height: 52px;
+    border-radius: 16px;
+    padding: 0 16px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px dashed rgba(255, 255, 255, 0.14);
+    transition: border-color 0.35s, background 0.35s;
+  }
+  .voidBar:focus-within {
+    border-color: rgba(167, 243, 208, 0.3);
+    background: rgba(167, 243, 208, 0.02);
+  }
+  .voidBar svg {
+    width: 15px; height: 15px;
+    fill: none; stroke: var(--tx-faint);
+    stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round;
+    flex: none;
+  }
+  .voidBar input {
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-size: 14.5px;
+    color: var(--tx);
+    caret-color: var(--mint);
+  }
+  .voidBar input::placeholder { color: var(--tx-faint); font-style: italic; font-family: var(--serif); font-size: 16px; }
+  .voidDisclose {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--tx-faint);
+    padding: 2px 2px;
+    transition: color 0.3s;
+  }
+  .voidDisclose svg {
+    width: 11px; height: 11px;
+    fill: none; stroke: currentColor;
+    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+    transition: transform 0.3s var(--ease);
+  }
+
+  /* ================================================================
+     5 · MOOD ROW · 5 line-art faces, 7-day strip behind a tap
+     ================================================================ */
+  .mood {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    align-items: center;
+    padding-top: 4px;
+    animation: riseIn 0.9s var(--ease) 0.5s both;
+  }
+  .moodLabel {
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--tx-faint);
+  }
+  .faces { display: flex; gap: 14px; }
+  .face {
+    width: 46px; height: 46px;
+    border-radius: 50%;
+    border: 1px solid var(--hair);
+    background: rgba(255, 255, 255, 0.02);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.3s, background 0.3s, transform 0.3s var(--ease);
+    animation: fadeUp 0.55s var(--ease) both;
+  }
+  .face svg {
+    width: 24px; height: 24px;
+    fill: none; stroke: var(--tx-dim);
+    stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+    transition: stroke 0.3s;
+  }
+  .face.sel {
+    border-color: rgba(110, 231, 183, 0.55);
+    background: color-mix(in srgb, var(--mint) 10%, transparent);
+    transform: translateY(-2px);
+  }
+  .face.sel svg { stroke: var(--mint); }
+  .moodStrip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--tx-faint);
+    transition: color 0.3s;
+  }
+  .moodStrip svg {
+    width: 11px; height: 11px;
+    fill: none; stroke: currentColor;
+    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+    transition: transform 0.3s var(--ease);
+  }
+  .weekStrip {
+    display: none;
+    gap: 9px;
+    align-items: flex-end;
+  }
+  .weekStrip.open { display: flex; }
+  .weekStrip .col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 7px;
+  }
+  .weekStrip .bar {
+    width: 8px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--mint) 32%, transparent);
+  }
+  .weekStrip .d {
+    font-family: var(--mono);
+    font-size: 7.5px;
+    letter-spacing: 0.14em;
+    color: var(--tx-faint);
+  }
+
+  /* ---------------------------------------------------- hover, pointer devices */
+  @media (hover: hover) {
+    .back:hover { border-color: rgba(167, 243, 208, 0.35); color: var(--tx); transform: translateX(-1px); }
+    .another:hover { color: var(--tx-dim); border-color: rgba(167, 243, 208, 0.3); }
+    .deepLink:hover { color: var(--mint-hover); }
+    .deepLink:hover svg { transform: translateX(2px); }
+    .claudeCorner:hover { border-color: rgba(167, 243, 208, 0.35); color: var(--tx); transform: translateY(-1px); }
+    .chip:hover { border-color: rgba(167, 243, 208, 0.35); color: var(--tx); transform: translateY(-1px); }
+    .send:hover { background: var(--mint-hover); }
+    .voidDisclose:hover { color: var(--tx-dim); }
+    .voidDisclose:hover svg { transform: translateX(2px); }
+    .face:hover { border-color: rgba(167, 243, 208, 0.35); transform: translateY(-2px); }
+    .face:hover svg { stroke: var(--tx); }
+    .moodStrip:hover { color: var(--tx-dim); }
+    .moodStrip:hover svg { transform: translateX(2px); }
+  }
+
+  /* ---------------------------------------------------- reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001s !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001s !important;
+    }
+    .particles span { animation: none !important; opacity: 0.4 !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="atmosphere" aria-hidden="true"></div>
+<div class="mountains" aria-hidden="true">
+  <svg viewBox="0 0 1600 420" preserveAspectRatio="none">
+    <defs>
+      <linearGradient id="mtFar" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#0d1a17" stop-opacity="0" />
+        <stop offset="55%" stop-color="#0d1a17" stop-opacity=".55" />
+        <stop offset="100%" stop-color="#0d1a17" stop-opacity=".95" />
+      </linearGradient>
+      <linearGradient id="mtNear" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#050a09" stop-opacity=".4" />
+        <stop offset="60%" stop-color="#050a09" stop-opacity=".95" />
+        <stop offset="100%" stop-color="#050a09" stop-opacity="1" />
+      </linearGradient>
+    </defs>
+    <path d="M0,300 L120,230 L210,260 L320,180 L430,220 L560,150 L680,210 L820,170 L960,220 L1100,180 L1240,240 L1380,200 L1500,250 L1600,220 L1600,420 L0,420 Z" fill="url(#mtFar)" />
+    <path d="M0,360 L100,320 L220,340 L340,290 L460,330 L590,300 L720,340 L860,310 L1000,350 L1140,310 L1280,355 L1420,320 L1540,360 L1600,340 L1600,420 L0,420 Z" fill="url(#mtNear)" />
+  </svg>
+</div>
+<div class="particles" id="particles" aria-hidden="true"></div>
+<div class="grain" aria-hidden="true"></div>
+
+<main class="page">
+
+  <!-- 1 · header -->
+  <header class="head">
+    <a class="back" href="#" aria-label="Back to dashboard">
+      <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" /></svg>
+      DASHBOARD
+    </a>
+    <div class="greetWrap">
+      <div class="greetText">
+        <span class="greetLabel">VITALITY · VEE</span>
+        <span class="greetLine">Morning, Alex.</span>
+      </div>
+      <div class="mark" aria-hidden="true">V</div>
+    </div>
+  </header>
+
+  <!-- 2 · the one "Vitality noticed" card -->
+  <section class="noticed" id="noticed" aria-label="Vitality noticed">
+    <div class="bloom" id="bloom" aria-hidden="true"></div>
+    <div class="noticedLabel">
+      <svg viewBox="0 0 24 24"><path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4z" /></svg>
+      VITALITY NOTICED
+    </div>
+    <h2 class="finding" id="finding">Your sleep dipped the three nights <em>after</em> your heaviest training days this week.</h2>
+    <div class="receipts" id="receipts"></div>
+    <p class="impact" id="impact">This is pulling your recovery goal off pace. A lighter Thursday would protect the streak.</p>
+    <div class="noticedFoot">
+      <button class="another" id="another">Show me another</button>
+      <a class="deepLink" href="#" >
+        Talk deeper in Claude
+        <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+      </a>
+    </div>
+  </section>
+
+  <!-- 3 · chat, the visual center -->
+  <section class="chat" aria-label="Ask Vee">
+    <div class="chatHead">
+      <h2 class="chatIntro">What do you want to work through?</h2>
+      <a class="claudeCorner" href="#" aria-label="Open this conversation in Claude">
+        <svg viewBox="0 0 24 24"><path d="M7 17L17 7M9 7h8v8" /></svg>
+        OPEN IN CLAUDE
+      </a>
+    </div>
+    <div class="chips" id="chips">
+      <button class="chip"><svg viewBox="0 0 24 24"><path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4z" /></svg>Plan a lighter week</button>
+      <button class="chip"><svg viewBox="0 0 24 24"><path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4z" /></svg>Why is my recovery low?</button>
+      <button class="chip"><svg viewBox="0 0 24 24"><path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4z" /></svg>What should I eat today?</button>
+      <button class="chip"><svg viewBox="0 0 24 24"><path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4z" /></svg>Read my week back to me</button>
+    </div>
+    <div class="composer">
+      <svg class="composerSpark" viewBox="0 0 24 24"><path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4z" /></svg>
+      <input id="ask" type="text" placeholder="Ask Vee anything about your week..." aria-label="Ask Vee" />
+      <button class="send" aria-label="Send">
+        <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+      </button>
+    </div>
+  </section>
+
+  <!-- 4 · the void -->
+  <section class="void" aria-label="The void">
+    <div class="voidBar">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 8.4v7.2M8.4 12h7.2" /></svg>
+      <input type="text" placeholder="Throw a thought in..." aria-label="Throw a thought in" />
+    </div>
+    <button class="voidDisclose">
+      14 thoughts
+      <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+    </button>
+  </section>
+
+  <!-- 5 · mood row -->
+  <section class="mood" aria-label="How are you">
+    <span class="moodLabel">How are you, really?</span>
+    <div class="faces" id="faces">
+      <button class="face" data-i="0" aria-label="Rough">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.2" /><path d="M8 16c1.2-1.6 6.8-1.6 8 0" /><path d="M8.5 9.5h.01M15.5 9.5h.01" /></svg>
+      </button>
+      <button class="face" data-i="1" aria-label="Low">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.2" /><path d="M8.5 15c1-.7 6-.7 7 0" /><path d="M8.5 9.5h.01M15.5 9.5h.01" /></svg>
+      </button>
+      <button class="face" data-i="2" aria-label="Okay">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.2" /><path d="M8.5 15h7" /><path d="M8.5 9.5h.01M15.5 9.5h.01" /></svg>
+      </button>
+      <button class="face sel" data-i="3" aria-label="Good">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.2" /><path d="M8 14c1.2 1.6 6.8 1.6 8 0" /><path d="M8.5 9.5h.01M15.5 9.5h.01" /></svg>
+      </button>
+      <button class="face" data-i="4" aria-label="Great">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.2" /><path d="M7.5 13.5c1.6 2.4 7.4 2.4 9 0" /><path d="M8.5 9.5h.01M15.5 9.5h.01" /></svg>
+      </button>
+    </div>
+    <button class="moodStrip" id="moodStrip">
+      7-day mood
+      <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+    </button>
+    <div class="weekStrip" id="weekStrip" aria-hidden="true"></div>
+  </section>
+
+</main>
+
+<script>
+  // ---------------------------------------------------- drifting particles (~24)
+  (function () {
+    var root = document.getElementById('particles');
+    var N = window.innerWidth < 640 ? 16 : 24;
+    for (var i = 0; i < N; i++) {
+      var s = document.createElement('span');
+      s.style.left = (Math.random() * 100) + '%';
+      s.style.top = (60 + Math.random() * 40) + '%';
+      var size = (1.2 + Math.random() * 1.2).toFixed(2);
+      s.style.width = s.style.height = size + 'px';
+      var dur = (22 + Math.random() * 28) / 1;
+      s.style.animationDuration = dur + 's';
+      s.style.animationDelay = (-Math.random() * dur) + 's';
+      s.style.setProperty('--dx', (Math.random() * 30 - 15).toFixed(0) + 'px');
+      s.style.setProperty('--dy', '-' + (60 + Math.random() * 50).toFixed(0) + 'vh');
+      root.appendChild(s);
+    }
+  })();
+
+  // ---------------------------------------------------- the "noticed" findings
+  var FINDINGS = [
+    {
+      finding: 'Your sleep dipped the three nights <em>after</em> your heaviest training days this week.',
+      receipts: [
+        ['MON', 'deadlift PR', 'good'],
+        ['TUE', 'sleep 6.1h', 'warn'],
+        ['THU', 'recovery 41%', 'warn'],
+        ['3 nights', '6.3h avg', 'warn']
+      ],
+      impact: 'This is pulling your recovery goal off pace. A lighter Thursday would protect the streak.'
+    },
+    {
+      finding: 'You drink the most water on days you <em>train</em>, and least on your desk days.',
+      receipts: [
+        ['MON', '2.9L', 'good'],
+        ['WED', '2.7L', 'good'],
+        ['SAT', '1.1L', 'warn'],
+        ['SUN', '0.9L', 'warn']
+      ],
+      impact: 'Your hydration goal only slips on rest days. One glass on waking would close most of the gap.'
+    },
+    {
+      finding: 'Your calmest journal notes land on mornings you <em>walked</em> before nine.',
+      receipts: [
+        ['TUE', 'walk 22m', 'good'],
+        ['THU', 'walk 18m', 'good'],
+        ['MON', 'no walk', 'warn'],
+        ['FRI', 'no walk', 'warn']
+      ],
+      impact: 'Mood tracks the morning walk more than anything else this month. Worth protecting that habit.'
+    }
+  ];
+
+  var findingEl = document.getElementById('finding');
+  var receiptsEl = document.getElementById('receipts');
+  var impactEl = document.getElementById('impact');
+  var bloomEl = document.getElementById('bloom');
+  var idx = 0;
+
+  function renderReceipts(list) {
+    receiptsEl.innerHTML = '';
+    list.forEach(function (r, i) {
+      var el = document.createElement('span');
+      el.className = 'receipt';
+      el.style.animationDelay = (0.32 + i * 0.06) + 's';
+      el.innerHTML = '<span class="dot ' + r[2] + '"></span><span class="day">' + r[0] + '</span> ' + r[1];
+      receiptsEl.appendChild(el);
+    });
+  }
+  renderReceipts(FINDINGS[0].receipts);
+
+  document.getElementById('another').addEventListener('click', function () {
+    idx = (idx + 1) % FINDINGS.length;
+    var f = FINDINGS[idx];
+    findingEl.innerHTML = f.finding;
+    impactEl.textContent = f.impact;
+    renderReceipts(f.receipts);
+    // replay the signature bloom + em gift beat, gently (the fresh em node restarts its own animation)
+    bloomEl.style.animation = 'none';
+    void bloomEl.offsetWidth;
+    bloomEl.style.animation = 'bloom 1.9s var(--ease) 0.3s both';
+  });
+
+  // ---------------------------------------------------- suggestion chips -> composer
+  var ask = document.getElementById('ask');
+  document.getElementById('chips').addEventListener('click', function (e) {
+    var chip = e.target.closest('.chip');
+    if (!chip) return;
+    ask.value = chip.textContent.trim();
+    ask.focus();
+  });
+
+  // ---------------------------------------------------- mood faces
+  document.getElementById('faces').addEventListener('click', function (e) {
+    var f = e.target.closest('.face');
+    if (!f) return;
+    this.querySelectorAll('.face').forEach(function (x) { x.classList.remove('sel'); });
+    f.classList.add('sel');
+  });
+
+  // ---------------------------------------------------- 7-day strip (behind a tap)
+  var strip = document.getElementById('weekStrip');
+  var heights = [30, 22, 40, 34, 46, 38, 42];
+  var days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+  heights.forEach(function (h, i) {
+    var col = document.createElement('div');
+    col.className = 'col';
+    col.innerHTML = '<div class="bar" style="height:' + h + 'px"></div><div class="d">' + days[i] + '</div>';
+    strip.appendChild(col);
+  });
+  document.getElementById('moodStrip').addEventListener('click', function () {
+    strip.classList.toggle('open');
+  });
+</script>
+</body>
+</html>
