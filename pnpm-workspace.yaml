@@ -1,4 +1,0 @@
-# pnpm 10 blocks dependency build scripts by default. Nothing in this repo
-# needs them at install time (@sentry/cli only builds for source-map upload,
-# which auto-skips without SENTRY_AUTH_TOKEN), so none are allowed.
-onlyBuiltDependencies: []
